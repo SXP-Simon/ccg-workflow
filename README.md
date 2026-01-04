@@ -28,10 +28,12 @@
 
 ### 前置要求
 
-- Go 1.21+
 - Python 3.8+
 - Claude Code CLI
 - Auggie MCP（安装脚本会自动 patch）
+- Codex CLI / Gemini CLI
+
+> **注意**：不需要安装 Go，已提供预编译二进制文件
 
 ### 安装
 
@@ -51,8 +53,8 @@ python install.py
 
 安装脚本会自动：
 1. ✅ 安装核心工作流指令
-2. ✅ 安装 11 个斜杠命令（`/ccg:xxx` 格式）
-3. ✅ 编译 codeagent-wrapper
+2. ✅ 安装 17 个斜杠命令（`/ccg:xxx` 格式）
+3. ✅ 编译 codeagent-wrapper（或使用预编译二进制）
 4. ✅ Patch Auggie MCP（启用 prompt-enhancer，自动备份原文件）
 
 ### 使用
@@ -60,6 +62,24 @@ python install.py
 ```bash
 # 完整的多模型开发工作流（含 Prompt 增强）
 /ccg:dev "实现用户认证功能"
+
+# 智能路由代码生成
+/ccg:code "添加用户注册表单"
+
+# UltraThink 调试
+/ccg:debug "登录接口返回 500 错误"
+
+# 多模型测试生成
+/ccg:test "为用户服务添加单元测试"
+
+# 质量门控修复（90%+ 通过）
+/ccg:bugfix "密码重置邮件发送失败"
+
+# 深度分析
+/ccg:think "评估微服务拆分方案"
+
+# 性能优化
+/ccg:optimize "优化首页加载速度"
 
 # 前端任务 → Gemini
 /ccg:frontend "创建登录表单组件"
@@ -101,6 +121,12 @@ python install.py
 | 命令 | 用途 | 模型路由 |
 |------|------|----------|
 | `/ccg:dev` | 完整6阶段开发工作流（含Prompt增强） | Auggie + Codex + Gemini |
+| `/ccg:code` | 多模型代码生成（智能路由） | 前端→Gemini / 后端→Codex |
+| `/ccg:debug` | UltraThink 多模型调试 | Codex + Gemini 并行诊断 |
+| `/ccg:test` | 多模型测试生成 | Codex 后端测试 + Gemini 前端测试 |
+| `/ccg:bugfix` | 质量门控修复（90%+ 通过） | 双模型交叉验证 |
+| `/ccg:think` | 深度分析 | 双模型并行分析 |
+| `/ccg:optimize` | 性能优化 | Codex 后端 + Gemini 前端 |
 | `/ccg:frontend` | 前端/UI/样式任务 | Gemini |
 | `/ccg:backend` | 后端/逻辑/算法任务 | Codex |
 | `/ccg:review` | 代码审查（无参数自动审查 git diff） | Codex + Gemini |
@@ -154,13 +180,24 @@ python install.py
 
 ```
 ccg/
-├── codeagent-wrapper/           # Go 多后端调用工具
+├── bin/                         # 预编译二进制文件
+│   ├── codeagent-wrapper-darwin-amd64
+│   ├── codeagent-wrapper-darwin-arm64
+│   ├── codeagent-wrapper-linux-amd64
+│   └── codeagent-wrapper-windows-amd64.exe
+├── codeagent-wrapper/           # Go 多后端调用工具源码
 │   ├── main.go
 │   ├── backend.go
 │   └── ...
 ├── commands/
 │   └── ccg/                     # /ccg:xxx 命令命名空间
 │       ├── dev.md               # /ccg:dev 完整工作流
+│       ├── code.md              # /ccg:code 多模型代码生成
+│       ├── debug.md             # /ccg:debug UltraThink 调试
+│       ├── test.md              # /ccg:test 多模型测试生成
+│       ├── bugfix.md            # /ccg:bugfix 质量门控修复
+│       ├── think.md             # /ccg:think 深度分析
+│       ├── optimize.md          # /ccg:optimize 性能优化
 │       ├── frontend.md          # /ccg:frontend 前端任务
 │       ├── backend.md           # /ccg:backend 后端任务
 │       ├── review.md            # /ccg:review 代码审查

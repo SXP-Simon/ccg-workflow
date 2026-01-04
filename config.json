@@ -19,7 +19,7 @@
           "type": "merge_dir",
           "source": "commands",
           "target": "commands",
-          "description": "安装 /ccg:xxx 命令 (11个斜杠命令)"
+          "description": "安装 /ccg:xxx 命令 (17个斜杠命令)"
         },
         {
           "type": "build_go",
