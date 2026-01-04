@@ -363,7 +363,7 @@ Copyright (c) 2025 fengshao1227
 
 ## 致谢
 
-- **[cexll/myclaude](https://github.com/cexll/myclaude)** - codeagent-wrapper 多后端调用工具的 Go 代码来源
+- **[cexll/myclaude](https://github.com/cexll/myclaude)** - codeagent-wrapper 多后端调用工具的 Go 代码来源，以及 `/ccg:code`、`/ccg:debug`、`/ccg:test`、`/ccg:bugfix`、`/ccg:think`、`/ccg:optimize` 命令的设计参考
 - **[UfoMiao/zcf](https://github.com/UfoMiao/zcf)** - Git 工具（commit、rollback、clean-branches、worktree）和项目初始化（init）命令来源
 - **[GudaStudio/skills](https://github.com/GuDaStudio/skills)** - 智能路由（前端→Gemini、后端→Codex）的设计理念
 - **[linux.do 社区](https://linux.do/t/topic/1280612)** - Auggie MCP prompt-enhancer 补丁
