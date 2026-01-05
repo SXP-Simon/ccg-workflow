@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -65,6 +67,47 @@ func defaultIsTerminal() bool {
 
 func isTerminal() bool {
 	return isTerminalFn()
+}
+
+// injectRoleFile processes ROLE_FILE: directives in task text
+// Format: "ROLE_FILE: <path>" on a single line
+// Replaces the line with the content of the specified file
+func injectRoleFile(taskText string) (string, error) {
+	// Match "ROLE_FILE: <path>" at the beginning of a line
+	roleFilePattern := regexp.MustCompile(`(?m)^ROLE_FILE:\s*(.+)$`)
+
+	result := roleFilePattern.ReplaceAllStringFunc(taskText, func(match string) string {
+		// Extract file path
+		submatches := roleFilePattern.FindStringSubmatch(match)
+		if len(submatches) < 2 {
+			logWarn(fmt.Sprintf("Invalid ROLE_FILE format: %s", match))
+			return match
+		}
+
+		filePath := strings.TrimSpace(submatches[1])
+
+		// Expand ~ to home directory
+		if strings.HasPrefix(filePath, "~/") {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				logWarn(fmt.Sprintf("Failed to get home directory: %v", err))
+				return match
+			}
+			filePath = filepath.Join(home, filePath[2:])
+		}
+
+		// Read file content
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			logWarn(fmt.Sprintf("Failed to read ROLE_FILE '%s': %v", filePath, err))
+			return match // Keep original line if file read fails
+		}
+
+		logInfo(fmt.Sprintf("Injected ROLE_FILE: %s (%d bytes)", filePath, len(content)))
+		return string(content)
+	})
+
+	return result, nil
 }
 
 func getEnv(key, defaultValue string) string {

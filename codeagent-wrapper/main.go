@@ -241,6 +241,13 @@ func run() (exitCode int) {
 				if strings.TrimSpace(cfg.Tasks[i].Backend) == "" {
 					cfg.Tasks[i].Backend = backendName
 				}
+				// Inject ROLE_FILE content if present
+				injectedTask, err := injectRoleFile(cfg.Tasks[i].Task)
+				if err != nil {
+					logWarn(fmt.Sprintf("Failed to inject ROLE_FILE for task %s: %v", cfg.Tasks[i].ID, err))
+				} else {
+					cfg.Tasks[i].Task = injectedTask
+				}
 			}
 
 			timeoutSec := resolveTimeout()
@@ -338,6 +345,11 @@ func run() (exitCode int) {
 			logError("Explicit stdin mode requires task input from stdin")
 			return 1
 		}
+		// Inject ROLE_FILE content if present
+		taskText, err = injectRoleFile(taskText)
+		if err != nil {
+			logWarn(fmt.Sprintf("Failed to inject ROLE_FILE: %v", err))
+		}
 		piped = !isTerminal()
 	} else {
 		pipedTask, err := readPipedTask()
@@ -347,7 +359,11 @@ func run() (exitCode int) {
 		}
 		piped = pipedTask != ""
 		if piped {
-			taskText = pipedTask
+			// Inject ROLE_FILE content if present
+			taskText, err = injectRoleFile(pipedTask)
+			if err != nil {
+				logWarn(fmt.Sprintf("Failed to inject ROLE_FILE: %v", err))
+			}
 		} else {
 			taskText = cfg.Task
 		}
