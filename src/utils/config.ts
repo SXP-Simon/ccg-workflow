@@ -42,10 +42,11 @@ export function createDefaultConfig(options: {
   language: SupportedLang
   routing: ModelRouting
   installedWorkflows: string[]
+  mcpProvider?: string
 }): CcgConfig {
   return {
     general: {
-      version: '1.3.4',
+      version: '1.3.5',
       language: options.language,
       createdAt: new Date().toISOString(),
     },
@@ -59,7 +60,7 @@ export function createDefaultConfig(options: {
       backup: join(CCG_DIR, 'backup'),
     },
     mcp: {
-      provider: 'ace-tool',
+      provider: options.mcpProvider || 'ace-tool',
       setup_url: 'https://linux.do/t/topic/284963',
       tools: {
         code_search_ace: 'mcp__ace-tool__search_context',
