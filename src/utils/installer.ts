@@ -293,6 +293,29 @@ ${workflow.description}
     }
   }
 
+  // Install agents directory (subagents for init-project command)
+  const agentsSrcDir = join(templateDir, 'commands', 'agents')
+  const agentsDestDir = join(commandsDir, 'agents')
+  if (await fs.pathExists(agentsSrcDir)) {
+    try {
+      await fs.ensureDir(agentsDestDir)
+      const agentFiles = await fs.readdir(agentsSrcDir)
+      for (const file of agentFiles) {
+        if (file.endsWith('.md')) {
+          const srcFile = join(agentsSrcDir, file)
+          const destFile = join(agentsDestDir, file)
+          if (force || !(await fs.pathExists(destFile))) {
+            await fs.copy(srcFile, destFile)
+          }
+        }
+      }
+    }
+    catch (error) {
+      result.errors.push(`Failed to install agents: ${error}`)
+      result.success = false
+    }
+  }
+
   // Install prompts (codex, gemini, claude role definitions)
   const promptsTemplateDir = join(templateDir, 'prompts')
   if (await fs.pathExists(promptsTemplateDir)) {
