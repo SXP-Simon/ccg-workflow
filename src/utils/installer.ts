@@ -210,6 +210,28 @@ const WORKFLOW_CONFIGS: WorkflowConfig[] = [
     description: '初始化项目 AI 上下文，生成/更新根级与模块级 CLAUDE.md 索引',
     descriptionEn: 'Initialize project AI context, generate/update root and module level CLAUDE.md index',
   },
+  {
+    id: 'scan',
+    name: '智能仓库扫描',
+    nameEn: 'Smart Repository Scan',
+    category: 'planning',
+    commands: ['scan'],
+    defaultSelected: true,
+    order: 31,
+    description: '智能仓库扫描 - 生成项目上下文报告（技术栈、API、数据模型、组件结构）',
+    descriptionEn: 'Smart repository scan - generate project context report (tech stack, APIs, data models, components)',
+  },
+  {
+    id: 'feat',
+    name: '智能功能开发',
+    nameEn: 'Smart Feature Development',
+    category: 'planning',
+    commands: ['feat'],
+    defaultSelected: true,
+    order: 32,
+    description: '智能功能开发 - 自动规划、设计、实施（支持需求规划/讨论迭代/执行实施）',
+    descriptionEn: 'Smart feature development - auto plan, design, implement (supports planning/iteration/execution modes)',
+  },
 ]
 
 export function getWorkflowConfigs(): WorkflowConfig[] {

@@ -72,10 +72,12 @@ skills-v2/
 │   ├── executor.go                # 任务执行器
 │   ├── logger.go                  # 日志系统
 │   └── config.go                  # 配置管理
-├── commands/ccg/                  # /ccg:xxx 命令 (17个)
-│   ├── agents/                    # 子智能体（供 init 命令使用）
+├── commands/ccg/                  # /ccg:xxx 命令 (19个)
+│   ├── agents/                    # 子智能体（4个）
 │   │   ├── get-current-datetime.md   # 获取当前时间戳
-│   │   └── init-architect.md         # 初始化架构师
+│   │   ├── init-architect.md         # 初始化架构师
+│   │   ├── planner.md                # 任务规划师（WBS 分解）
+│   │   └── ui-ux-designer.md         # UI/UX 设计师
 │   ├── dev.md                     # 完整开发工作流
 │   ├── code.md                    # 智能代码生成
 │   ├── debug.md                   # UltraThink 调试
@@ -88,6 +90,8 @@ skills-v2/
 │   ├── review.md                  # 代码审查
 │   ├── analyze.md                 # 技术分析
 │   ├── enhance.md                 # Prompt 增强
+│   ├── scan.md                    # 智能仓库扫描（新增）
+│   ├── feat.md                    # 智能功能开发（新增）
 │   ├── commit.md                  # Git 智能提交
 │   ├── rollback.md                # 交互式回滚
 │   ├── clean-branches.md          # 清理分支
@@ -132,11 +136,13 @@ skills-v2/
 | `/ccg:clean-branches` | 清理分支：安全查找并清理已合并分支 |
 | `/ccg:worktree` | Worktree 管理：在 `../.ccg/项目名/` 下创建 |
 
-### 项目初始化
+### 项目初始化与规划
 
 | 命令 | 用途 |
 |------|------|
 | `/ccg:init` | 初始化项目 AI 上下文，生成 CLAUDE.md 索引 |
+| `/ccg:scan` | **智能仓库扫描**：生成项目上下文报告（技术栈、API、数据模型、组件结构）|
+| `/ccg:feat` | **智能功能开发**：自动规划（planner + ui-ux-designer）→ 实施（多模型路由）→ 审查 |
 
 ---
 
