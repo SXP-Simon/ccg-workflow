@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-01-05 🔒
+
+### 安全修复：Windows PATH 配置方法
+
+#### 问题描述
+- Windows 安装时使用 `setx` 命令配置 PATH 存在 **1024 字符限制**
+- 如果用户 PATH 已经很长，使用 `setx PATH "%PATH%;新路径"` 会导致：
+  - PATH 被截断到 1024 字符
+  - 超出部分的路径丢失
+  - 可能破坏现有系统配置
+
+#### 修复方案
+
+**修改位置**：`src/commands/init.ts:281-299`
+
+**旧代码**（有风险）：
+```typescript
+console.log(ansis.gray(`     [System.Environment]::SetEnvironmentVariable('PATH', "$env:PATH;${result.binPath.replace(/\//g, '\\')}", 'User')`))
+```
+
+**新代码**（安全追加）：
+```typescript
+const windowsPath = result.binPath.replace(/\//g, '\\')
+console.log(ansis.gray(`     $currentPath = [System.Environment]::GetEnvironmentVariable('PATH', 'User')`))
+console.log(ansis.gray(`     $newPath = '${windowsPath}'`))
+console.log(ansis.gray(`     if ($currentPath -notlike "*$newPath*") {`))
+console.log(ansis.gray(`         [System.Environment]::SetEnvironmentVariable('PATH', "$currentPath;$newPath", 'User')`))
+console.log(ansis.gray(`     }`))
+```
+
+#### 新方法优势
+- ✅ **无字符限制**：PowerShell `SetEnvironmentVariable` 支持最大 32767 字符
+- ✅ **安全追加**：先读取当前 PATH，再追加新路径
+- ✅ **重复检测**：使用 `-notlike` 判断路径是否已存在，避免重复添加
+- ✅ **向下兼容**：不影响 macOS/Linux 自动配置逻辑
+- ✅ **不影响旧版**：仅影响新安装用户，不破坏现有配置
+
+#### 影响范围
+- **仅 Windows 用户**：修改仅影响 Windows 平台的 PATH 配置提示
+- **macOS/Linux**：继续使用自动写入 `.zshrc`/`.bashrc` 的方式（无影响）
+- **旧版 install.py**：Python 脚本中的 `setx` 提示保持不变（已弃用）
+
+---
+
 ## [1.3.2] - 2026-01-05 🐛
 
 ### 关键 Bug 修复：MCP 配置缺失

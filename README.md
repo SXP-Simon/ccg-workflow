@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
 
-> **最新版本 v1.3.2**：修复 MCP 配置缺失问题（关键 bug 修复）
+> **最新版本 v1.3.3**：修复 Windows PATH 配置安全问题
 
 </div>
 
@@ -16,18 +16,24 @@
 
 ## 🎉 最新更新
 
-### v1.3.2 - MCP 配置缺失修复 🐛
+### v1.3.3 - Windows PATH 配置安全修复 🔒
+- ✅ **安全修复**：Windows PATH 配置改用安全追加方法，避免 `setx` 1024 字符限制
+- ✅ **新方法**：使用 PowerShell `[System.Environment]::GetEnvironmentVariable` 先读取后追加
+- ✅ **重复检测**：自动检查路径是否已存在，避免重复添加
+- ✅ **无字符限制**：支持超长 PATH（最大 32767 字符）
+- ✅ **向下兼容**：不影响现有用户配置
+
+<details>
+<summary>v1.3.2 - MCP 配置缺失修复 (2026-01-05)</summary>
+
 - ✅ **关键修复**：安装后 `~/.ccg/config.toml` 现在包含完整的 `[mcp]` 配置部分
 - ✅ **类型安全**：添加 `CcgConfig.mcp` TypeScript 接口定义
 - ✅ **默认配置**：`createDefaultConfig` 自动生成完整 MCP 配置
-  - `provider = "ace-tool"`（默认）
-  - `setup_url` 指向配置教程
-  - `tools.*` 工具映射（code_search + prompt_enhance）
-  - `query_param_*` 参数名映射
 - ✅ **配置版本**：配置文件版本号从 1.0.0 升级到 1.3.2
+</details>
 
 <details>
-<summary>v1.3.1 - 命令模板修正</summary>
+<summary>v1.3.1 - 命令模板修正 (2026-01-05)</summary>
 
 - ✅ **说明修正**：澄清 auggie 也支持 Prompt 增强功能（需按教程配置）
 - ✅ **模板更新**：修正 `/ccg:dev` 和 `/ccg:enhance` 命令的提示信息

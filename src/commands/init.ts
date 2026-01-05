@@ -290,7 +290,12 @@ export async function init(options: InitOptions = {}): Promise<void> {
         console.log(ansis.gray(`     4. ${i18n.t('init:windowsStep4')}`))
         console.log()
         console.log(ansis.cyan(`  ${i18n.t('init:orUsePowerShell')}`))
-        console.log(ansis.gray(`     [System.Environment]::SetEnvironmentVariable('PATH', "$env:PATH;${result.binPath.replace(/\//g, '\\')}", 'User')`))
+        const windowsPath = result.binPath.replace(/\//g, '\\')
+        console.log(ansis.gray(`     $currentPath = [System.Environment]::GetEnvironmentVariable('PATH', 'User')`))
+        console.log(ansis.gray(`     $newPath = '${windowsPath}'`))
+        console.log(ansis.gray(`     if ($currentPath -notlike "*$newPath*") {`))
+        console.log(ansis.gray(`         [System.Environment]::SetEnvironmentVariable('PATH', "$currentPath;$newPath", 'User')`))
+        console.log(ansis.gray(`     }`))
       }
       else {
         // macOS/Linux: Offer auto-configuration

@@ -45,7 +45,7 @@ export function createDefaultConfig(options: {
 }): CcgConfig {
   return {
     general: {
-      version: '1.3.2',
+      version: '1.3.3',
       language: options.language,
       createdAt: new Date().toISOString(),
     },
