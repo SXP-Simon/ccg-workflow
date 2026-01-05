@@ -21,7 +21,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 DEFAULT_INSTALL_DIR = "~/.claude"
 DEFAULT_CONFIG = "config.json"
@@ -149,7 +149,7 @@ def check_go_installed() -> bool:
         return False
 
 
-def find_auggie_mjs() -> Path | None:
+def find_auggie_mjs() -> Optional[Path]:
     """查找 Auggie MCP 的 augment.mjs 文件"""
     for path_str in AUGGIE_PATHS:
         path = Path(path_str).expanduser()
@@ -161,7 +161,7 @@ def find_auggie_mjs() -> Path | None:
 def patch_auggie_mcp(
     patch_file: Path,
     verbose: bool = False
-) -> tuple[bool, str]:
+) -> Tuple[bool, str]:
     """
     使用增强版 augment.mjs 修补 Auggie MCP
     返回 (成功, 消息)
@@ -202,7 +202,7 @@ def patch_auggie_mcp(
         return False, f"应用补丁失败: {e}"
 
 
-def get_prebuilt_binary(source_dir: Path) -> Path | None:
+def get_prebuilt_binary(source_dir: Path) -> Optional[Path]:
     """查找预编译的二进制文件"""
     system = platform.system().lower()
     machine = platform.machine().lower()
@@ -236,7 +236,7 @@ def build_go_binary(
     source_dir: Path,
     binary_name: str,
     verbose: bool = False
-) -> tuple[bool, Path | None]:
+) -> Tuple[bool, Optional[Path]]:
     if not check_go_installed():
         print("  ❌ Go 未安装，请先安装 Go:", file=sys.stderr)
         print("     https://go.dev/doc/install", file=sys.stderr)
@@ -281,7 +281,7 @@ def build_go_binary(
 def install_binary_to_path(
     binary_path: Path,
     verbose: bool = False,
-    target_name: str | None = None
+    target_name: Optional[str] = None
 ) -> bool:
     # 确定目标文件名
     if target_name:
@@ -418,8 +418,10 @@ def execute_operation(
 
             success, message = patch_auggie_mcp(src_path, verbose)
             if not success:
-                print(f"  ⚠️  {message}", file=sys.stderr)
-                return False
+                # Auggie MCP 未安装不算致命错误，只是跳过
+                print(f"  ⚠️  {message}")
+                print(f"  ℹ️  跳过 Auggie MCP 补丁（可稍后手动安装）")
+                return True  # 返回 True，不阻止其他安装
             if verbose:
                 print(f"  ℹ️  {message}")
 
