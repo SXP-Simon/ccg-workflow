@@ -8,13 +8,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
 
-> **最新版本 v1.3.0**：MCP 动态选择系统 - 安装时可选 ace-tool / auggie，命令模板自动适配
+> **最新版本 v1.3.1**：命令模板修正 - 澄清 auggie 也支持 Prompt 增强（需配置）
 
 </div>
 
 ---
 
 ## 🎉 最新更新
+
+### v1.3.1 - 命令模板修正
+- ✅ **说明修正**：澄清 auggie 也支持 Prompt 增强功能（需按教程配置）
+- ✅ **模板更新**：修正 `/ccg:dev` 和 `/ccg:enhance` 命令的提示信息
+- ✅ **配置说明**：`prompt_enhance_auggie = ""` 改为"留空表示未配置，按教程配置后填入工具名"
+- ✅ **用户体验**：提供配置教程链接，不再误导用户认为 auggie 不支持 Prompt 增强
 
 ### v1.3.0 - MCP 动态选择系统 ⭐
 - ✅ **多 MCP 支持**：安装时可选 ace-tool（开箱即用Prompt增强+代码检索）或 auggie（官方原版，代码检索+可选Prompt增强）
@@ -340,7 +346,7 @@ pnpm start
 
 ```toml
 [general]
-version = "1.3.0"
+version = "1.3.1"
 language = "zh-CN"
 
 [mcp]
