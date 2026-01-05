@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
 
-> **最新版本 v1.3.1**：命令模板修正 - 澄清 auggie 也支持 Prompt 增强（需配置）
+> **最新版本 v1.3.2**：修复 MCP 配置缺失问题（关键 bug 修复）
 
 </div>
 
@@ -16,11 +16,24 @@
 
 ## 🎉 最新更新
 
-### v1.3.1 - 命令模板修正
+### v1.3.2 - MCP 配置缺失修复 🐛
+- ✅ **关键修复**：安装后 `~/.ccg/config.toml` 现在包含完整的 `[mcp]` 配置部分
+- ✅ **类型安全**：添加 `CcgConfig.mcp` TypeScript 接口定义
+- ✅ **默认配置**：`createDefaultConfig` 自动生成完整 MCP 配置
+  - `provider = "ace-tool"`（默认）
+  - `setup_url` 指向配置教程
+  - `tools.*` 工具映射（code_search + prompt_enhance）
+  - `query_param_*` 参数名映射
+- ✅ **配置版本**：配置文件版本号从 1.0.0 升级到 1.3.2
+
+<details>
+<summary>v1.3.1 - 命令模板修正</summary>
+
 - ✅ **说明修正**：澄清 auggie 也支持 Prompt 增强功能（需按教程配置）
 - ✅ **模板更新**：修正 `/ccg:dev` 和 `/ccg:enhance` 命令的提示信息
 - ✅ **配置说明**：`prompt_enhance_auggie = ""` 改为"留空表示未配置，按教程配置后填入工具名"
 - ✅ **用户体验**：提供配置教程链接，不再误导用户认为 auggie 不支持 Prompt 增强
+</details>
 
 ### v1.3.0 - MCP 动态选择系统 ⭐
 - ✅ **多 MCP 支持**：安装时可选 ace-tool（开箱即用Prompt增强+代码检索）或 auggie（官方原版，代码检索+可选Prompt增强）

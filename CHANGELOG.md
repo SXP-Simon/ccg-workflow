@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-01-05 🐛
+
+### 关键 Bug 修复：MCP 配置缺失
+
+#### 问题描述
+- 安装后 `~/.ccg/config.toml` 缺少 `[mcp]` 配置部分
+- TypeScript 类型定义 `CcgConfig` 未包含 `mcp` 字段
+- `createDefaultConfig` 函数未生成 MCP 相关配置
+
+#### 修复内容
+
+- **类型定义更新** (`src/types/index.ts`):
+  ```typescript
+  export interface CcgConfig {
+    // ... 其他字段
+    mcp: {
+      provider: string
+      setup_url: string
+      tools: {
+        code_search_ace: string
+        code_search_auggie: string
+        prompt_enhance_ace: string
+        prompt_enhance_auggie: string
+        query_param_ace: string
+        query_param_auggie: string
+      }
+    }
+  }
+  ```
+
+- **配置生成更新** (`src/utils/config.ts`):
+  - `createDefaultConfig` 函数新增 `mcp` 字段生成逻辑
+  - 默认配置：`provider = "ace-tool"`
+  - 包含完整的工具映射和参数名配置
+  - 配置文件版本号从 `1.0.0` 升级到 `1.3.2`
+
+- **生成的配置结构**:
+  ```toml
+  [general]
+  version = "1.3.2"
+
+  [mcp]
+  provider = "ace-tool"
+  setup_url = "https://linux.do/t/topic/284963"
+
+  [mcp.tools]
+  code_search_ace = "mcp__ace-tool__search_context"
+  code_search_auggie = "mcp__auggie-mcp__codebase-retrieval"
+  prompt_enhance_ace = "mcp__ace-tool__enhance_prompt"
+  prompt_enhance_auggie = ""
+  query_param_ace = "query"
+  query_param_auggie = "information_request"
+  ```
+
+#### 影响
+- 修复后，所有新安装都会自动生成完整的 MCP 配置
+- 命令模板（如 `/ccg:dev`, `/ccg:enhance`）可以正确读取 MCP 工具映射
+- 用户无需手动编辑配置文件即可使用 MCP 功能
+
+---
+
+## [1.3.1] - 2026-01-05
+
+### 命令模板修正
+
+- **说明修正**：澄清 auggie 也支持 Prompt 增强功能（需按教程配置）
+- **模板更新**：修正 `/ccg:dev` 和 `/ccg:enhance` 命令的提示信息
+  - 从"auggie 不支持"改为"未配置 Prompt 增强功能"
+  - 提供配置教程链接
+- **配置注释**：更新 `prompt_enhance_auggie = ""` 的说明
+
+---
+
 ## [1.3.0] - 2026-01-05 ⭐
 
 ### 重大更新：MCP 动态选择系统
