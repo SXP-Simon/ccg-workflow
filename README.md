@@ -6,7 +6,7 @@
 
 [![npm version](https://img.shields.io/npm/v/ccg-workflow.svg)](https://www.npmjs.com/package/ccg-workflow) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code) [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-Supported-orange.svg)](https://github.com/openai/openai-python) [![Gemini CLI](https://img.shields.io/badge/Gemini%20CLI-Supported-purple.svg)](https://ai.google.dev/)
 
-> **最新版本 v1.3.3**：修复 Windows PATH 配置安全问题
+> **最新版本 v1.3.5**：MCP 工具选择功能 + 默认中文界面
 
 </div>
 
@@ -14,12 +14,27 @@
 
 ## 🎉 最新更新
 
-### v1.3.3 - Windows PATH 配置安全修复 🔒
+### v1.3.5 - MCP 工具选择功能 🎯
+- ✅ **交互式选择**：新增 MCP 工具选择菜单（ace-tool / auggie / 跳过）
+- ✅ **ace-tool**：推荐选项，开箱即用含 Prompt 增强 + 代码检索
+- ✅ **auggie**：官方版本，代码检索 + 可选 Prompt 增强（提示配置教程）
+- ✅ **灵活配置**：允许跳过 MCP 配置，稍后手动配置
+- ✅ **智能保存**：用户选择自动保存到 `~/.ccg/config.toml`
+
+### v1.3.4 - 默认语言修复 🌏
+- ✅ **中文界面**：修复 `npx ccg-workflow` 默认显示英文的问题
+- ✅ **默认设置**：将默认语言改为中文（zh-CN）
+- ✅ **用户体验**：国内用户无需手动选择语言
+
+<details>
+<summary>v1.3.3 - Windows PATH 配置安全修复 (2026-01-05)</summary>
+
 - ✅ **安全修复**：Windows PATH 配置改用安全追加方法，避免 `setx` 1024 字符限制
 - ✅ **新方法**：使用 PowerShell `[System.Environment]::GetEnvironmentVariable` 先读取后追加
 - ✅ **重复检测**：自动检查路径是否已存在，避免重复添加
 - ✅ **无字符限制**：支持超长 PATH（最大 32767 字符）
 - ✅ **向下兼容**：不影响现有用户配置
+</details>
 
 <details>
 <summary>v1.3.2 - MCP 配置缺失修复 (2026-01-05)</summary>
