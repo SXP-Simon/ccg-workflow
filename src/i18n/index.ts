@@ -1,0 +1,317 @@
+import type { SupportedLang } from '../types'
+import i18next from 'i18next'
+
+export const i18n = i18next
+
+const zhCN = {
+  common: {
+    yes: '是',
+    no: '否',
+    confirm: '确认',
+    cancel: '取消',
+    back: '返回',
+    exit: '退出',
+    success: '成功',
+    error: '错误',
+    warning: '警告',
+    info: '信息',
+    loading: '加载中...',
+    processing: '处理中...',
+    completed: '已完成',
+    failed: '失败',
+  },
+  cli: {
+    help: {
+      commands: '命令',
+      commandDescriptions: {
+        showMenu: '显示交互式菜单（默认）',
+        initConfig: '初始化 CCG 多模型协作系统',
+      },
+      shortcuts: '快捷方式:',
+      shortcutDescriptions: {
+        quickInit: '快速初始化',
+      },
+      options: '选项',
+      optionDescriptions: {
+        displayLanguage: '显示语言',
+        forceOverwrite: '强制覆盖现有配置',
+        displayHelp: '显示帮助信息',
+        displayVersion: '显示版本号',
+        skipAllPrompts: '跳过所有交互式提示（非交互模式）',
+        frontendModels: '前端模型（逗号分隔）',
+        backendModels: '后端模型（逗号分隔）',
+        collaborationMode: '协作模式 (parallel/smart/sequential)',
+        workflows: '要安装的工作流',
+        installDir: '安装目录',
+      },
+      nonInteractiveMode: '非交互模式:',
+      examples: '示例',
+      exampleDescriptions: {
+        showInteractiveMenu: '显示交互式菜单',
+        runFullInitialization: '运行完整初始化',
+        customModels: '自定义模型配置',
+        parallelMode: '使用并行协作模式',
+      },
+    },
+  },
+  init: {
+    welcome: '欢迎使用 CCG 多模型协作系统',
+    selectLanguage: '请选择语言',
+    selectFrontendModels: '选择前端任务使用的模型（可多选）',
+    selectBackendModels: '选择后端任务使用的模型（可多选）',
+    selectMode: '选择协作模式',
+    selectWorkflows: '选择要安装的工作流（可多选）',
+    confirmInstall: '确认安装以上配置？',
+    installing: '正在安装...',
+    installSuccess: '安装成功！',
+    installFailed: '安装失败',
+    installCancelled: '安装已取消',
+    installedCommands: '已安装命令:',
+    installedPrompts: '已安装角色提示词:',
+    configSavedTo: '配置已保存至:',
+    validation: {
+      selectAtLeastOne: '请至少选择一个模型',
+    },
+    summary: {
+      title: '配置摘要:',
+      frontendModels: '前端模型:',
+      backendModels: '后端模型:',
+      collaboration: '协作模式:',
+      workflows: '工作流:',
+      selected: '个已选择',
+    },
+    modes: {
+      parallel: '并行模式 - 同时调用多个模型',
+      smart: '智能模式 - 根据任务类型自动选择',
+      sequential: '顺序模式 - 依次调用模型',
+    },
+    models: {
+      codex: 'Codex - 擅长后端逻辑、算法、调试',
+      gemini: 'Gemini - 擅长前端UI、CSS、组件设计',
+      claude: 'Claude - 擅长编排、重构、文档生成',
+    },
+    workflows: {
+      dev: '完整开发工作流 (/ccg:dev)',
+      frontend: '前端任务 (/ccg:frontend)',
+      backend: '后端任务 (/ccg:backend)',
+      review: '代码审查 (/ccg:review)',
+      analyze: '技术分析 (/ccg:analyze)',
+      commit: 'Git 智能提交 (/ccg:commit)',
+      rollback: 'Git 回滚 (/ccg:rollback)',
+      cleanBranches: '清理分支 (/ccg:clean-branches)',
+      worktree: 'Worktree 管理 (/ccg:worktree)',
+      init: '项目初始化 (/ccg:init)',
+    },
+    aceTool: {
+      title: 'ace-tool MCP 配置',
+      description: '轻量级代码检索和 Prompt 增强工具',
+      getToken: '获取 Token',
+      configure: '是否配置 ace-tool MCP？',
+      baseUrl: 'API Base URL:',
+      token: 'API Token:',
+      installing: '正在配置 ace-tool MCP...',
+      failed: 'ace-tool 配置失败（可稍后手动配置）',
+    },
+  },
+  menu: {
+    title: 'CCG 主菜单',
+    options: {
+      init: '初始化 CCG 配置',
+      update: '更新工作流',
+      uninstall: '卸载 CCG',
+      help: '帮助',
+      exit: '退出',
+    },
+    help: {
+      title: 'CCG 命令:',
+      hint: '更多信息请运行: npx ccg --help',
+      descriptions: {
+        dev: '完整六阶段开发工作流',
+        frontend: '前端任务 → Gemini',
+        backend: '后端任务 → Codex',
+        review: '双模型代码审查',
+        analyze: '双模型技术分析',
+        commit: 'Git 智能提交',
+        rollback: 'Git 交互式回滚',
+      },
+    },
+    uninstall: {
+      confirm: '确定要卸载 CCG 吗？这将移除所有已安装的命令和配置。',
+      alsoRemoveAceTool: '同时移除 ace-tool MCP 配置？',
+      uninstalling: '正在卸载...',
+      success: '卸载成功！',
+      removedCommands: '已移除命令:',
+      removedAceTool: 'ace-tool MCP 配置已移除',
+      cancelled: '卸载已取消',
+      failed: '卸载失败',
+    },
+  },
+}
+
+const en = {
+  common: {
+    yes: 'Yes',
+    no: 'No',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    back: 'Back',
+    exit: 'Exit',
+    success: 'Success',
+    error: 'Error',
+    warning: 'Warning',
+    info: 'Info',
+    loading: 'Loading...',
+    processing: 'Processing...',
+    completed: 'Completed',
+    failed: 'Failed',
+  },
+  cli: {
+    help: {
+      commands: 'Commands',
+      commandDescriptions: {
+        showMenu: 'Show interactive menu (default)',
+        initConfig: 'Initialize CCG multi-model collaboration system',
+      },
+      shortcuts: 'Shortcuts:',
+      shortcutDescriptions: {
+        quickInit: 'Quick init',
+      },
+      options: 'Options',
+      optionDescriptions: {
+        displayLanguage: 'Display language',
+        forceOverwrite: 'Force overwrite existing configuration',
+        displayHelp: 'Display help',
+        displayVersion: 'Display version',
+        skipAllPrompts: 'Skip all interactive prompts (non-interactive mode)',
+        frontendModels: 'Frontend models (comma-separated)',
+        backendModels: 'Backend models (comma-separated)',
+        collaborationMode: 'Collaboration mode (parallel/smart/sequential)',
+        workflows: 'Workflows to install',
+        installDir: 'Installation directory',
+      },
+      nonInteractiveMode: 'Non-interactive mode:',
+      examples: 'Examples',
+      exampleDescriptions: {
+        showInteractiveMenu: 'Show interactive menu',
+        runFullInitialization: 'Run full initialization',
+        customModels: 'Custom model configuration',
+        parallelMode: 'Use parallel collaboration mode',
+      },
+    },
+  },
+  init: {
+    welcome: 'Welcome to CCG Multi-Model Collaboration System',
+    selectLanguage: 'Select language',
+    selectFrontendModels: 'Select models for frontend tasks (multi-select)',
+    selectBackendModels: 'Select models for backend tasks (multi-select)',
+    selectMode: 'Select collaboration mode',
+    selectWorkflows: 'Select workflows to install (multi-select)',
+    confirmInstall: 'Confirm installation with above configuration?',
+    installing: 'Installing...',
+    installSuccess: 'Installation successful!',
+    installFailed: 'Installation failed',
+    installCancelled: 'Installation cancelled',
+    installedCommands: 'Installed Commands:',
+    installedPrompts: 'Installed Role Prompts:',
+    configSavedTo: 'Config saved to:',
+    validation: {
+      selectAtLeastOne: 'Please select at least one model',
+    },
+    summary: {
+      title: 'Configuration Summary:',
+      frontendModels: 'Frontend Models:',
+      backendModels: 'Backend Models:',
+      collaboration: 'Collaboration:',
+      workflows: 'Workflows:',
+      selected: 'selected',
+    },
+    modes: {
+      parallel: 'Parallel - Call multiple models simultaneously',
+      smart: 'Smart - Auto-select based on task type',
+      sequential: 'Sequential - Call models one by one',
+    },
+    models: {
+      codex: 'Codex - Backend logic, algorithms, debugging',
+      gemini: 'Gemini - Frontend UI, CSS, component design',
+      claude: 'Claude - Orchestration, refactoring, documentation',
+    },
+    workflows: {
+      dev: 'Full development workflow (/ccg:dev)',
+      frontend: 'Frontend tasks (/ccg:frontend)',
+      backend: 'Backend tasks (/ccg:backend)',
+      review: 'Code review (/ccg:review)',
+      analyze: 'Technical analysis (/ccg:analyze)',
+      commit: 'Git smart commit (/ccg:commit)',
+      rollback: 'Git rollback (/ccg:rollback)',
+      cleanBranches: 'Clean branches (/ccg:clean-branches)',
+      worktree: 'Worktree management (/ccg:worktree)',
+      init: 'Project initialization (/ccg:init)',
+    },
+    aceTool: {
+      title: 'ace-tool MCP Configuration',
+      description: 'Lightweight codebase retrieval and prompt enhancement tool',
+      getToken: 'Get Token',
+      configure: 'Configure ace-tool MCP?',
+      baseUrl: 'API Base URL:',
+      token: 'API Token:',
+      installing: 'Configuring ace-tool MCP...',
+      failed: 'ace-tool configuration failed (can be configured manually later)',
+    },
+  },
+  menu: {
+    title: 'CCG Main Menu',
+    options: {
+      init: 'Initialize CCG configuration',
+      update: 'Update workflows',
+      uninstall: 'Uninstall CCG',
+      help: 'Help',
+      exit: 'Exit',
+    },
+    help: {
+      title: 'CCG Commands:',
+      hint: 'For more information, run: npx ccg --help',
+      descriptions: {
+        dev: 'Complete 6-phase development workflow',
+        frontend: 'Frontend tasks → Gemini',
+        backend: 'Backend tasks → Codex',
+        review: 'Dual-model code review',
+        analyze: 'Dual-model technical analysis',
+        commit: 'Git smart commit',
+        rollback: 'Git interactive rollback',
+      },
+    },
+    uninstall: {
+      confirm: 'Are you sure you want to uninstall CCG? This will remove all installed commands and configurations.',
+      alsoRemoveAceTool: 'Also remove ace-tool MCP configuration?',
+      uninstalling: 'Uninstalling...',
+      success: 'Uninstallation successful!',
+      removedCommands: 'Removed commands:',
+      removedAceTool: 'ace-tool MCP configuration removed',
+      cancelled: 'Uninstallation cancelled',
+      failed: 'Uninstallation failed',
+    },
+  },
+}
+
+export async function initI18n(lang: SupportedLang = 'en'): Promise<void> {
+  if (!i18n.isInitialized) {
+    await i18n.init({
+      lng: lang,
+      fallbackLng: 'en',
+      resources: {
+        'zh-CN': { translation: zhCN, ...zhCN },
+        en: { translation: en, ...en },
+      },
+      interpolation: {
+        escapeValue: false,
+      },
+    })
+  }
+  else if (i18n.language !== lang) {
+    await i18n.changeLanguage(lang)
+  }
+}
+
+export async function changeLanguage(lang: SupportedLang): Promise<void> {
+  await i18n.changeLanguage(lang)
+}

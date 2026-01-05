@@ -1,5 +1,5 @@
 ---
-description: 双模型代码审查（Codex + Gemini 并行），无参数时自动审查 git diff
+description: 多模型代码审查（根据配置并行），无参数时自动审查 git diff
 ---
 
 ## Usage
@@ -7,8 +7,16 @@ description: 双模型代码审查（Codex + Gemini 并行），无参数时自�
 
 ## Context
 - Arguments: $ARGUMENTS
-- This command triggers dual-model code review (Codex + Gemini).
-- Both models review simultaneously for comprehensive feedback.
+- This command triggers multi-model code review based on your configuration.
+- Configured models review simultaneously for comprehensive feedback.
+
+## Configuration
+**首先读取 `~/.ccg/config.toml` 获取审查模型配置**:
+```toml
+[routing.review]
+models = ["codex", "gemini"]  # 用户配置的审查模型列表
+strategy = "parallel"          # 始终并行执行
+```
 
 ## Behavior
 - **No arguments**: Automatically review current git changes (staged + unstaged)
@@ -16,14 +24,16 @@ description: 双模型代码审查（Codex + Gemini 并行），无参数时自�
 
 ## Your Role
 You are the **Code Review Coordinator** orchestrating multi-model review. You direct:
-1. **Auggie** – for retrieving code context
-2. **Codex** – for logic, security, and performance review
-3. **Gemini** – for UI/UX, accessibility, and design review
-4. **Claude (Self)** – for synthesizing feedback and recommendations
+1. **ace-tool** – for retrieving code context
+2. **Configured Review Models** – for comprehensive code review
+3. **Claude (Self)** – for synthesizing feedback and recommendations
 
 ## Process
 
-### Step 1: Get Code to Review
+### Step 1: Read Configuration + Get Code to Review
+
+1. **读取 `~/.ccg/config.toml`** 获取 `routing.review.models`
+2. 如果配置不存在，默认使用 `["codex", "gemini"]`
 
 **If no arguments provided**, run git commands to get current changes:
 ```bash
@@ -34,37 +44,23 @@ git status --short
 
 **If arguments provided**, use the specified code/description.
 
-Then call `mcp__auggie-mcp__codebase-retrieval` to get related context.
+Then call `mcp__ace-tool__search_context` to get related context:
+- `project_root_path`: 项目根目录绝对路径
+- `query`: 代码变更相关的上下文描述
 
 ### Step 2: Parallel Review
 
-**并行调用 Codex 和 Gemini**（使用 `run_in_background: true` 非阻塞执行）：
+**并行调用所有配置的审查模型**（使用 `run_in_background: true` 非阻塞执行）：
 
 **注意**：调用前先读取对应角色提示词文件，将内容注入到 `<ROLE>` 标签中。
 
-在单个消息中同时发送两个 Bash 工具调用：
+遍历 `routing.review.models`，为每个模型发送调用：
 
 ```bash
-# Codex 审查
-codeagent-wrapper --backend codex - $PROJECT_DIR <<'EOF'
+# 示例：调用配置的审查模型
+codeagent-wrapper --backend <MODEL_FROM_CONFIG> - $PROJECT_DIR <<'EOF'
 <ROLE>
-读取 prompts/codex/reviewer.md 的内容并注入
-</ROLE>
-
-<TASK>
-Code changes to review:
-<git_diff_or_specified_code>
-</TASK>
-
-OUTPUT: Review comments only. No code modifications.
-EOF
-```
-
-```bash
-# Gemini 审查
-codeagent-wrapper --backend gemini - $PROJECT_DIR <<'EOF'
-<ROLE>
-读取 prompts/gemini/reviewer.md 的内容并注入
+读取 prompts/<model>/reviewer.md 的内容并注入
 </ROLE>
 
 <TASK>
@@ -77,28 +73,29 @@ EOF
 ```
 
 ### Step 3: Synthesize Feedback
-使用 `TaskOutput` 获取两个任务的结果，然后：
-1. Collect feedback from both models
+使用 `TaskOutput` 获取所有任务的结果，然后：
+1. Collect feedback from all configured models
 2. Categorize by severity (Critical, Major, Minor, Suggestion)
 3. Remove duplicate concerns
-4. Prioritize actionable items
+4. Cross-validate findings across models
+5. Prioritize actionable items
 
 ### Step 4: Present Review
 Provide unified review report to user with recommendations.
 
 ## Output Format
-1. **Review Summary** – overall assessment
-2. **Critical Issues** – must fix before merge
-3. **Major Issues** – should fix
-4. **Minor Issues** – nice to fix
-5. **Suggestions** – optional improvements
-6. **Recommended Actions** – prioritized fix list
+1. **Configuration** – models used for review
+2. **Review Summary** – overall assessment
+3. **Critical Issues** – must fix before merge
+4. **Major Issues** – should fix
+5. **Minor Issues** – nice to fix
+6. **Suggestions** – optional improvements
+7. **Recommended Actions** – prioritized fix list
 
 ## Notes
+- **首先读取 `~/.ccg/config.toml` 获取审查模型配置**
 - **No arguments** = auto-review git changes (`git diff HEAD`)
 - **With arguments** = review specified content
 - **Use `run_in_background: true` for parallel execution** to avoid blocking
-- Codex focuses on backend/logic concerns
-- Gemini focuses on frontend/UI concerns
-- Synthesize overlapping feedback
+- 多模型结果交叉验证，综合反馈
 - Use HEREDOC syntax (`<<'EOF'`) to avoid shell escaping issues

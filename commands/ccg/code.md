@@ -16,7 +16,9 @@ description: 多模型代码生成（智能路由：前端→Gemini，后端→C
 
 ### Phase 1: 需求分析
 
-1. 调用 `mcp__auggie-mcp__codebase-retrieval` 检索：
+1. 调用 `mcp__ace-tool__search_context` 检索:
+   - `project_root_path`: 项目根目录绝对路径
+   - `query`: 功能需求相关的代码描述
    - 相关模块和文件结构
    - 现有代码模式和风格
    - 依赖和接口定义

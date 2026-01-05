@@ -1,0 +1,63 @@
+{
+  "name": "ccg-workflow",
+  "version": "1.0.0",
+  "description": "Claude-Codex-Gemini 多模型协作系统 - 智能路由多模型开发工作流",
+  "type": "module",
+  "packageManager": "pnpm@10.17.1",
+  "author": {
+    "name": "CCG Contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude",
+    "codex",
+    "gemini",
+    "multi-model",
+    "ai",
+    "collaboration",
+    "cli",
+    "workflow"
+  ],
+  "bin": {
+    "ccg": "bin/ccg.mjs"
+  },
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "files": [
+    "bin",
+    "dist",
+    "templates",
+    "prompts"
+  ],
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "unbuild",
+    "start": "node bin/ccg.mjs",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
+  },
+  "dependencies": {
+    "ansis": "^4.1.0",
+    "cac": "^6.7.14",
+    "fs-extra": "^11.3.2",
+    "i18next": "^25.5.2",
+    "i18next-fs-backend": "^2.6.0",
+    "inquirer": "^12.9.6",
+    "ora": "^9.0.0",
+    "pathe": "^2.0.3",
+    "smol-toml": "^1.4.2"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^5.4.1",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.36.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "unbuild": "^3.6.1"
+  }
+}

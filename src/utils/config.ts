@@ -1,0 +1,82 @@
+import type { CcgConfig, ModelRouting, SupportedLang } from '../types'
+import fs from 'fs-extra'
+import { homedir } from 'node:os'
+import { join } from 'pathe'
+import { parse, stringify } from 'smol-toml'
+
+const CCG_DIR = join(homedir(), '.ccg')
+const CONFIG_FILE = join(CCG_DIR, 'config.toml')
+
+export function getCcgDir(): string {
+  return CCG_DIR
+}
+
+export function getConfigPath(): string {
+  return CONFIG_FILE
+}
+
+export async function ensureCcgDir(): Promise<void> {
+  await fs.ensureDir(CCG_DIR)
+}
+
+export async function readCcgConfig(): Promise<CcgConfig | null> {
+  try {
+    if (await fs.pathExists(CONFIG_FILE)) {
+      const content = await fs.readFile(CONFIG_FILE, 'utf-8')
+      return parse(content) as unknown as CcgConfig
+    }
+  }
+  catch {
+    // Config doesn't exist or is invalid
+  }
+  return null
+}
+
+export async function writeCcgConfig(config: CcgConfig): Promise<void> {
+  await ensureCcgDir()
+  const content = stringify(config as any)
+  await fs.writeFile(CONFIG_FILE, content, 'utf-8')
+}
+
+export function createDefaultConfig(options: {
+  language: SupportedLang
+  routing: ModelRouting
+  installedWorkflows: string[]
+}): CcgConfig {
+  return {
+    general: {
+      version: '1.0.0',
+      language: options.language,
+      createdAt: new Date().toISOString(),
+    },
+    routing: options.routing,
+    workflows: {
+      installed: options.installedWorkflows,
+    },
+    paths: {
+      commands: join(homedir(), '.claude', 'commands', 'ccg'),
+      prompts: join(homedir(), '.claude', 'prompts', 'ccg'),
+      backup: join(CCG_DIR, 'backup'),
+    },
+  }
+}
+
+export function createDefaultRouting(): ModelRouting {
+  return {
+    frontend: {
+      models: ['gemini'],
+      primary: 'gemini',
+      strategy: 'parallel',
+    },
+    backend: {
+      models: ['codex'],
+      primary: 'codex',
+      strategy: 'parallel',
+    },
+    review: {
+      models: ['codex', 'gemini'],
+      strategy: 'parallel',
+    },
+    mode: 'smart',
+  }
+}

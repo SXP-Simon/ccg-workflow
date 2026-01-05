@@ -9,14 +9,16 @@ description: UltraThink 多模型调试（Codex 后端诊断 + Gemini 前端诊�
 
 ## Context
 - 问题描述: $ARGUMENTS
-- 使用 Auggie 检索相关代码上下文
+- 使用 ace-tool 检索相关代码上下文
 - Codex 专注后端/逻辑问题，Gemini 专注前端/UI问题
 
 ## 工作流程
 
 ### Phase 1: 上下文检索
 
-1. 调用 `mcp__auggie-mcp__codebase-retrieval` 检索相关代码
+1. 调用 `mcp__ace-tool__search_context` 检索相关代码:
+   - `project_root_path`: 项目根目录绝对路径
+   - `query`: 问题相关的代码描述
 2. 收集错误日志、堆栈信息、复现步骤
 3. 识别问题涉及的模块（前端/后端/全栈）
 

@@ -22,9 +22,8 @@
           "description": "编译 codeagent-wrapper"
         },
         {
-          "type": "patch_auggie",
-          "source": "patches/augment-enhanced.mjs",
-          "description": "修补 Auggie MCP (启用 prompt-enhancer，自动备份)"
+          "type": "install_ace_tool",
+          "description": "安装 ace-tool MCP（轻量级代码检索 + Prompt 增强）"
         }
       ]
     },

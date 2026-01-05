@@ -4,6 +4,7 @@
 
 **Claude Code + Codex + Gemini 多模型协作工作流系统**
 
+[![npm version](https://img.shields.io/npm/v/ccg-workflow.svg)](https://www.npmjs.com/package/ccg-workflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
 
@@ -16,48 +17,77 @@
 | 特性 | 描述 |
 |------|------|
 | **智能路由** | 前端任务自动路由到 Gemini，后端任务路由到 Codex |
-| **双模型协作** | 同时调用 Codex + Gemini 进行交叉验证 |
-| **Prompt 增强** | 内置 Auggie prompt-enhancer，自动优化需求描述 |
+| **三模型协作** | 同时调用 Claude + Codex + Gemini 进行交叉验证 |
+| **Prompt 增强** | 集成 ace-tool MCP，自动优化需求描述 |
 | **6阶段工作流** | Prompt增强 → 上下文检索 → 多模型分析 → 原型生成 → 代码实施 → 审计交付 |
-| **一键安装** | 自动编译、自动 patch Auggie MCP、自动配置 |
+| **交互式安装** | npx 一键运行，图形化配置界面 |
 | **跨平台** | 支持 macOS、Linux、Windows |
 
 ---
 
 ## 快速开始
 
-### 前置要求
+### 方式一：npx 直接运行（推荐）
 
-- Python 3.8+
-- Claude Code CLI
-- Auggie MCP（安装脚本会自动 patch）
-- Codex CLI / Gemini CLI
+```bash
+# 交互式配置安装
+npx ccg-workflow
 
-> **注意**：不需要安装 Go，已提供预编译二进制文件
+# 或简写
+npx ccg
+```
 
-### 安装
+### 方式二：全局安装
 
-**一键安装（推荐）：**
+```bash
+npm install -g ccg-workflow
+ccg
+```
+
+### 方式三：源码安装
+
 ```bash
 git clone https://github.com/fengshao1227/ccg-workflow.git
-cd ccg-workflow
-python3 install.py
+cd ccg-workflow/skills-v2
+pnpm install && pnpm build
+pnpm start
 ```
 
-**Windows (PowerShell):**
-```powershell
-git clone https://github.com/fengshao1227/ccg-workflow.git
-cd ccg-workflow
-python install.py
+### 前置要求
+
+- Node.js 18+
+- Claude Code CLI
+- Codex CLI / Gemini CLI（可选，用于多模型协作）
+
+---
+
+## 交互式菜单
+
+运行后会显示交互式菜单：
+
+```
+  CCG - Claude + Codex + Gemini
+  Multi-Model Collaboration System
+
+? CCG 主菜单
+❯ ➜ 初始化 CCG 配置
+  ➜ 更新工作流
+  ➜ 卸载 CCG
+  ? 帮助
+  ✕ 退出
 ```
 
-安装脚本会自动：
-1. ✅ 安装核心工作流指令
-2. ✅ 安装 17 个斜杠命令（`/ccg:xxx` 格式）
-3. ✅ 编译 codeagent-wrapper（或使用预编译二进制）
-4. ✅ Patch Auggie MCP（启用 prompt-enhancer，自动备份原文件）
+选择 "初始化 CCG 配置" 进行首次安装，会引导你：
+1. 选择语言（中文/English）
+2. 配置前端模型（Gemini/Codex/Claude）
+3. 配置后端模型（Codex/Gemini/Claude）
+4. 选择协作模式（并行/智能/顺序）
+5. 选择要安装的工作流
+6. 配置 ace-tool MCP（可选）
 
-### 使用
+---
+
+## 使用
 
 ```bash
 # 完整的多模型开发工作流（含 Prompt 增强）
@@ -176,75 +206,110 @@ python install.py
 
 ---
 
-## 项目结构
+## 安装目录结构
+
+安装后会在 `~/.claude/` 和 `~/.ccg/` 下创建：
 
 ```
-ccg/
-├── bin/                         # 预编译二进制文件
-│   ├── codeagent-wrapper-darwin-amd64
-│   ├── codeagent-wrapper-darwin-arm64
-│   ├── codeagent-wrapper-linux-amd64
-│   └── codeagent-wrapper-windows-amd64.exe
-├── codeagent-wrapper/           # Go 多后端调用工具源码
-│   ├── main.go
-│   ├── backend.go
-│   └── ...
-├── commands/
-│   └── ccg/                     # /ccg:xxx 命令命名空间
-│       ├── dev.md               # /ccg:dev 完整工作流
-│       ├── code.md              # /ccg:code 多模型代码生成
-│       ├── debug.md             # /ccg:debug UltraThink 调试
-│       ├── test.md              # /ccg:test 多模型测试生成
-│       ├── bugfix.md            # /ccg:bugfix 质量门控修复
-│       ├── think.md             # /ccg:think 深度分析
-│       ├── optimize.md          # /ccg:optimize 性能优化
-│       ├── frontend.md          # /ccg:frontend 前端任务
-│       ├── backend.md           # /ccg:backend 后端任务
-│       ├── review.md            # /ccg:review 代码审查
-│       ├── analyze.md           # /ccg:analyze 技术分析
-│       ├── enhance.md           # /ccg:enhance Prompt 增强
-│       ├── commit.md            # /ccg:commit 智能提交
-│       ├── rollback.md          # /ccg:rollback 交互式回滚
-│       ├── clean-branches.md    # /ccg:clean-branches 清理分支
-│       ├── worktree.md          # /ccg:worktree 管理
-│       └── init.md              # /ccg:init 项目初始化
-├── prompts/
-│   ├── codex/                  # Codex 角色提示词
-│   │   ├── architect.md        # 后端架构师（代码生成）
-│   │   ├── analyzer.md         # 技术分析师
-│   │   ├── debugger.md         # 调试专家
-│   │   ├── tester.md           # 测试工程师
-│   │   ├── reviewer.md         # 代码审查员
-│   │   └── optimizer.md        # 性能优化专家
-│   └── gemini/                 # Gemini 角色提示词
-│       ├── frontend.md         # 前端开发专家（代码生成）
-│       ├── analyzer.md         # 设计分析师
-│       ├── debugger.md         # UI调试专家
-│       ├── tester.md           # 前端测试工程师
-│       ├── reviewer.md         # UI审查员
-│       └── optimizer.md        # 前端性能优化专家
-├── patches/
-│   └── augment-enhanced.mjs     # Auggie MCP 补丁（含 prompt-enhancer）
-├── memorys/
-│   └── CLAUDE.md                # 核心工作流指令
-├── config.json                  # 安装配置
-├── install.py                   # 安装脚本
-└── README.md
+~/.claude/
+├── commands/ccg/           # 斜杠命令
+│   ├── _config.md          # 共享配置
+│   ├── dev.md              # /ccg:dev 完整工作流
+│   ├── code.md             # /ccg:code 多模型代码生成
+│   ├── frontend.md         # /ccg:frontend 前端任务
+│   ├── backend.md          # /ccg:backend 后端任务
+│   └── ...                 # 其他命令
+└── prompts/ccg/            # 角色提示词
+    ├── codex/
+    │   ├── architect.md    # 后端架构师
+    │   ├── analyzer.md     # 技术分析师
+    │   ├── debugger.md     # 调试专家
+    │   ├── tester.md       # 测试工程师
+    │   ├── reviewer.md     # 代码审查员
+    │   └── optimizer.md    # 性能优化专家
+    ├── gemini/
+    │   ├── frontend.md     # 前端开发专家
+    │   └── ...
+    └── claude/
+        └── ...
+
+~/.ccg/
+└── config.toml             # CCG 配置文件
 ```
 
 ---
 
-## 安装选项
+## 配置文件
+
+配置文件位于 `~/.ccg/config.toml`：
+
+```toml
+[general]
+version = "1.0.0"
+language = "zh-CN"
+
+[routing]
+mode = "smart"  # smart | parallel | sequential
+
+[routing.frontend]
+models = ["gemini", "codex", "claude"]
+primary = "gemini"
+strategy = "parallel"
+
+[routing.backend]
+models = ["codex", "gemini", "claude"]
+primary = "codex"
+strategy = "parallel"
+
+[routing.review]
+models = ["codex", "gemini", "claude"]
+strategy = "parallel"
+```
+
+---
+
+## 卸载
 
 ```bash
-# 查看可用模块
-python3 install.py --list-modules
+# 交互式卸载
+npx ccg-workflow
+# 选择 "卸载 CCG"
+```
 
-# 详细输出
-python3 install.py --verbose
+或手动删除：
 
-# 自定义安装目录
-python3 install.py --install-dir ~/.claude
+```bash
+rm -rf ~/.claude/commands/ccg
+rm -rf ~/.claude/prompts/ccg
+rm -rf ~/.ccg
+```
+
+---
+
+## 开发
+
+```bash
+# 克隆仓库
+git clone https://github.com/fengshao1227/ccg-workflow.git
+cd ccg-workflow/skills-v2
+
+# 安装依赖
+pnpm install
+
+# 开发模式
+pnpm dev
+
+# 构建
+pnpm build
+
+# 本地测试
+pnpm start
+
+# 类型检查
+pnpm typecheck
+
+# 代码检查
+pnpm lint
 ```
 
 ---

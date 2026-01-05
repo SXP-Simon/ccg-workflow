@@ -46,7 +46,9 @@
 
 **执行条件**：在生成任何建议或代码前。
 
-1. **工具调用**：调用 `mcp__auggie-mcp__codebase-retrieval`
+1. **工具调用**：调用 `mcp__ace-tool__search_context`
+   - 参数: `project_root_path` (项目根目录绝对路径)
+   - 参数: `query` (自然语言描述)
 2. **检索策略**：
    - 禁止基于假设回答
    - 使用自然语言构建语义查询（Where/What/How）
@@ -111,7 +113,7 @@ EOF
 
 | Workflow Phase | Functionality | Designated Model | Output Constraints |
 |:---------------|:--------------|:-----------------|:-------------------|
-| **Phase 1** | Context Retrieval | Auggie MCP | Raw Code / Definitions |
+| **Phase 1** | Context Retrieval | ace-tool MCP | Raw Code / Definitions |
 | **Phase 2** | Analysis & Planning | Codex + Gemini | Step-by-Step Plan |
 | **Phase 3A** | Frontend / UI | **Gemini** | Unified Diff Patch |
 | **Phase 3B** | Backend / Logic | **Codex** | Unified Diff Patch |

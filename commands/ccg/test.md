@@ -9,14 +9,16 @@ description: 多模型测试生成（Codex 后端测试 + Gemini 前端测试）
 
 ## Context
 - 测试目标: $ARGUMENTS
-- 使用 Auggie 检索目标代码和现有测试
+- 使用 ace-tool 检索目标代码和现有测试
 - Codex 生成后端测试，Gemini 生成前端测试
 
 ## 工作流程
 
 ### Phase 1: 测试分析
 
-1. 调用 `mcp__auggie-mcp__codebase-retrieval` 检索：
+1. 调用 `mcp__ace-tool__search_context` 检索:
+   - `project_root_path`: 项目根目录绝对路径
+   - `query`: 目标代码的描述
    - 目标代码的完整实现
    - 现有测试文件和测试框架
    - 项目测试配置（jest.config, pytest.ini 等）

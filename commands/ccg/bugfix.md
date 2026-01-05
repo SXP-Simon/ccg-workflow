@@ -16,7 +16,9 @@ description: 质量门控修复（双模型交叉验证，90%+ 通过）
 
 ### Phase 1: Bug 分析
 
-1. 调用 `mcp__auggie-mcp__codebase-retrieval` 检索相关代码
+1. 调用 `mcp__ace-tool__search_context` 检索相关代码:
+   - `project_root_path`: 项目根目录绝对路径
+   - `query`: bug 相关的代码描述
 2. 分析 bug 类型：前端/后端/全栈
 3. 收集复现步骤、错误日志、预期行为
 

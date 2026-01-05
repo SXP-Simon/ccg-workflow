@@ -29,20 +29,6 @@ DEFAULT_CONFIG = "config.json"
 # 检测操作系统
 IS_WINDOWS = platform.system() == "Windows"
 
-# Auggie MCP 常见安装路径
-if IS_WINDOWS:
-    AUGGIE_PATHS = [
-        os.path.join(os.environ.get("APPDATA", ""), "npm", "node_modules", "@augmentcode", "auggie", "augment.mjs"),
-        os.path.join(os.environ.get("LOCALAPPDATA", ""), "npm", "node_modules", "@augmentcode", "auggie", "augment.mjs"),
-        os.path.join(os.environ.get("USERPROFILE", ""), "node_modules", "@augmentcode", "auggie", "augment.mjs"),
-    ]
-else:
-    AUGGIE_PATHS = [
-        "~/.npm-global/lib/node_modules/@augmentcode/auggie/augment.mjs",
-        "/usr/local/lib/node_modules/@augmentcode/auggie/augment.mjs",
-        "~/.local/lib/node_modules/@augmentcode/auggie/augment.mjs",
-    ]
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -149,57 +135,115 @@ def check_go_installed() -> bool:
         return False
 
 
-def find_auggie_mjs() -> Optional[Path]:
-    """查找 Auggie MCP 的 augment.mjs 文件"""
-    for path_str in AUGGIE_PATHS:
-        path = Path(path_str).expanduser()
-        if path.exists():
-            return path
-    return None
-
-
-def patch_auggie_mcp(
-    patch_file: Path,
-    verbose: bool = False
-) -> Tuple[bool, str]:
-    """
-    使用增强版 augment.mjs 修补 Auggie MCP
-    返回 (成功, 消息)
-    """
-    auggie_path = find_auggie_mjs()
-
-    if not auggie_path:
-        return False, "未找到 Auggie MCP，请先安装 @augmentcode/auggie"
-
-    if not patch_file.exists():
-        return False, f"补丁文件未找到: {patch_file}"
-
-    # 创建备份
-    backup_path = auggie_path.with_suffix(".mjs.backup")
-    if not backup_path.exists():
-        try:
-            shutil.copy2(auggie_path, backup_path)
-            if verbose:
-                print(f"  💾 已创建备份: {backup_path}")
-        except Exception as e:
-            return False, f"创建备份失败: {e}"
-    else:
-        if verbose:
-            print(f"  💾 备份已存在: {backup_path}")
-
-    # 应用补丁
+def check_npm_installed() -> bool:
+    """检查 npm 是否已安装"""
     try:
-        shutil.copy2(patch_file, auggie_path)
+        result = subprocess.run(
+            ["npm", "--version"],
+            capture_output=True,
+            text=True
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
+def install_ace_tool(verbose: bool = False) -> Tuple[bool, str]:
+    """
+    安装并配置 ace-tool MCP
+    返回 (成功, 消息)
+
+    重要: Claude Code CLI 从 ~/.claude.json 读取 MCP 配置
+          NOT ~/.mcp.json (那是给 Claude Desktop 的)
+          NOT ~/Library/Application Support/Claude/ (那也是 Claude Desktop)
+    """
+    print("\n  🔧 配置 ace-tool MCP...")
+
+    # 检查 npm
+    if not check_npm_installed():
+        return False, "npm 未安装，请先安装 Node.js: https://nodejs.org/"
+
+    # 提示用户配置
+    print("\n  📋 ace-tool 需要配置 API 访问信息:")
+    print("     获取方式: 访问 https://augmentcode.com/ 注册并获取 API Token")
+    print()
+
+    # 获取 base-url
+    default_base_url = "https://api.augmentcode.com"
+    base_url = input(f"  请输入 Base URL (直接回车使用默认值 {default_base_url}): ").strip()
+    if not base_url:
+        base_url = default_base_url
+
+    # 获取 token
+    token = input("  请输入 API Token: ").strip()
+    if not token:
+        print("  ⚠️  Token 为空，稍后可手动配置")
+        token = ""
+
+    # Claude Code CLI 的配置文件路径: ~/.claude.json
+    config_file = Path.home() / ".claude.json"
+
+    # 读取现有配置（重要：保留所有其他字段！）
+    existing_config = {}
+    if config_file.exists():
+        try:
+            with config_file.open("r", encoding="utf-8") as f:
+                existing_config = json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"  ⚠️  ~/.claude.json 解析失败: {e}")
+            print("  ⚠️  请检查文件格式，跳过 MCP 配置")
+            return False, f"~/.claude.json 解析失败: {e}"
+        except Exception as e:
+            print(f"  ⚠️  读取 ~/.claude.json 失败: {e}")
+            return False, f"读取配置失败: {e}"
+
+    # 确保 mcpServers 字段存在
+    if "mcpServers" not in existing_config:
+        existing_config["mcpServers"] = {}
+
+    # 添加或更新 ace-tool 配置（使用环境变量方式，更安全）
+    existing_config["mcpServers"]["ace-tool"] = {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "ace-tool@latest"],
+        "env": {
+            "ACE_BASE_URL": base_url,
+            "ACE_TOKEN": token
+        }
+    }
+
+    # 写入配置（保留所有其他字段）
+    try:
+        with config_file.open("w", encoding="utf-8") as f:
+            json.dump(existing_config, f, indent=2, ensure_ascii=False)
         if verbose:
-            print(f"  ✅ 已修补: {auggie_path}")
-        return True, f"Auggie MCP 修补成功，备份位置: {backup_path}"
-    except PermissionError:
-        if IS_WINDOWS:
-            return False, f"权限不足，请以管理员身份运行"
-        else:
-            return False, f"权限不足，请尝试: sudo cp {patch_file} {auggie_path}"
+            print(f"  📄 已写入配置: {config_file}")
     except Exception as e:
-        return False, f"应用补丁失败: {e}"
+        return False, f"写入配置失败: {e}"
+
+    # 测试安装
+    print("\n  🚀 验证 ace-tool 安装...")
+    try:
+        result = subprocess.run(
+            ["npx", "-y", "ace-tool@latest", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        if result.returncode == 0:
+            version = result.stdout.strip() or "unknown"
+            if verbose:
+                print(f"  ✅ ace-tool 版本: {version}")
+        else:
+            if verbose:
+                print(f"  ⚠️  ace-tool 验证失败，但配置已保存")
+    except subprocess.TimeoutExpired:
+        print("  ⚠️  验证超时，但配置已保存")
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠️  验证异常: {e}")
+
+    return True, f"ace-tool MCP 配置完成: {config_file}"
 
 
 def get_prebuilt_binary(source_dir: Path) -> Optional[Path]:
@@ -411,17 +455,12 @@ def execute_operation(
             if not install_binary_to_path(binary_path, verbose, target_name=binary_name):
                 return False
 
-        elif op_type == "patch_auggie":
-            if not src_path.exists():
-                print(f"  ⚠️  补丁文件未找到: {src_path}", file=sys.stderr)
-                return False
-
-            success, message = patch_auggie_mcp(src_path, verbose)
+        elif op_type == "install_ace_tool":
+            success, message = install_ace_tool(verbose)
             if not success:
-                # Auggie MCP 未安装不算致命错误，只是跳过
                 print(f"  ⚠️  {message}")
-                print(f"  ℹ️  跳过 Auggie MCP 补丁（可稍后手动安装）")
-                return True  # 返回 True，不阻止其他安装
+                print(f"  ℹ️  可稍后手动配置 ace-tool MCP")
+                return True  # 不阻止其他安装
             if verbose:
                 print(f"  ℹ️  {message}")
 

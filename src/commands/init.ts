@@ -1,0 +1,270 @@
+import type { CollaborationMode, InitOptions, ModelRouting, ModelType, SupportedLang, WorkflowConfig } from '../types'
+import ansis from 'ansis'
+import fs from 'fs-extra'
+import inquirer from 'inquirer'
+import ora from 'ora'
+import { homedir } from 'node:os'
+import { join } from 'pathe'
+import { i18n } from '../i18n'
+import { createDefaultConfig, ensureCcgDir, getCcgDir, writeCcgConfig } from '../utils/config'
+import { getWorkflowConfigs, installAceTool, installWorkflows } from '../utils/installer'
+
+export async function init(options: InitOptions = {}): Promise<void> {
+  console.log()
+  console.log(ansis.cyan.bold(`  CCG - Claude + Codex + Gemini`))
+  console.log(ansis.gray(`  ${i18n.t('init:welcome')}`))
+  console.log()
+
+  // Language selection (if not provided)
+  let language: SupportedLang = options.lang || 'en'
+  if (!options.skipPrompt && !options.lang) {
+    const { selectedLang } = await inquirer.prompt([{
+      type: 'list',
+      name: 'selectedLang',
+      message: i18n.t('init:selectLanguage'),
+      choices: [
+        { name: '中文 (Chinese)', value: 'zh-CN' },
+        { name: 'English', value: 'en' },
+      ],
+      default: 'zh-CN',
+    }])
+    language = selectedLang
+    // Switch i18n language immediately after selection
+    await i18n.changeLanguage(language)
+  }
+
+  // Frontend models selection (multi-select)
+  let frontendModels: ModelType[] = ['gemini']
+  if (options.frontend) {
+    frontendModels = options.frontend.split(',').map(m => m.trim() as ModelType)
+  }
+  else if (!options.skipPrompt) {
+    const { selectedFrontend } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'selectedFrontend',
+      message: i18n.t('init:selectFrontendModels'),
+      choices: [
+        { name: i18n.t('init:models.gemini'), value: 'gemini', checked: true },
+        { name: i18n.t('init:models.codex'), value: 'codex' },
+        { name: i18n.t('init:models.claude'), value: 'claude' },
+      ],
+      validate: (answer: string[]) => answer.length > 0 || i18n.t('init:validation.selectAtLeastOne'),
+    }])
+    frontendModels = selectedFrontend
+  }
+
+  // Backend models selection (multi-select)
+  let backendModels: ModelType[] = ['codex']
+  if (options.backend) {
+    backendModels = options.backend.split(',').map(m => m.trim() as ModelType)
+  }
+  else if (!options.skipPrompt) {
+    const { selectedBackend } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'selectedBackend',
+      message: i18n.t('init:selectBackendModels'),
+      choices: [
+        { name: i18n.t('init:models.codex'), value: 'codex', checked: true },
+        { name: i18n.t('init:models.gemini'), value: 'gemini' },
+        { name: i18n.t('init:models.claude'), value: 'claude' },
+      ],
+      validate: (answer: string[]) => answer.length > 0 || i18n.t('init:validation.selectAtLeastOne'),
+    }])
+    backendModels = selectedBackend
+  }
+
+  // Collaboration mode selection
+  let mode: CollaborationMode = 'smart'
+  if (options.mode) {
+    mode = options.mode as CollaborationMode
+  }
+  else if (!options.skipPrompt) {
+    const { selectedMode } = await inquirer.prompt([{
+      type: 'list',
+      name: 'selectedMode',
+      message: i18n.t('init:selectMode'),
+      choices: [
+        { name: i18n.t('init:modes.smart'), value: 'smart' },
+        { name: i18n.t('init:modes.parallel'), value: 'parallel' },
+        { name: i18n.t('init:modes.sequential'), value: 'sequential' },
+      ],
+      default: 'smart',
+    }])
+    mode = selectedMode
+  }
+
+  // Workflow selection
+  const allWorkflows = getWorkflowConfigs()
+  let selectedWorkflows: string[] = allWorkflows.filter(w => w.defaultSelected).map(w => w.id)
+
+  if (options.workflows) {
+    if (options.workflows === 'all') {
+      selectedWorkflows = allWorkflows.map(w => w.id)
+    }
+    else if (options.workflows !== 'skip') {
+      selectedWorkflows = options.workflows.split(',').map(w => w.trim())
+    }
+  }
+  else if (!options.skipPrompt) {
+    const { selected } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'selected',
+      message: i18n.t('init:selectWorkflows'),
+      choices: allWorkflows.map(w => ({
+        name: `${language === 'zh-CN' ? w.name : w.nameEn} ${ansis.gray(`— ${language === 'zh-CN' ? w.description : w.descriptionEn}`)}`,
+        value: w.id,
+        checked: w.defaultSelected,
+      })),
+    }])
+    selectedWorkflows = selected
+  }
+
+  // ace-tool MCP configuration
+  let aceToolBaseUrl = ''
+  let aceToolToken = ''
+
+  if (!options.skipPrompt) {
+    console.log()
+    console.log(ansis.cyan.bold(`  🔧 ace-tool MCP`))
+    console.log(ansis.gray(`     ${i18n.t('init:aceTool.description')}`))
+    console.log(ansis.gray(`     ${i18n.t('init:aceTool.getToken')}: https://augmentcode.com/`))
+    console.log()
+
+    const aceAnswers = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'baseUrl',
+        message: `${i18n.t('init:aceTool.baseUrl')} ${ansis.gray('(Enter to skip)')}`,
+        default: '',
+      },
+      {
+        type: 'password',
+        name: 'token',
+        message: `${i18n.t('init:aceTool.token')} ${ansis.gray('(Enter to skip)')}`,
+        mask: '*',
+      },
+    ])
+    aceToolBaseUrl = aceAnswers.baseUrl || ''
+    aceToolToken = aceAnswers.token || ''
+  }
+
+  // Build routing config
+  const routing: ModelRouting = {
+    frontend: {
+      models: frontendModels,
+      primary: frontendModels[0],
+      strategy: frontendModels.length > 1 ? 'parallel' : 'fallback',
+    },
+    backend: {
+      models: backendModels,
+      primary: backendModels[0],
+      strategy: backendModels.length > 1 ? 'parallel' : 'fallback',
+    },
+    review: {
+      models: [...new Set([...frontendModels, ...backendModels])],
+      strategy: 'parallel',
+    },
+    mode,
+  }
+
+  // Show summary
+  console.log()
+  console.log(ansis.yellow('━'.repeat(50)))
+  console.log(ansis.bold(`  ${i18n.t('init:summary.title')}`))
+  console.log()
+  console.log(`  ${ansis.cyan(i18n.t('init:summary.frontendModels'))} ${frontendModels.map(m => ansis.green(m)).join(', ')}`)
+  console.log(`  ${ansis.cyan(i18n.t('init:summary.backendModels'))}  ${backendModels.map(m => ansis.blue(m)).join(', ')}`)
+  console.log(`  ${ansis.cyan(i18n.t('init:summary.collaboration'))}   ${ansis.yellow(mode)}`)
+  console.log(`  ${ansis.cyan(i18n.t('init:summary.workflows'))}       ${selectedWorkflows.length} ${i18n.t('init:summary.selected')}`)
+  console.log(ansis.yellow('━'.repeat(50)))
+  console.log()
+
+  // Confirm in interactive mode
+  if (!options.skipPrompt) {
+    const { confirmed } = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'confirmed',
+      message: i18n.t('init:confirmInstall'),
+      default: true,
+    }])
+
+    if (!confirmed) {
+      console.log(ansis.yellow(i18n.t('init:installCancelled')))
+      return
+    }
+  }
+
+  // Install
+  const spinner = ora(i18n.t('init:installing')).start()
+
+  try {
+    await ensureCcgDir()
+
+    // Create config
+    const config = createDefaultConfig({
+      language,
+      routing,
+      installedWorkflows: selectedWorkflows,
+    })
+
+    // Install workflows and commands
+    const installDir = options.installDir || join(homedir(), '.claude')
+    const result = await installWorkflows(selectedWorkflows, installDir, options.force)
+
+    // Save config
+    await writeCcgConfig(config)
+
+    // Install ace-tool MCP if baseUrl or token was provided
+    if (aceToolBaseUrl || aceToolToken) {
+      spinner.text = i18n.t('init:aceTool.installing')
+      const aceResult = await installAceTool({
+        baseUrl: aceToolBaseUrl,
+        token: aceToolToken,
+      })
+      if (aceResult.success) {
+        spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
+        console.log()
+        console.log(`    ${ansis.green('✓')} ace-tool MCP ${ansis.gray(`→ ${aceResult.configPath}`)}`)
+      }
+      else {
+        spinner.warn(ansis.yellow(i18n.t('init:aceTool.failed')))
+        console.log(ansis.gray(`      ${aceResult.message}`))
+      }
+    }
+    else {
+      spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
+    }
+
+    // Show result summary
+    console.log()
+    console.log(ansis.cyan(`  ${i18n.t('init:installedCommands')}`))
+    result.installedCommands.forEach((cmd) => {
+      console.log(`    ${ansis.green('✓')} /ccg:${cmd}`)
+    })
+
+    // Show installed prompts
+    if (result.installedPrompts.length > 0) {
+      console.log()
+      console.log(ansis.cyan(`  ${i18n.t('init:installedPrompts')}`))
+      // Group by model
+      const grouped: Record<string, string[]> = {}
+      result.installedPrompts.forEach((p) => {
+        const [model, role] = p.split('/')
+        if (!grouped[model])
+          grouped[model] = []
+        grouped[model].push(role)
+      })
+      Object.entries(grouped).forEach(([model, roles]) => {
+        console.log(`    ${ansis.green('✓')} ${model}: ${roles.join(', ')}`)
+      })
+    }
+
+    console.log()
+    console.log(ansis.gray(`  ${i18n.t('init:configSavedTo')} ${getCcgDir()}/config.toml`))
+    console.log()
+  }
+  catch (error) {
+    spinner.fail(ansis.red(i18n.t('init:installFailed')))
+    console.error(error)
+  }
+}
