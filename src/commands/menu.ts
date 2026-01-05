@@ -5,6 +5,7 @@ import { join } from 'pathe'
 import { i18n } from '../i18n'
 import { uninstallAceTool, uninstallWorkflows } from '../utils/installer'
 import { init } from './init'
+import { update } from './update'
 
 export async function showMainMenu(): Promise<void> {
   console.log()
@@ -31,7 +32,7 @@ export async function showMainMenu(): Promise<void> {
       await init()
       break
     case 'update':
-      console.log(ansis.yellow('Update functionality coming soon...'))
+      await update()
       break
     case 'uninstall':
       await uninstall()
