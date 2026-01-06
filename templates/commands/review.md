@@ -41,26 +41,6 @@ Then call `{{MCP_SEARCH_TOOL}}` to get related context:
 
 ### Step 2: 并行审查
 
-**并行调用所有配置的审查模型**（使用 `run_in_background: true` 非阻塞执行）：
-
-**调用方式**: 使用 `Bash` 工具调用 `codeagent-wrapper`
-
-```bash
-# Codex 代码审查示例
-codeagent-wrapper --backend {{BACKEND_PRIMARY}} - $PROJECT_DIR <<'EOF'
-ROLE_FILE: ~/.claude/.ccg/prompts/{{BACKEND_PRIMARY}}/reviewer.md
-
-<TASK>
-审查代码: {{待审查的代码变更}}
-关注点: 安全性、性能、错误处理
-</TASK>
-
-OUTPUT: Review comments only. No code modifications.
-EOF
-```
-
-```
-
 **并行调用所有配置的审查模型**（使用 `run_in_background: true`）：
 
 遍历 {{REVIEW_MODELS}} 中的每个模型进行代码审查：

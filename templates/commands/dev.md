@@ -57,21 +57,17 @@ description: 完整6阶段多模型协作工作流（Prompt增强 → 上下文�
 
 ### 阶段 2: 多模型分析
 
-**并行调用以下模型进行分析**（使用 `run_in_background: true` 非阻塞执行）：
-- 前端分析: {{FRONTEND_PRIMARY}}
-- 后端分析: {{BACKEND_PRIMARY}}
-
-**调用方式**: 使用 `Bash` 工具调用 `codeagent-wrapper`
-
 **并行调用所有配置的模型进行分析**（使用 `run_in_background: true`）：
 
-1. **后端模型**：遍历 {{BACKEND_MODELS}} 中的每个模型
+1. **后端模型**：遍历 {{BACKEND_MODELS}} 中的每个模型进行后端分析
    - 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/analyzer.md`
    - 输出：`Structured analysis/diagnostic report`
 
-2. **前端模型**：遍历 {{FRONTEND_MODELS}} 中的每个模型
+2. **前端模型**：遍历 {{FRONTEND_MODELS}} 中的每个模型进行前端分析
    - 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/analyzer.md`
    - 输出：`Structured analysis/diagnostic report`
+
+**总共并行调用次数**: {{BACKEND_MODELS}} 长度 + {{FRONTEND_MODELS}} 长度（例如：2个后端模型 + 2个前端模型 = 4次）
 
 调用示例：
 ```bash
@@ -96,13 +92,15 @@ done
 
 **并行调用所有配置的模型生成原型**（使用 `run_in_background: true`）：
 
-1. **后端模型**：遍历 {{BACKEND_MODELS}} 中的每个模型
+1. **后端模型**：遍历 {{BACKEND_MODELS}} 中的每个模型生成后端原型
    - 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/architect.md`
    - 输出：`Unified Diff Patch ONLY`
 
-2. **前端模型**：遍历 {{FRONTEND_MODELS}} 中的每个模型
+2. **前端模型**：遍历 {{FRONTEND_MODELS}} 中的每个模型生成前端原型
    - 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/frontend.md`（如无 frontend 角色，使用 architect）
    - 输出：`Unified Diff Patch ONLY`
+
+**总共并行调用次数**: {{BACKEND_MODELS}} 长度 + {{FRONTEND_MODELS}} 长度（例如：2个后端模型 + 2个前端模型 = 4次）
 
 调用示例：
 ```bash
@@ -137,6 +135,8 @@ done
 遍历 {{REVIEW_MODELS}} 中的每个模型进行代码审查：
 - 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/reviewer.md`
 - 输出：`Review comments only`
+
+**总共并行调用次数**: {{REVIEW_MODELS}} 长度（例如：2个审查模型 = 2次）
 
 调用示例：
 ```bash
