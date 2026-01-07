@@ -1,83 +1,148 @@
 ---
-description: 多模型测试生成（Codex 后端测试 + Gemini 前端测试）
+description: '多模型测试生成：智能路由 Codex 后端测试 / Gemini 前端测试'
 ---
 
-## 用法
-`/test <测试目标>`
+# Test - 多模型测试生成
+
+根据代码类型智能路由，生成高质量测试用例。
+
+## 多模型调用语法
+
+**必须使用 heredoc 语法调用 codeagent-wrapper**：
+
+```bash
+~/.claude/bin/codeagent-wrapper --backend <codex|gemini> - [工作目录] <<'EOF'
+<任务内容>
+EOF
+```
+
+## 使用方法
+
+```bash
+/test <测试目标>
+```
 
 ## 上下文
-- 测试目标: $ARGUMENTS
-- Codex 生成后端测试，Gemini 生成前端测试
 
-## 流程
+- 测试目标：$ARGUMENTS
+- 智能路由：后端 → Codex，前端 → Gemini，全栈 → 并行
+- 遵循项目现有测试框架和风格
 
-### Phase 1: 测试分析
-1. 调用 `mcp__ace-tool__search_context` 检索:
-   - `project_root_path`: 项目根目录绝对路径
-   - `query`: 需要测试的代码/功能描述
-   - 目标代码的完整实现
-   - 现有测试文件和测试框架
-   - 项目测试配置（jest.config, pytest.ini 等）
-2. 识别代码类型：前端组件 / 后端逻辑 / 全栈
-3. 评估当前测试覆盖率和缺口
+## 你的角色
 
-### Phase 2: 智能路由测试生成
+你是**测试工程师**，编排测试生成流程：
+- **Codex** – 后端测试生成（**后端权威**）
+- **Gemini** – 前端测试生成（**前端权威**）
+- **Claude (自己)** – 整合测试、验证运行
+
+---
+
+## 执行工作流
+
+**测试目标**：$ARGUMENTS
+
+### 🔍 阶段 1：测试分析
+
+`[模式：研究]`
+
+1. 检索目标代码的完整实现
+2. 查找现有测试文件和测试框架配置
+3. 识别代码类型：[后端/前端/全栈]
+4. 评估当前测试覆盖率和缺口
+
+### 🔬 阶段 2：智能路由测试生成
+
+`[模式：生成]`
+
 | 代码类型 | 路由 | 角色 |
 |---------|------|------|
-| 后端 | Codex | `tester` |
-| 前端 | Gemini | `tester` |
+| 后端 | Codex | `tester.md` |
+| 前端 | Gemini | `tester.md` |
 | 全栈 | 并行执行 | 两者 |
 
-**调用方式**: 使用 `Bash` 工具调用 `codeagent-wrapper`
+**全栈代码并行调用**：
 
+**执行步骤**：
+1. 在**同一个 Bash 调用**中启动两个后台进程（不加 wait，立即返回）：
 ```bash
-# Codex 后端测试生成
-codeagent-wrapper --backend {{BACKEND_PRIMARY}} - $PROJECT_DIR <<'EOF'
-ROLE_FILE: ~/.claude/.ccg/prompts/{{BACKEND_PRIMARY}}/tester.md
+# Codex 后端测试调用
+~/.claude/bin/codeagent-wrapper --backend codex - $PWD <<'EOF' &
+你是后端测试专家，角色提示词见 ~/.claude/.ccg/prompts/codex/tester.md
 
-<TASK>
-生成测试: {{需要测试的代码}}
-Context: {{现有测试和测试框架配置}}
-</TASK>
+任务：为以下代码生成单元测试
+<代码内容>
 
-OUTPUT: Unified Diff Patch for test files ONLY.
+要求：
+1. 使用项目现有测试框架
+2. 覆盖正常路径、边界条件、异常处理
+3. 输出完整测试代码
+EOF
+
+# Gemini 前端测试调用
+~/.claude/bin/codeagent-wrapper --backend gemini - $PWD <<'EOF' &
+你是前端测试专家，角色提示词见 ~/.claude/.ccg/prompts/gemini/tester.md
+
+任务：为以下组件生成测试
+<组件代码>
+
+要求：
+1. 使用项目现有测试框架
+2. 测试渲染、交互、状态变化
+3. 输出完整测试代码
 EOF
 ```
+2. 使用 `TaskOutput` 监控并获取 2 个模型的测试代码。
 
-```bash
-# Gemini 前端测试生成
-codeagent-wrapper --backend {{FRONTEND_PRIMARY}} - $PROJECT_DIR <<'EOF'
-ROLE_FILE: ~/.claude/.ccg/prompts/{{FRONTEND_PRIMARY}}/tester.md
+**⚠️ 强制规则：必须等待 TaskOutput 返回两个模型的完整结果后才能进入下一阶段，禁止跳过或提前继续！**
 
-<TASK>
-生成测试: {{需要测试的代码}}
-Context: {{现有测试和测试框架配置}}
-</TASK>
+### 🔀 阶段 3：测试整合
 
-OUTPUT: Unified Diff Patch for test files ONLY.
-EOF
-```
+`[模式：计划]`
 
-根据代码类型选择调用对应模型，全栈代码则并行调用（`run_in_background: true`）。
-
-### Phase 3: 测试整合
-1. 收集模型输出（`TaskOutput`）
+1. 收集模型输出
 2. Claude 重构：统一风格、确保命名一致、优化结构、移除冗余
 
-### Phase 4: 测试验证
-1. 运行生成的测试
-2. 检查通过率
+### ✅ 阶段 4：测试验证
+
+`[模式：执行]`
+
+1. 创建测试文件
+2. 运行生成的测试
 3. 如有失败，分析原因并修复
 
+---
+
+## 输出格式
+
+```markdown
+## 🧪 测试生成：<测试目标>
+
+### 分析结果
+- 代码类型：[后端/前端/全栈]
+- 测试框架：<检测到的框架>
+
+### 生成的测试
+- 测试文件：<文件路径>
+- 测试用例数：<数量>
+
+### 运行结果
+- 通过：X / Y
+- 失败：<如有，列出原因>
+```
+
 ## 测试策略金字塔
+
 ```
     /\      E2E (10%)
    /--\     Integration (20%)
   /----\    Unit (70%)
 ```
 
-## 关键原则
-1. **测试行为，不测试实现** - 关注输入输出
-2. **智能路由** - 后端测试用 Codex，前端测试用 Gemini
-3. **复用现有模式** - 遵循项目已有的测试风格
-4. **覆盖优先级** - 先覆盖关键路径和高风险代码
+---
+
+## 关键规则
+
+1. **测试行为，不测试实现** – 关注输入输出
+2. **智能路由** – 后端测试用 Codex，前端测试用 Gemini
+3. **复用现有模式** – 遵循项目已有的测试风格
+4. **必须等待所有模型返回** – 禁止提前进入下一步

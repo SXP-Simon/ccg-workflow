@@ -1,98 +1,141 @@
 ---
-description: 多模型性能优化（Codex 后端优化 + Gemini 前端优化）
+description: '多模型性能优化：Codex 后端优化 + Gemini 前端优化'
 ---
 
-## 用法
-`/optimize <优化目标>`
+# Optimize - 多模型性能优化
+
+双模型并行分析性能瓶颈，按性价比排序优化建议。
+
+## 多模型调用语法
+
+**必须使用 heredoc 语法调用外部模型**：
+
+```bash
+~/.claude/bin/codeagent-wrapper --backend <codex|gemini> - $PWD <<'EOF'
+<任务内容>
+EOF
+```
+
+> ⚠️ 禁止使用 `echo | codeagent-wrapper` 管道语法，会导致多行内容截断。
+
+---
+
+## 使用方法
+
+```bash
+/optimize <优化目标>
+```
 
 ## 上下文
-- 优化目标: $ARGUMENTS
+
+- 优化目标：$ARGUMENTS
 - Codex 专注后端性能（数据库、算法、缓存）
 - Gemini 专注前端性能（渲染、加载、交互）
 
-## 流程
+## 你的角色
 
-### Phase 1: 性能基线分析
-1. 调用 `mcp__ace-tool__search_context` 检索目标代码:
-   - `project_root_path`: 项目根目录绝对路径
-   - `query`: 需要优化的目标代码描述
+你是**性能工程师**，编排多模型优化流程：
+- **Codex** – 后端性能优化（**后端权威**）
+- **Gemini** – 前端性能优化（**前端权威**）
+- **Claude (自己)** – 综合优化、实施变更
+
+---
+
+## 执行工作流
+
+**优化目标**：$ARGUMENTS
+
+### 🔍 阶段 1：性能基线
+
+`[模式：研究]`
+
+1. 调用 `mcp__ace-tool__search_context` 检索目标代码（如可用）
 2. 识别性能关键路径
-3. 收集现有指标（如有）：
-   - 后端: 响应时间、查询耗时、内存占用
-   - 前端: LCP、FID、CLS、Bundle Size
+3. 收集现有指标（如有）
 
-### Phase 2: 并行性能分析
-**同时调用**（`run_in_background: true`）:
+### 🔬 阶段 2：并行性能分析
 
-**调用方式**: 使用 `Bash` 工具调用 `codeagent-wrapper`
+`[模式：分析]`
 
+**并行调用两个模型**：
+
+**执行步骤**：
+1. 在**同一个 Bash 调用**中启动两个后台进程（不加 wait，立即返回）：
 ```bash
-# Codex 后端性能分析
-codeagent-wrapper --backend {{BACKEND_PRIMARY}} - $PROJECT_DIR <<'EOF'
-ROLE_FILE: ~/.claude/.ccg/prompts/{{BACKEND_PRIMARY}}/optimizer.md
+# Codex：后端性能分析
+~/.claude/bin/codeagent-wrapper --backend codex - $PWD <<'EOF' &
+[角色] 你是后端性能优化专家
 
-<TASK>
-性能优化: {{优化目标}}
-Context: {{从 ace-tool 获取的相关代码和性能指标}}
-</TASK>
+[任务] 分析以下代码的后端性能问题：
+$ARGUMENTS
 
-OUTPUT: Analysis report + Unified Diff Patch for optimizations.
+[输出格式]
+1. 性能瓶颈列表（按严重程度排序）
+2. 每个问题的优化方案（含代码 Diff）
+3. 预期收益评估
+EOF
+
+# Gemini：前端性能分析
+~/.claude/bin/codeagent-wrapper --backend gemini - $PWD <<'EOF' &
+[角色] 你是前端性能优化专家
+
+[任务] 分析以下代码的前端性能问题：
+$ARGUMENTS
+
+[输出格式]
+1. Core Web Vitals 问题列表
+2. 每个问题的优化方案（含代码 Diff）
+3. 预期收益评估
 EOF
 ```
+2. 使用 `TaskOutput` 监控并获取 2 个模型的分析结果。
 
-```bash
-# Gemini 前端性能分析
-codeagent-wrapper --backend {{FRONTEND_PRIMARY}} - $PROJECT_DIR <<'EOF'
-ROLE_FILE: ~/.claude/.ccg/prompts/{{FRONTEND_PRIMARY}}/optimizer.md
+**⚠️ 强制规则：必须等待 TaskOutput 返回两个模型的完整结果后才能进入下一阶段，禁止跳过或提前继续！**
 
-<TASK>
-性能优化: {{优化目标}}
-Context: {{从 ace-tool 获取的相关代码和性能指标}}
-</TASK>
+### 🔀 阶段 3：优化整合
 
-OUTPUT: Analysis report + Unified Diff Patch for optimizations.
-EOF
-```
+`[模式：计划]`
 
-- **Codex** + `optimizer` 角色 → 后端性能分析
-- **Gemini** + `optimizer` 角色 → 前端性能分析
+1. 收集双模型分析结果
+2. **优先级排序**：按 `影响程度 × 实施难度⁻¹` 计算性价比
+3. 请求用户确认优化方案
 
-### Phase 3: 优化整合
-1. 收集双模型分析（`TaskOutput`）
-2. **优先级排序**：按影响程度 × 实施难度 计算性价比
-3. Claude 重构优化代码
+### ⚡ 阶段 4：实施优化
 
-### Phase 4: 实施优化
-1. 按优先级实施
-2. 确保不破坏现有功能
-3. 添加必要的性能监控
+`[模式：执行]`
 
-### Phase 5: 验证
-1. 运行性能测试（如有）
-2. 对比优化前后指标
-3. 双模型审查优化效果
+用户确认后按优先级实施，确保不破坏现有功能。
+
+### ✅ 阶段 5：验证
+
+`[模式：评审]`
+
+运行测试验证功能，对比优化前后指标。
+
+---
 
 ## 性能指标参考
 
-### 后端
-| 指标 | 良好 | 需优化 | 严重 |
-|------|------|--------|------|
-| API 响应 | <100ms | 100-500ms | >500ms |
-| 数据库查询 | <50ms | 50-200ms | >200ms |
-
-### 前端 (Core Web Vitals)
-| 指标 | 良好 | 需改进 | 差 |
-|------|------|--------|-----|
-| LCP | <2.5s | 2.5-4s | >4s |
-| FID | <100ms | 100-300ms | >300ms |
-| CLS | <0.1 | 0.1-0.25 | >0.25 |
+| 类型 | 指标 | 良好 | 需优化 |
+|------|------|------|--------|
+| 后端 | API 响应 | <100ms | >500ms |
+| 后端 | 数据库查询 | <50ms | >200ms |
+| 前端 | LCP | <2.5s | >4s |
+| 前端 | FID | <100ms | >300ms |
+| 前端 | CLS | <0.1 | >0.25 |
 
 ## 常见优化模式
-**后端**: N+1 查询→批量加载、缺少索引→复合索引、重复计算→缓存、同步阻塞→异步
-**前端**: 大 Bundle→代码分割、频繁重渲染→memo、大列表→虚拟滚动、未优化图片→WebP/懒加载
 
-## 关键原则
-1. **先测量后优化** - 没有数据不盲目优化
-2. **性价比优先** - 高影响 + 低难度优先
-3. **不破坏功能** - 优化不能引入 bug
-4. **可观测性** - 添加监控便于持续优化
+**后端**：N+1→批量加载、缺索引→复合索引、重复计算→缓存、同步→异步
+
+**前端**：大Bundle→代码分割、频繁重渲染→memo、大列表→虚拟滚动、未优化图片→WebP
+
+---
+
+## 关键规则
+
+1. **先测量后优化** – 没有数据不盲目优化
+2. **性价比优先** – 高影响 + 低难度优先
+3. **不破坏功能** – 优化不能引入 bug
+4. **信任规则** – 后端以 Codex 为准，前端以 Gemini 为准
+5. **必须等待所有模型返回** – 禁止提前进入下一步

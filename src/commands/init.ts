@@ -1,4 +1,4 @@
-import type { CollaborationMode, InitOptions, ModelRouting, ModelType, SupportedLang, WorkflowConfig } from '../types'
+import type { CollaborationMode, InitOptions, ModelRouting, ModelType, SupportedLang } from '../types'
 import ansis from 'ansis'
 import fs from 'fs-extra'
 import inquirer from 'inquirer'
@@ -7,155 +7,21 @@ import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { i18n } from '../i18n'
 import { createDefaultConfig, ensureCcgDir, getCcgDir, writeCcgConfig } from '../utils/config'
-import { getWorkflowConfigs, getWorkflowPreset, installAceTool, installWorkflows, WORKFLOW_PRESETS, type WorkflowPreset } from '../utils/installer'
+import { getAllCommandIds, installAceTool, installWorkflows } from '../utils/installer'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 
 export async function init(options: InitOptions = {}): Promise<void> {
   console.log()
   console.log(ansis.cyan.bold(`  CCG - Claude + Codex + Gemini`))
-  console.log(ansis.gray(`  ${i18n.t('init:welcome')}`))
+  console.log(ansis.gray(`  多模型协作开发工作流`))
   console.log()
 
-  // Language selection (if not provided)
-  let language: SupportedLang = options.lang || 'en'
-  if (!options.skipPrompt && !options.lang) {
-    const { selectedLang } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selectedLang',
-      message: i18n.t('init:selectLanguage'),
-      choices: [
-        { name: '中文 (Chinese)', value: 'zh-CN' },
-        { name: 'English', value: 'en' },
-      ],
-      default: 'zh-CN',
-    }])
-    language = selectedLang
-    // Switch i18n language immediately after selection
-    await i18n.changeLanguage(language)
-  }
-
-  // Frontend models selection (multi-select)
-  let frontendModels: ModelType[] = ['gemini']
-  if (options.frontend) {
-    frontendModels = options.frontend.split(',').map(m => m.trim() as ModelType)
-  }
-  else if (!options.skipPrompt) {
-    const { selectedFrontend } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selectedFrontend',
-      message: i18n.t('init:selectFrontendModels'),
-      choices: [
-        { name: i18n.t('init:models.gemini'), value: 'gemini', checked: true },
-        { name: i18n.t('init:models.codex'), value: 'codex' },
-        { name: i18n.t('init:models.claude'), value: 'claude' },
-      ],
-      validate: (answer: string[]) => answer.length > 0 || i18n.t('init:validation.selectAtLeastOne'),
-    }])
-    frontendModels = selectedFrontend
-  }
-
-  // Backend models selection (multi-select)
-  let backendModels: ModelType[] = ['codex']
-  if (options.backend) {
-    backendModels = options.backend.split(',').map(m => m.trim() as ModelType)
-  }
-  else if (!options.skipPrompt) {
-    const { selectedBackend } = await inquirer.prompt([{
-      type: 'checkbox',
-      name: 'selectedBackend',
-      message: i18n.t('init:selectBackendModels'),
-      choices: [
-        { name: i18n.t('init:models.codex'), value: 'codex', checked: true },
-        { name: i18n.t('init:models.gemini'), value: 'gemini' },
-        { name: i18n.t('init:models.claude'), value: 'claude' },
-      ],
-      validate: (answer: string[]) => answer.length > 0 || i18n.t('init:validation.selectAtLeastOne'),
-    }])
-    backendModels = selectedBackend
-  }
-
-  // Collaboration mode selection
-  let mode: CollaborationMode = 'smart'
-  if (options.mode) {
-    mode = options.mode as CollaborationMode
-  }
-  else if (!options.skipPrompt) {
-    const { selectedMode } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selectedMode',
-      message: i18n.t('init:selectMode'),
-      choices: [
-        { name: i18n.t('init:modes.smart'), value: 'smart' },
-        { name: i18n.t('init:modes.parallel'), value: 'parallel' },
-        { name: i18n.t('init:modes.sequential'), value: 'sequential' },
-      ],
-      default: 'smart',
-    }])
-    mode = selectedMode
-  }
-
-  // Workflow selection
-  const allWorkflows = getWorkflowConfigs()
-  let selectedWorkflows: string[] = allWorkflows.filter(w => w.defaultSelected).map(w => w.id)
-
-  if (options.workflows) {
-    if (options.workflows === 'all') {
-      selectedWorkflows = allWorkflows.map(w => w.id)
-    }
-    else if (options.workflows !== 'skip') {
-      selectedWorkflows = options.workflows.split(',').map(w => w.trim())
-    }
-  }
-  else if (!options.skipPrompt) {
-    // First, ask for preset or custom
-    const { workflowMode } = await inquirer.prompt([{
-      type: 'list',
-      name: 'workflowMode',
-      message: '选择命令安装模式',
-      choices: [
-        {
-          name: `${WORKFLOW_PRESETS.minimal.name} ${ansis.gray(`— ${WORKFLOW_PRESETS.minimal.description}`)} ${ansis.green('(推荐新手)')}`,
-          value: 'minimal' as WorkflowPreset,
-        },
-        {
-          name: `${WORKFLOW_PRESETS.standard.name} ${ansis.gray(`— ${WORKFLOW_PRESETS.standard.description}`)} ${ansis.green('(推荐)')}`,
-          value: 'standard' as WorkflowPreset,
-        },
-        {
-          name: `${WORKFLOW_PRESETS.full.name} ${ansis.gray(`— ${WORKFLOW_PRESETS.full.description}`)}`,
-          value: 'full' as WorkflowPreset,
-        },
-        new inquirer.Separator(),
-        {
-          name: `自定义 ${ansis.gray('— 手动选择命令')}`,
-          value: 'custom',
-        },
-      ],
-      default: 'standard',
-    }])
-
-    if (workflowMode === 'custom') {
-      // Show full checkbox list
-      const { selected } = await inquirer.prompt([{
-        type: 'checkbox',
-        name: 'selected',
-        message: i18n.t('init:selectWorkflows'),
-        choices: allWorkflows.map(w => ({
-          name: `${language === 'zh-CN' ? w.name : w.nameEn} ${ansis.gray(`— ${language === 'zh-CN' ? w.description : w.descriptionEn}`)}`,
-          value: w.id,
-          checked: w.defaultSelected,
-        })),
-      }])
-      selectedWorkflows = selected
-    }
-    else {
-      // Use preset
-      selectedWorkflows = getWorkflowPreset(workflowMode as WorkflowPreset)
-      const preset = WORKFLOW_PRESETS[workflowMode as WorkflowPreset]
-      console.log()
-      console.log(ansis.gray(`  已选择 ${ansis.cyan(preset.name)} 模式 (${selectedWorkflows.length} 个命令)`))
-    }
-  }
+  // Fixed configuration
+  const language: SupportedLang = 'zh-CN'
+  const frontendModels: ModelType[] = ['gemini']
+  const backendModels: ModelType[] = ['codex']
+  const mode: CollaborationMode = 'smart'
+  const selectedWorkflows = getAllCommandIds()
 
   // MCP Tool Selection
   let mcpProvider = 'ace-tool'
@@ -246,20 +112,20 @@ export async function init(options: InitOptions = {}): Promise<void> {
     }
   }
 
-  // Build routing config
+  // Build routing config (fixed: Gemini frontend, Codex backend)
   const routing: ModelRouting = {
     frontend: {
       models: frontendModels,
-      primary: frontendModels[0],
-      strategy: frontendModels.length > 1 ? 'parallel' : 'fallback',
+      primary: 'gemini',
+      strategy: 'fallback',
     },
     backend: {
       models: backendModels,
-      primary: backendModels[0],
-      strategy: backendModels.length > 1 ? 'parallel' : 'fallback',
+      primary: 'codex',
+      strategy: 'fallback',
     },
     review: {
-      models: [...new Set([...frontendModels, ...backendModels])],
+      models: ['codex', 'gemini'],
       strategy: 'parallel',
     },
     mode,
@@ -270,10 +136,9 @@ export async function init(options: InitOptions = {}): Promise<void> {
   console.log(ansis.yellow('━'.repeat(50)))
   console.log(ansis.bold(`  ${i18n.t('init:summary.title')}`))
   console.log()
-  console.log(`  ${ansis.cyan(i18n.t('init:summary.frontendModels'))} ${frontendModels.map(m => ansis.green(m)).join(', ')}`)
-  console.log(`  ${ansis.cyan(i18n.t('init:summary.backendModels'))}  ${backendModels.map(m => ansis.blue(m)).join(', ')}`)
-  console.log(`  ${ansis.cyan(i18n.t('init:summary.collaboration'))}   ${ansis.yellow(mode)}`)
-  console.log(`  ${ansis.cyan(i18n.t('init:summary.workflows'))}       ${selectedWorkflows.length} ${i18n.t('init:summary.selected')}`)
+  console.log(`  ${ansis.cyan('模型路由')}  ${ansis.green('Gemini')} (前端) + ${ansis.blue('Codex')} (后端)`)
+  console.log(`  ${ansis.cyan('命令数量')}  ${ansis.yellow(selectedWorkflows.length.toString())} 个`)
+  console.log(`  ${ansis.cyan('MCP 工具')}  ${mcpProvider === 'ace-tool' ? (aceToolToken ? ansis.green('ace-tool') : ansis.yellow('ace-tool (待配置)')) : ansis.gray('跳过')}`)
   console.log(ansis.yellow('━'.repeat(50)))
   console.log()
 
@@ -513,8 +378,6 @@ export async function init(options: InitOptions = {}): Promise<void> {
       console.log()
     }
 
-    console.log()
-    console.log(ansis.gray(`  ${i18n.t('init:configSavedTo')} ${getCcgDir()}/config.toml`))
     console.log()
   }
   catch (error) {

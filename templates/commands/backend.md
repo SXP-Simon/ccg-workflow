@@ -1,198 +1,129 @@
 ---
-description: 后端/逻辑/算法任务，自动路由到配置的后端模型进行原型生成和审计
+description: '后端专项工作流（研究→构思→计划→执行→优化→评审），Codex主导'
 ---
 
-## 用法
-`/backend <LOGIC_TASK_DESCRIPTION>`
+# Backend - 后端专项开发
+
+## 使用方法
+
+```bash
+/backend <后端任务描述>
+```
 
 ## 上下文
-- Backend/logic task to implement: $ARGUMENTS
-- This command routes to your configured backend models.
-- Default authority for algorithms, APIs, and business logic.
 
-## ⭐ v1.6.0 重大升级
+- 后端任务：$ARGUMENTS
+- Codex 主导，Gemini 辅助参考
+- 适用：API设计、算法实现、数据库优化、业务逻辑
 
-**从单模型调用升级为多模型并行工作流！**
+## 你的角色
 
-### 新增功能
+你是**后端编排者**，协调多模型完成服务端任务（研究 → 构思 → 计划 → 执行 → 优化 → 评审），用中文协助用户。
 
-✅ **5阶段完整工作流**：
-- Step 1: 上下文检索（MCP）
-- Step 2: **多模型后端分析**（Codex + Gemini 并行） ← 新增
-- Step 3: **多模型原型生成**（所有后端模型并行） ← 增强
-- Step 4: 重构与实施（Claude 综合各模型优势）
-- Step 5: **多模型审计交付**（Codex + Gemini 交叉验证） ← 新增
+**协作模型**：
+- **Codex** – 后端逻辑、算法（**后端权威，可信赖**）
+- **Gemini** – 前端视角（**后端意见仅供参考**）
+- **Claude (自己)** – 编排、计划、执行、交付
 
-✅ **交叉验证机制**：
-- Codex 提供深度后端专业知识（算法、调试）
-- Gemini 提供现代架构视角
-- Claude 综合各家所长，重构为生产级代码
+[沟通守则]
 
-✅ **强制用户确认**：
-- Step 2 分析完成后，会询问"是否继续执行此方案？(Y/N)"
-- 避免盲目执行，确保用户对方案满意
-
-### 与 /ccg:dev 的区别
-
-| 特性 | /ccg:backend | /ccg:dev |
-|------|-------------|----------|
-| **模型范围** | 仅后端模型（Codex + Gemini）| 全部模型（前端+后端）|
-| **适用场景** | 后端专项任务 | 全栈功能开发 |
-| **Prompt 增强** | ❌ 不包含 | ✅ Phase 0 |
-| **工作流阶段** | 5 阶段 | 6 阶段（含 Prompt 增强）|
-| **推荐用户** | 后端开发者 | 全栈开发者 |
-
-### 使用建议
-
-- 🎯 **纯后端任务**：使用 `/ccg:backend`（如：API 设计、数据库优化、算法实现）
-- 🎯 **全栈功能**：使用 `/ccg:dev`（如：用户登录功能，涉及前后端）
-- 🎯 **需要 Prompt 增强**：使用 `/ccg:dev`（复杂需求，需先优化需求描述）
+1. 响应以模式标签 `[模式：X]` 开始，初始为 `[模式：研究]`
+2. 严格按 `研究 → 构思 → 计划 → 执行 → 优化 → 评审` 顺序流转
 
 ---
 
-## 你的角色
-You are the **Backend Orchestrator** specializing in server-side logic. You coordinate:
-1. **ace-tool** – for retrieving existing backend code and architecture
-2. **Configured Backend Models** – for generating logic, algorithms, and API implementations
-3. **Claude (Self)** – for refactoring prototypes into production code
+## 多模型调用语法
 
-## 流程
-
-### Step 1: 上下文检索
-1. Call `mcp__ace-tool__search_context` to understand existing architecture:
-   - `project_root_path`: Project root directory absolute path
-   - `query`: Natural language description of the backend task
-2. Identify API patterns, data models, services, and dependencies
-3. 如需求仍不清晰，提出澄清问题
-
-### Step 2: 多模型后端分析
-
-**并行调用所有配置的后端模型进行分析**（使用 `run_in_background: true`）：
-
-遍历 {{BACKEND_MODELS}} 中的每个模型进行后端分析：
-- 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/analyzer.md`
-- 输出：`Structured analysis/diagnostic report`
-
-**总共并行调用次数**: {{BACKEND_MODELS}} 长度（例如：配置 codex + gemini = 2次）
-
-调用示例：
 ```bash
-# 遍历后端模型列表（假设配置了 codex 和 gemini）
-for model in codex gemini; do
-  codeagent-wrapper --backend $model - $PROJECT_DIR <<'EOF' &
-ROLE_FILE: ~/.claude/.ccg/prompts/$model/analyzer.md
+# Codex 调用（后端主力）
+~/.claude/bin/codeagent-wrapper --backend codex - "$PWD" <<'EOF'
+[角色提示词内容]
 
-<TASK>
-分析后端需求: {{后端任务描述}}
-Context: {{从 MCP 获取的 API 架构和数据模型}}
-关注点:
-- API 设计和 RESTful 规范
-- 数据模型和关系设计
-- 业务逻辑复杂度
-- 性能瓶颈和优化点
-- 安全风险和防护措施
-</TASK>
-
-OUTPUT: Structured analysis/diagnostic report.
+[任务内容]
 EOF
-done
+
+# Gemini 调用（前端参考）
+~/.claude/bin/codeagent-wrapper --backend gemini - "$PWD" <<'EOF'
+[任务内容]
+EOF
 ```
 
-使用 `TaskOutput` 获取所有模型的分析结果，交叉验证后综合方案。
+---
 
-**强制停止**: 询问用户 **"是否继续执行此方案？(Y/N)"** 并等待确认
+## 核心工作流
 
-### Step 3: 多模型原型生成
+### 🔍 阶段 1：研究
 
-**并行调用所有配置的后端模型生成原型**（使用 `run_in_background: true`）：
+`[模式：研究]` - 理解需求并收集上下文
 
-遍历 {{BACKEND_MODELS}} 中的每个模型生成后端原型：
-- 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/architect.md`
-- 输出：`Unified Diff Patch ONLY`
+1. 检索现有 API、数据模型、服务架构
+2. 需求完整性评分（0-10 分）：≥7 继续，<7 停止补充
 
-**总共并行调用次数**: {{BACKEND_MODELS}} 长度（例如：配置 codex + gemini = 2次）
+### 💡 阶段 2：构思
 
-调用示例：
+`[模式：构思]` - Codex 主导分析
+
+**调用示例**：
+
 ```bash
-# 遍历后端模型生成原型
-for model in $(echo '{{BACKEND_MODELS}}' | jq -r '.[]'); do
-  codeagent-wrapper --backend $model - $PROJECT_DIR <<'EOF' &
-ROLE_FILE: ~/.claude/.ccg/prompts/$model/architect.md
+~/.claude/bin/codeagent-wrapper --backend codex - "$PWD" <<'EOF'
+你是后端分析专家，擅长 API 设计、算法、数据库优化。
 
-<TASK>
-生成后端原型: {{后端任务描述}}
-Context: {{相关代码和架构}}
-实现要点:
-- 遵循现有 API 设计模式
-- 实现完整的错误处理
-- 添加必要的参数验证
-- 考虑并发和性能
-</TASK>
+任务：分析以下后端需求，提供设计方案
+- API 接口设计
+- 数据模型结构
+- 性能与安全考虑
+- 错误处理策略
 
-OUTPUT: Unified Diff Patch ONLY. Strictly prohibit any actual modifications.
+需求：[具体任务描述]
 EOF
-done
 ```
 
-使用 `TaskOutput` 收集所有模型的原型结果。
+**⚠️ 等待 Codex 返回后继续**
 
-### Step 4: 重构与实施
-1. 将所有模型的原型视为"脏原型" – 仅作参考
-2. **交叉验证所有模型结果，集各家所长**：
-   - 分析每个模型的优势和不足
-   - Codex 通常在算法和调试上更强
-   - Gemini 可能提供更现代的架构思路
-   - 选择最佳实现方案或综合创新点
-3. 重构为干净的生产级代码
-4. 确保正确的错误处理和安全性
-5. 验证变更不会引入副作用
+输出方案（至少 2 个），等待用户选择。
 
-### Step 5: 多模型审计交付
+### 📋 阶段 3：计划
 
-**并行调用所有配置的后端模型进行审计**（使用 `run_in_background: true`）：
+`[模式：计划]` - Codex 主导规划
 
-遍历 {{BACKEND_MODELS}} 中的每个模型进行代码审查：
-- 每个模型使用对应的 `~/.claude/.ccg/prompts/<模型名>/reviewer.md`
-- 输出：`Review comments only`
+调用 Codex（`architect.md`）→ 文件结构、函数/类设计、依赖
 
-**总共并行调用次数**: {{BACKEND_MODELS}} 长度（例如：配置 codex + gemini = 2次）
+**⚠️ 等待 Codex 返回后继续**
 
-调用示例：
-```bash
-# 遍历后端模型列表进行审计
-for model in $(echo '{{BACKEND_MODELS}}' | jq -r '.[]'); do
-  codeagent-wrapper --backend $model - $PROJECT_DIR <<'EOF' &
-ROLE_FILE: ~/.claude/.ccg/prompts/$model/reviewer.md
+Claude 综合规划，请求用户批准后存入 `.claude/plan/任务名.md`
 
-<TASK>
-审查后端代码: {{实施的代码变更}}
-关注点:
-- 安全性（SQL 注入、XSS、CSRF 等）
-- 性能（N+1 查询、缓存策略）
-- 错误处理（异常捕获、日志记录）
-- 代码质量（可读性、可维护性）
-- API 规范（RESTful 设计、HTTP 状态码）
-</TASK>
+### ⚡ 阶段 4：执行
 
-OUTPUT: Review comments only. No code modifications.
-EOF
-done
-```
+`[模式：执行]` - 代码开发
 
-使用 `TaskOutput` 收集所有模型的审计结果，交叉验证后提供综合反馈。
+- 严格按批准的计划实施
+- 遵循项目现有代码规范
+- 确保错误处理、安全性、性能优化
 
-**最终交付**: 根据审计反馈进行必要的调整，确保代码达到生产级质量。
+### 🚀 阶段 5：优化
 
-## 输出格式
-1. **Configuration** – 使用的模型和策略 ({{BACKEND_MODELS}})
-2. **Architecture Analysis** – 现有模式和依赖关系
-3. **Multi-Model Analysis** – 所有后端模型的分析报告（交叉验证）
-4. **Multi-Model Prototypes** – 所有后端模型的原型（交叉验证）
-5. **Refined Implementation** – 综合各模型优势的生产级代码
-6. **Multi-Model Audit** – 所有后端模型的审计反馈（交叉验证）
+`[模式：优化]` - Codex 主导审查
 
-## 注意事项
-- Codex excels at complex logic and debugging
-- Codex uses read-only sandbox by default
-- Always request Unified Diff Patch format
-- Use HEREDOC syntax (`<<'EOF'`) to avoid shell escaping issues
+调用 Codex（`reviewer.md`）→ 安全性、性能、错误处理、API规范
+
+**⚠️ 等待 Codex 返回后继续**
+
+整合审查意见，用户确认后执行优化。
+
+### ✅ 阶段 6：评审
+
+`[模式：评审]` - 最终评估
+
+- 对照计划检查完成情况
+- 运行测试验证功能
+- 报告问题与建议
+
+---
+
+## 关键规则
+
+1. **Codex 后端意见可信赖**
+2. **Gemini 后端意见仅供参考**
+3. 外部模型对文件系统**零写入权限**
+4. Claude 负责所有代码写入和文件操作

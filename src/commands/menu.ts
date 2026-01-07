@@ -108,6 +108,26 @@ async function uninstall(): Promise<void> {
         console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
       }
     }
+
+    if (result.removedAgents.length > 0) {
+      console.log()
+      console.log(ansis.cyan('已移除子智能体:'))
+      for (const agent of result.removedAgents) {
+        console.log(`  ${ansis.gray('•')} ${agent}`)
+      }
+    }
+
+    if (result.removedSkills.length > 0) {
+      console.log()
+      console.log(ansis.cyan('已移除 Skills:'))
+      console.log(`  ${ansis.gray('•')} multi-model-collaboration`)
+    }
+
+    if (result.removedBin) {
+      console.log()
+      console.log(ansis.cyan('已移除二进制文件:'))
+      console.log(`  ${ansis.gray('•')} codeagent-wrapper`)
+    }
   }
   else {
     console.log(ansis.red(i18n.t('menu:uninstall.failed')))

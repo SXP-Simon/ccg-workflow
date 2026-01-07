@@ -23,62 +23,69 @@ function findPackageRoot(startDir: string): string {
 
 const PACKAGE_ROOT = findPackageRoot(__dirname)
 
-// Workflow configurations
+// All available commands (14 total after cleanup)
+const ALL_COMMANDS = [
+  'workflow', // 完整6阶段开发工作流
+  'frontend', // 前端专项（Gemini主导）
+  'backend', // 后端专项（Codex主导）
+  'feat', // 智能功能开发
+  'analyze', // 技术分析
+  'debug', // 问题诊断+修复
+  'optimize', // 性能优化
+  'test', // 测试生成
+  'review', // 代码审查
+  'init', // 初始化 CLAUDE.md
+  'commit', // Git 智能提交
+  'rollback', // Git 回滚
+  'clean-branches', // Git 清理分支
+  'worktree', // Git Worktree
+] as const
+
+// Workflow configurations (for compatibility with existing code)
 const WORKFLOW_CONFIGS: WorkflowConfig[] = [
   {
-    id: 'dev',
+    id: 'workflow',
     name: '完整开发工作流',
     nameEn: 'Full Development Workflow',
     category: 'development',
-    commands: ['dev'],
+    commands: ['workflow'],
     defaultSelected: true,
     order: 1,
-    description: '完整6阶段开发工作流（Prompt增强→上下文检索→多模型分析→原型生成→代码实施→审计交付）',
-    descriptionEn: 'Full 6-phase development workflow (Prompt enhancement → Context retrieval → Multi-model analysis → Prototype → Implementation → Audit)',
-  },
-  {
-    id: 'code',
-    name: '智能代码生成',
-    nameEn: 'Smart Code Generation',
-    category: 'development',
-    commands: ['code'],
-    defaultSelected: true,
-    order: 2,
-    description: '多模型代码生成（智能路由：前端→Gemini，后端→Codex）',
-    descriptionEn: 'Multi-model code generation (smart routing: frontend→Gemini, backend→Codex)',
+    description: '完整6阶段开发工作流（研究→构思→计划→执行→优化→评审）',
+    descriptionEn: 'Full 6-phase development workflow',
   },
   {
     id: 'frontend',
-    name: '前端任务',
+    name: '前端专项',
     nameEn: 'Frontend Tasks',
     category: 'development',
     commands: ['frontend'],
     defaultSelected: true,
-    order: 3,
-    description: '前端/UI/样式任务，自动路由到 Gemini',
-    descriptionEn: 'Frontend/UI/style tasks, auto-route to Gemini',
+    order: 2,
+    description: '前端专项任务（Gemini主导，更快更精准）',
+    descriptionEn: 'Frontend tasks (Gemini-led, faster)',
   },
   {
     id: 'backend',
-    name: '后端任务',
+    name: '后端专项',
     nameEn: 'Backend Tasks',
     category: 'development',
     commands: ['backend'],
     defaultSelected: true,
-    order: 4,
-    description: '后端/逻辑/算法任务，自动路由到 Codex',
-    descriptionEn: 'Backend/logic/algorithm tasks, auto-route to Codex',
+    order: 3,
+    description: '后端专项任务（Codex主导，更快更精准）',
+    descriptionEn: 'Backend tasks (Codex-led, faster)',
   },
   {
-    id: 'review',
-    name: '代码审查',
-    nameEn: 'Code Review',
+    id: 'feat',
+    name: '智能功能开发',
+    nameEn: 'Smart Feature Development',
     category: 'development',
-    commands: ['review'],
+    commands: ['feat'],
     defaultSelected: true,
-    order: 5,
-    description: '双模型代码审查（Codex + Gemini 并行），无参数时自动审查 git diff',
-    descriptionEn: 'Dual-model code review (Codex + Gemini parallel), auto-review git diff when no args',
+    order: 4,
+    description: '智能功能开发 - 自动规划、设计、实施',
+    descriptionEn: 'Smart feature development - auto plan, design, implement',
   },
   {
     id: 'analyze',
@@ -87,141 +94,108 @@ const WORKFLOW_CONFIGS: WorkflowConfig[] = [
     category: 'development',
     commands: ['analyze'],
     defaultSelected: true,
-    order: 6,
-    description: '双模型技术分析（Codex + Gemini 并行），交叉验证后综合见解',
-    descriptionEn: 'Dual-model technical analysis (Codex + Gemini parallel), comprehensive insights after cross-validation',
-  },
-  {
-    id: 'enhance',
-    name: 'Prompt 增强',
-    nameEn: 'Prompt Enhancement',
-    category: 'development',
-    commands: ['enhance'],
-    defaultSelected: true,
-    order: 7,
-    description: '使用 ace-tool enhance_prompt 优化 Prompt',
-    descriptionEn: 'Optimize prompts using ace-tool enhance_prompt',
+    order: 5,
+    description: '双模型技术分析，仅分析不修改代码',
+    descriptionEn: 'Dual-model technical analysis, analysis only',
   },
   {
     id: 'debug',
-    name: 'UltraThink 调试',
-    nameEn: 'UltraThink Debug',
+    name: '问题诊断',
+    nameEn: 'Debug',
     category: 'development',
     commands: ['debug'],
-    defaultSelected: false,
-    order: 8,
-    description: 'UltraThink 多模型调试（Codex 后端诊断 + Gemini 前端诊断）',
-    descriptionEn: 'UltraThink multi-model debugging (Codex backend diagnosis + Gemini frontend diagnosis)',
-  },
-  {
-    id: 'test',
-    name: '多模型测试生成',
-    nameEn: 'Multi-Model Test Generation',
-    category: 'development',
-    commands: ['test'],
-    defaultSelected: false,
-    order: 9,
-    description: '多模型测试生成（Codex 后端测试 + Gemini 前端测试）',
-    descriptionEn: 'Multi-model test generation (Codex backend tests + Gemini frontend tests)',
-  },
-  {
-    id: 'bugfix',
-    name: '质量门控修复',
-    nameEn: 'Quality Gate Bugfix',
-    category: 'development',
-    commands: ['bugfix'],
-    defaultSelected: false,
-    order: 10,
-    description: '质量门控修复（双模型交叉验证，90%+ 通过）',
-    descriptionEn: 'Quality gate bugfix (dual-model cross-validation, 90%+ pass)',
-  },
-  {
-    id: 'think',
-    name: 'UltraThink 深度分析',
-    nameEn: 'UltraThink Deep Analysis',
-    category: 'development',
-    commands: ['think'],
-    defaultSelected: false,
-    order: 11,
-    description: 'UltraThink 深度分析（双模型并行分析 + 综合见解）',
-    descriptionEn: 'UltraThink deep analysis (dual-model parallel analysis + comprehensive insights)',
+    defaultSelected: true,
+    order: 6,
+    description: '多模型诊断 + 修复',
+    descriptionEn: 'Multi-model diagnosis + fix',
   },
   {
     id: 'optimize',
-    name: '多模型性能优化',
-    nameEn: 'Multi-Model Optimization',
+    name: '性能优化',
+    nameEn: 'Performance Optimization',
     category: 'development',
     commands: ['optimize'],
-    defaultSelected: false,
-    order: 12,
-    description: '多模型性能优化（Codex 后端优化 + Gemini 前端优化）',
-    descriptionEn: 'Multi-model performance optimization (Codex backend + Gemini frontend)',
+    defaultSelected: true,
+    order: 7,
+    description: '多模型性能优化',
+    descriptionEn: 'Multi-model performance optimization',
+  },
+  {
+    id: 'test',
+    name: '测试生成',
+    nameEn: 'Test Generation',
+    category: 'development',
+    commands: ['test'],
+    defaultSelected: true,
+    order: 8,
+    description: '智能路由测试生成',
+    descriptionEn: 'Smart routing test generation',
+  },
+  {
+    id: 'review',
+    name: '代码审查',
+    nameEn: 'Code Review',
+    category: 'development',
+    commands: ['review'],
+    defaultSelected: true,
+    order: 9,
+    description: '双模型代码审查，无参数时自动审查 git diff',
+    descriptionEn: 'Dual-model code review, auto-review git diff when no args',
+  },
+  {
+    id: 'init-project',
+    name: '项目初始化',
+    nameEn: 'Project Init',
+    category: 'init',
+    commands: ['init'],
+    defaultSelected: true,
+    order: 10,
+    description: '初始化项目 AI 上下文，生成 CLAUDE.md',
+    descriptionEn: 'Initialize project AI context, generate CLAUDE.md',
   },
   {
     id: 'commit',
-    name: 'Git 智能提交',
-    nameEn: 'Git Smart Commit',
+    name: 'Git 提交',
+    nameEn: 'Git Commit',
     category: 'git',
     commands: ['commit'],
     defaultSelected: true,
     order: 20,
-    description: '仅用 Git 分析改动并自动生成 conventional commit 信息（可选 emoji）',
-    descriptionEn: 'Git-only analysis to auto-generate conventional commit messages (optional emoji)',
+    description: '智能生成 conventional commit 信息',
+    descriptionEn: 'Smart conventional commit message generation',
   },
   {
     id: 'rollback',
-    name: 'Git 交互式回滚',
-    nameEn: 'Git Interactive Rollback',
+    name: 'Git 回滚',
+    nameEn: 'Git Rollback',
     category: 'git',
     commands: ['rollback'],
     defaultSelected: true,
     order: 21,
-    description: '交互式回滚 Git 分支到历史版本；列分支、列版本、二次确认后执行',
-    descriptionEn: 'Interactive Git branch rollback; list branches, versions, confirm before execution',
+    description: '交互式回滚分支到历史版本',
+    descriptionEn: 'Interactive rollback to historical version',
   },
   {
     id: 'clean-branches',
-    name: '清理 Git 分支',
-    nameEn: 'Clean Git Branches',
+    name: 'Git 清理分支',
+    nameEn: 'Git Clean Branches',
     category: 'git',
     commands: ['clean-branches'],
     defaultSelected: true,
     order: 22,
-    description: '安全查找并清理已合并或过期的 Git 分支，支持 dry-run 模式',
-    descriptionEn: 'Safely find and clean merged or stale Git branches, supports dry-run mode',
+    description: '安全清理已合并或过期分支',
+    descriptionEn: 'Safely clean merged or stale branches',
   },
   {
     id: 'worktree',
-    name: 'Git Worktree 管理',
-    nameEn: 'Git Worktree Management',
+    name: 'Git Worktree',
+    nameEn: 'Git Worktree',
     category: 'git',
     commands: ['worktree'],
-    defaultSelected: false,
+    defaultSelected: true,
     order: 23,
-    description: '管理 Git worktree，在项目平级的 ../.ccg/项目名/ 目录下创建',
-    descriptionEn: 'Manage Git worktree, create in ../.ccg/project-name/ directory parallel to project',
-  },
-  {
-    id: 'init-project',
-    name: '项目 AI 上下文初始化',
-    nameEn: 'Project AI Context Init',
-    category: 'init',
-    commands: ['init'],
-    defaultSelected: true,
-    order: 30,
-    description: '初始化项目 AI 上下文，生成/更新根级与模块级 CLAUDE.md 索引',
-    descriptionEn: 'Initialize project AI context, generate/update root and module level CLAUDE.md index',
-  },
-  {
-    id: 'feat',
-    name: '智能功能开发',
-    nameEn: 'Smart Feature Development',
-    category: 'planning',
-    commands: ['feat'],
-    defaultSelected: true,
-    order: 32,
-    description: '智能功能开发 - 自动规划、设计、实施（支持需求规划/讨论迭代/执行实施）',
-    descriptionEn: 'Smart feature development - auto plan, design, implement (supports planning/iteration/execution modes)',
+    description: '管理 Git worktree',
+    descriptionEn: 'Manage Git worktree',
   },
 ]
 
@@ -234,28 +208,23 @@ export function getWorkflowById(id: string): WorkflowConfig | undefined {
 }
 
 /**
- * Workflow presets for different use cases
+ * Get all command IDs for installation
+ * No more presets - always install all commands
+ */
+export function getAllCommandIds(): string[] {
+  return WORKFLOW_CONFIGS.map(w => w.id)
+}
+
+/**
+ * @deprecated Use getAllCommandIds() instead
+ * Kept for backward compatibility
  */
 export const WORKFLOW_PRESETS = {
-  minimal: {
-    name: '最小化',
-    nameEn: 'Minimal',
-    description: '核心开发命令（3个）',
-    descriptionEn: 'Core development commands (3)',
-    workflows: ['dev', 'code', 'commit'] as string[],
-  },
-  standard: {
-    name: '标准',
-    nameEn: 'Standard',
-    description: '常用开发 + Git 命令（12个）',
-    descriptionEn: 'Common dev + Git commands (12)',
-    workflows: ['dev', 'code', 'frontend', 'backend', 'review', 'analyze', 'debug', 'test', 'commit', 'rollback', 'clean-branches', 'feat'] as string[],
-  },
   full: {
     name: '完整',
     nameEn: 'Full',
-    description: '全部命令（17个）',
-    descriptionEn: 'All commands (17)',
+    description: '全部命令（14个）',
+    descriptionEn: 'All commands (14)',
     workflows: WORKFLOW_CONFIGS.map(w => w.id),
   },
 }
@@ -473,6 +442,37 @@ ${workflow.description}
     }
   }
 
+  // Install skills (multi-model-collaboration, etc. - should go to ~/.claude/skills/)
+  const skillsTemplateDir = join(templateDir, 'skills')
+  const skillsDestDir = join(installDir, 'skills')
+  if (await fs.pathExists(skillsTemplateDir)) {
+    try {
+      const skillDirs = await fs.readdir(skillsTemplateDir)
+      for (const skillName of skillDirs) {
+        const srcSkillDir = join(skillsTemplateDir, skillName)
+        const destSkillDir = join(skillsDestDir, skillName)
+        const stat = await fs.stat(srcSkillDir)
+        if (stat.isDirectory()) {
+          await fs.ensureDir(destSkillDir)
+          const files = await fs.readdir(srcSkillDir)
+          for (const file of files) {
+            const srcFile = join(srcSkillDir, file)
+            const destFile = join(destSkillDir, file)
+            if (force || !(await fs.pathExists(destFile))) {
+              const templateContent = await fs.readFile(srcFile, 'utf-8')
+              const processedContent = replaceHomePathsInTemplate(templateContent, installDir)
+              await fs.writeFile(destFile, processedContent, 'utf-8')
+            }
+          }
+        }
+      }
+    }
+    catch (error) {
+      result.errors.push(`Failed to install skills: ${error}`)
+      result.success = false
+    }
+  }
+
   // Install codeagent-wrapper binary
   try {
     const binDir = join(installDir, 'bin')
@@ -487,10 +487,10 @@ ${workflow.description}
       binaryName = arch === 'arm64' ? 'codeagent-wrapper-darwin-arm64' : 'codeagent-wrapper-darwin-amd64'
     }
     else if (platform === 'linux') {
-      binaryName = 'codeagent-wrapper-linux-amd64'
+      binaryName = arch === 'arm64' ? 'codeagent-wrapper-linux-arm64' : 'codeagent-wrapper-linux-amd64'
     }
     else if (platform === 'win32') {
-      binaryName = 'codeagent-wrapper-windows-amd64.exe'
+      binaryName = arch === 'arm64' ? 'codeagent-wrapper-windows-arm64.exe' : 'codeagent-wrapper-windows-amd64.exe'
     }
     else {
       result.errors.push(`Unsupported platform: ${platform}`)
@@ -545,6 +545,9 @@ export interface UninstallResult {
   success: boolean
   removedCommands: string[]
   removedPrompts: string[]
+  removedAgents: string[]
+  removedSkills: string[]
+  removedBin: boolean
   errors: string[]
 }
 
@@ -556,11 +559,18 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
     success: true,
     removedCommands: [],
     removedPrompts: [],
+    removedAgents: [],
+    removedSkills: [],
+    removedBin: false,
     errors: [],
   }
 
   const commandsDir = join(installDir, 'commands', 'ccg')
-  const promptsDir = join(installDir, 'prompts', 'ccg')
+  const promptsDir = join(installDir, '.ccg', 'prompts')
+  const agentsDir = join(installDir, 'agents', 'ccg')
+  const skillsDir = join(installDir, 'skills', 'multi-model-collaboration')
+  const binDir = join(installDir, 'bin')
+  const ccgConfigDir = join(installDir, '.ccg')
 
   // Remove CCG commands directory
   if (await fs.pathExists(commandsDir)) {
@@ -571,6 +581,11 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
           await fs.remove(join(commandsDir, file))
           result.removedCommands.push(file.replace('.md', ''))
         }
+      }
+      // Also remove agents subdirectory if exists
+      const agentsSubDir = join(commandsDir, 'agents')
+      if (await fs.pathExists(agentsSubDir)) {
+        await fs.remove(agentsSubDir)
       }
       // Remove the directory if empty
       const remaining = await fs.readdir(commandsDir)
@@ -584,25 +599,67 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
     }
   }
 
-  // Remove CCG prompts directory
+  // Remove CCG agents directory
+  if (await fs.pathExists(agentsDir)) {
+    try {
+      const files = await fs.readdir(agentsDir)
+      for (const file of files) {
+        await fs.remove(join(agentsDir, file))
+        result.removedAgents.push(file.replace('.md', ''))
+      }
+      await fs.remove(agentsDir)
+    }
+    catch (error) {
+      result.errors.push(`Failed to remove agents: ${error}`)
+      result.success = false
+    }
+  }
+
+  // Remove CCG skills directory
+  if (await fs.pathExists(skillsDir)) {
+    try {
+      const files = await fs.readdir(skillsDir)
+      for (const file of files) {
+        result.removedSkills.push(file)
+      }
+      await fs.remove(skillsDir)
+    }
+    catch (error) {
+      result.errors.push(`Failed to remove skills: ${error}`)
+      result.success = false
+    }
+  }
+
+  // Remove CCG prompts directory (in .ccg/)
   if (await fs.pathExists(promptsDir)) {
     try {
-      const files = await fs.readdir(promptsDir)
-      for (const file of files) {
-        await fs.remove(join(promptsDir, file))
-        result.removedPrompts.push(file)
-      }
-      // Remove the directory if empty
-      const remaining = await fs.readdir(promptsDir)
-      if (remaining.length === 0) {
-        await fs.remove(promptsDir)
-      }
+      await fs.remove(promptsDir)
+      result.removedPrompts.push('codex', 'gemini')
     }
     catch (error) {
       result.errors.push(`Failed to remove prompts: ${error}`)
       result.success = false
     }
   }
+
+  // Remove codeagent-wrapper binary
+  if (await fs.pathExists(binDir)) {
+    try {
+      const wrapperName = process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper'
+      const wrapperPath = join(binDir, wrapperName)
+      if (await fs.pathExists(wrapperPath)) {
+        await fs.remove(wrapperPath)
+        result.removedBin = true
+      }
+    }
+    catch (error) {
+      result.errors.push(`Failed to remove binary: ${error}`)
+      result.success = false
+    }
+  }
+
+  // Remove .ccg config directory (optional - keep config.toml for now)
+  // Users can manually delete ~/.claude/.ccg/ if they want
 
   return result
 }

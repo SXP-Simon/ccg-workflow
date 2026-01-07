@@ -26,11 +26,11 @@
 
 ### 核心优势
 
-- ✅ **智能路由** - 自动选择最合适的模型处理任务
+- ✅ **智能路由** - 前端 → Gemini，后端 → Codex，自动选择
 - ✅ **多模型并行** - Codex ∥ Gemini 同时分析，交叉验证减少错误
 - ✅ **零写入权限** - 外部模型只返回 Patch，Claude 保持代码主权
 - ✅ **Token 优化** - ROLE_FILE 动态注入，专家提示词零消耗
-- ✅ **一键安装** - npx 安装，Workflow 预设（3/12/17 命令）
+- ✅ **一键安装** - npx 运行，自动安装全部 14 个命令
 
 ---
 
@@ -55,28 +55,35 @@ npx ccg-workflow
 ```
 
 **安装流程**：
-1. 选择 "初始化工作流"
-2. 选择语言（中文 / English）
-3. 选择 Workflow 预设：
-   - **最小化**（3命令）- dev, code, commit
-   - **标准**（12命令）- 常用开发 + Git 工具 ⭐ 推荐
-   - **完整**（17命令）- 全部功能
-4. 配置 ace-tool MCP（可跳过，稍后配置）
-5. 重启终端
+1. 选择是否配置 ace-tool MCP（可跳过）
+2. 确认安装
+3. 自动安装全部 14 个命令
+4. 配置 PATH（如需要）
+
+就这么简单！无需选择语言、模型、命令预设。
+
+### 固定配置
+
+| 项目 | 配置 |
+|------|------|
+| 前端模型 | **Gemini** |
+| 后端模型 | **Codex** |
+| 协作模式 | **smart** |
+| 命令数量 | **14 个**（全部安装） |
 
 ### 第一个命令
 
 ```bash
 # 在 Claude Code 中执行
-/ccg:dev 实现用户登录功能
+/ccg:workflow 实现用户登录功能
 
 # 自动执行 6 阶段工作流：
-# Phase 0: Prompt 增强
-# Phase 1: 代码检索
-# Phase 2: 多模型分析 (Codex ∥ Gemini)
-# Phase 3: 原型生成 (智能路由)
-# Phase 4: 代码实施 (Claude 重构)
-# Phase 5: 审计交付 (多模型验证)
+# 阶段 1: 研究 - Prompt 增强 + 上下文检索
+# 阶段 2: 构思 - 多模型分析 (Codex ∥ Gemini)
+# 阶段 3: 计划 - 多模型规划 + 用户确认
+# 阶段 4: 执行 - 代码实施
+# 阶段 5: 优化 - 多模型审查
+# 阶段 6: 评审 - 质量检查
 ```
 
 ---
@@ -86,29 +93,27 @@ npx ccg-workflow
 ### 核心命令（记住这 3 个就够了）
 
 ```bash
-/ccg:feat   # 新功能开发（从 0 到 1，自动规划）
-/ccg:dev    # 复杂任务/重构（完整 6 阶段）
-/ccg:code   # 快速写代码（智能路由）
+/ccg:workflow   # 完整任务（6 阶段工作流）
+/ccg:feat       # 新功能开发（自动规划）
+/ccg:frontend   # 纯前端任务（Gemini 主导，更快）
+/ccg:backend    # 纯后端任务（Codex 主导，更快）
 ```
 
-### 完整命令列表
+### 完整命令列表（14 个）
 
 #### 开发工作流
 
-| 命令 | 用途 | 特点 |
+| 命令 | 用途 | 模型 |
 |-----|------|------|
-| `/ccg:dev` | 完整 6 阶段开发工作流 | Prompt增强 → 分析 → 原型 → 实施 → 审计 |
-| `/ccg:code` | 智能代码生成 | 自动路由（前端→Gemini / 后端→Codex）|
-| `/ccg:feat` | 智能功能开发 | 自动规划 → UI设计 → 实施 → 审查 |
-| `/ccg:frontend` | 前端任务 | 5阶段工作流，多模型并行 |
-| `/ccg:backend` | 后端任务 | 5阶段工作流，多模型并行 |
-| `/ccg:debug` | 调试 | UltraThink 多模型诊断 |
-| `/ccg:test` | 测试生成 | Codex + Gemini 并行 |
-| `/ccg:bugfix` | Bug 修复 | 质量门控（90%+ 通过）|
-| `/ccg:optimize` | 性能优化 | 多模型分析 |
-| `/ccg:review` | 代码审查 | 无参数自动审查 git diff |
-| `/ccg:analyze` | 技术分析 | 快速决策 |
-| `/ccg:think` | 深度分析 | UltraThink 架构设计 |
+| `/ccg:workflow` | 完整 6 阶段开发工作流 | Codex ∥ Gemini |
+| `/ccg:frontend` | 前端专项（快速模式） | Gemini |
+| `/ccg:backend` | 后端专项（快速模式） | Codex |
+| `/ccg:feat` | 智能功能开发 | 规划 → 实施 |
+| `/ccg:analyze` | 技术分析（仅分析不改代码） | Codex ∥ Gemini |
+| `/ccg:debug` | 问题诊断 + 修复 | Codex ∥ Gemini |
+| `/ccg:optimize` | 性能优化 | Codex ∥ Gemini |
+| `/ccg:test` | 测试生成 | 智能路由 |
+| `/ccg:review` | 代码审查（无参数自动审查 git diff） | Codex ∥ Gemini |
 
 #### Git 工具
 
@@ -123,8 +128,7 @@ npx ccg-workflow
 
 | 命令 | 用途 |
 |-----|------|
-| `/ccg:scan` | 智能仓库扫描 |
-| `/ccg:init` | 初始化项目文档 |
+| `/ccg:init` | 初始化项目 CLAUDE.md |
 
 ---
 
@@ -158,46 +162,20 @@ npx ccg-workflow
 
 ---
 
-## ⚙️ 配置文件
-
-配置文件位于 `~/.claude/.ccg/config.toml`：
-
-```toml
-[general]
-version = "1.6.0"
-language = "zh-CN"
-
-[mcp]
-provider = "ace-tool"  # ace-tool | skip
-
-[routing]
-mode = "smart"  # 智能路由模式
-
-[routing.frontend]
-models = ["gemini"]
-primary = "gemini"
-
-[routing.backend]
-models = ["codex"]
-primary = "codex"
-```
-
----
-
 ## 🗂️ 安装目录结构
 
 ```
 ~/.claude/
-├── commands/ccg/          # 17 个斜杠命令
+├── commands/ccg/          # 14 个斜杠命令
 ├── agents/ccg/            # 4 个子智能体
+├── skills/                # 1 个 skill
 ├── bin/
 │   └── codeagent-wrapper  # Go 多后端调用工具
 └── .ccg/
     ├── config.toml        # 主配置
     └── prompts/           # 12 个专家提示词
         ├── codex/
-        ├── gemini/
-        └── claude/
+        └── gemini/
 ```
 
 ---
@@ -215,7 +193,7 @@ primary = "codex"
        ↓                ↓
 ┌─────────────┐  ┌─────────────┐
 │  Codex CLI  │  │ Gemini CLI  │
-│  后端原型   │  │  前端原型   │
+│  后端专家   │  │  前端专家   │
 │  逻辑算法   │  │  UI 组件    │
 └─────────────┘  └─────────────┘
        │                │
@@ -225,10 +203,10 @@ primary = "codex"
     (零写入权限，仅返回补丁)
 ```
 
-**安全机制**：
-- 外部模型对文件系统零写入权限
-- 所有输出必须为 Unified Diff Patch 格式
-- Claude 保持代码主权，决定是否应用补丁
+**信任规则**：
+- 后端问题 → **以 Codex 意见为准**
+- 前端问题 → **以 Gemini 意见为准**
+- 冲突时 → Claude 综合判断，向用户说明分歧
 
 ---
 
@@ -255,7 +233,6 @@ primary = "codex"
 
 ```bash
 npx ccg-workflow
-# 选择 "初始化工作流"
 # 选择 "安装 ace-tool"
 ```
 
@@ -270,14 +247,9 @@ npx ccg-workflow
    - linux.do 社区提供
    - 需填写 Base URL 和 Token
 
-**稍后配置**：
+**跳过 MCP**：
 
-```bash
-# 安装时选择 "跳过 MCP"
-# 稍后运行主菜单选择配置
-npx ccg-workflow
-# 选择相应的配置选项
-```
+跳过 MCP 后，命令中涉及 ace-tool 的步骤（代码检索、Prompt 增强）会失效，但其他功能正常工作。
 
 </details>
 
@@ -292,47 +264,25 @@ npx ccg-workflow@latest
 更新会自动：
 - 检测 npm 最新版本
 - 增量更新命令和提示词
-- 保留用户配置和 MCP 设置
-- 自动迁移旧版本目录结构
+- 保留 MCP 配置
 
 </details>
 
 <details>
-<summary><strong>Q4: `/ccg:feat` 和 `/ccg:dev` 有什么区别？</strong></summary>
+<summary><strong>Q4: `/ccg:workflow` 和 `/ccg:frontend`/`/ccg:backend` 有什么区别？</strong></summary>
 
-- **`/ccg:feat`** - 专注**新功能开发**
-  - 自动调用 planner（WBS 分解）
-  - 自动调用 ui-ux-designer（界面设计）
-  - 适合从 0 到 1 开发新功能
+- **`/ccg:workflow`** - 完整 6 阶段工作流
+  - 每阶段都并行调用 Codex + Gemini
+  - 适合全栈任务、复杂任务
 
-- **`/ccg:dev`** - 通用**完整工作流**
-  - 适合任何复杂任务（重构、优化、跨模块改动）
-  - 包含 Prompt 增强阶段
-  - 6 阶段完整流程
+- **`/ccg:frontend`** / **`/ccg:backend`** - 专项快速模式
+  - 只调用对应主导模型（更快）
+  - 适合明确的纯前端/纯后端任务
 
 </details>
 
 <details>
-<summary><strong>Q5: codeagent-wrapper 是什么？</strong></summary>
-
-来自 [cexll/myclaude](https://github.com/cexll/myclaude) 的 Go 工具，封装了多 CLI 调用：
-
-- 支持 `--backend codex/gemini/claude` 切换
-- 会话管理（SESSION_ID）
-- ROLE_FILE 动态注入
-- 自动安装到 `~/.claude/bin/`
-
-调用语法：
-```bash
-codeagent-wrapper --backend <codex|gemini|claude> - [工作目录] <<'EOF'
-<任务内容>
-EOF
-```
-
-</details>
-
-<details>
-<summary><strong>Q6: 安装后提示 "codeagent-wrapper: command not found"？</strong></summary>
+<summary><strong>Q5: 安装后提示 "codeagent-wrapper: command not found"？</strong></summary>
 
 **原因**：PATH 未生效
 
@@ -353,7 +303,7 @@ Windows：
 </details>
 
 <details>
-<summary><strong>Q7: 如何卸载？</strong></summary>
+<summary><strong>Q6: 如何卸载？</strong></summary>
 
 ```bash
 npx ccg-workflow
@@ -363,6 +313,7 @@ npx ccg-workflow
 会删除：
 - `~/.claude/commands/ccg/` - 命令文件
 - `~/.claude/agents/ccg/` - 子智能体
+- `~/.claude/skills/` - skills
 - `~/.claude/bin/codeagent-wrapper` - 二进制文件
 - `~/.claude/.ccg/` - 配置目录（可选保留）
 
@@ -399,7 +350,7 @@ Copyright (c) 2025 fengshao1227
 
 <div align="center">
 
-**版本**: v1.6.0 | **最后更新**: 2026-01-07
+**版本**: v1.7.0 | **最后更新**: 2026-01-08
 
 Made with ❤️ by the CCG Community
 

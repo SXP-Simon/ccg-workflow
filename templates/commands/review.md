@@ -1,89 +1,134 @@
 ---
-description: 多模型代码审查（并行执行），无参数时自动审查 git diff
+description: '多模型代码审查：无参数时自动审查 git diff，双模型交叉验证'
 ---
 
-## 用法
-`/review [CODE_OR_DESCRIPTION]`
+# Review - 多模型代码审查
 
-## 上下文
-- Arguments: $ARGUMENTS
-- This command triggers multi-model code review based on your configuration.
-- Configured models review simultaneously for comprehensive feedback.
+双模型并行审查，交叉验证综合反馈。无参数时自动审查当前 git 变更。
 
-## 行为
-- **No arguments**: Automatically review current git changes (staged + unstaged)
-- **With arguments**: Review specified code or description
+## 多模型调用语法
 
-## 你的角色
-You are the **Code Review Coordinator** orchestrating multi-model review. You direct:
-1. **ace-tool** – for retrieving code context
-2. **Configured Review Models** – for comprehensive code review
-3. **Claude (Self)** – for synthesizing feedback and recommendations
+**⚠️ 必须使用 heredoc 语法调用外部模型**：
 
-## 流程
-
-### Step 1: 获取待审查代码
-
-**If no arguments provided**, run git commands to get current changes:
 ```bash
-# Get staged and unstaged changes
+~/.claude/bin/codeagent-wrapper --backend <codex|gemini> - "$PWD" <<'EOF'
+<任务内容>
+EOF
+```
+
+---
+
+## 使用方法
+
+```bash
+/review [代码或描述]
+```
+
+- **无参数**：自动审查 `git diff HEAD`
+- **有参数**：审查指定代码或描述
+
+---
+
+## 执行工作流
+
+### 🔍 阶段 1：获取待审查代码
+
+`[模式：研究]`
+
+**无参数时**：
+```bash
 git diff HEAD
 git status --short
 ```
 
-**If arguments provided**, use the specified code/description.
+**有参数时**：使用指定的代码/描述
 
-Then call `mcp__ace-tool__search_context` to get related context:
-   - `project_root_path`: Project root directory absolute path
-   - `query`: Description of code/files to review
+调用 `mcp__ace-tool__search_context` 获取相关上下文。
 
-### Step 2: 并行审查
+### 🔬 阶段 2：并行审查
 
-**并行调用所有配置的审查模型**（使用 `run_in_background: true`）：
+`[模式：审查]`
 
-遍历 {{REVIEW_MODELS}} 中的每个模型进行代码审查：
+**并行调用两个模型**：
 
+**执行步骤**：
+1. 在**同一个 Bash 调用**中启动两个后台进程（不加 wait，立即返回）：
 ```bash
-# 遍历审查模型列表（默认: codex, gemini）
-for model in $(echo '{{REVIEW_MODELS}}' | jq -r '.[]'); do
-  codeagent-wrapper --backend $model - $PROJECT_DIR <<'EOF' &
-ROLE_FILE: ~/.claude/.ccg/prompts/$model/reviewer.md
+# Codex 后端审查
+~/.claude/bin/codeagent-wrapper --backend codex - "$PWD" <<'EOF' &
+[角色] 后端代码审查专家
+[任务] 审查以下代码变更
 
-<TASK>
-审查代码: {{待审查的代码变更}}
-关注点: 安全性、性能、错误处理、可访问性、响应式设计、设计一致性
-</TASK>
+## 审查重点
+- 安全性：注入、认证、授权
+- 性能：N+1 查询、缓存、复杂度
+- 错误处理：异常捕获、边界条件
+- 可维护性：命名、结构、文档
 
-OUTPUT: Review comments only. No code modifications.
-EOF
-done
-wait  # 等待所有后台任务完成
-```
-
-### Step 3: 综合反馈
-使用 `TaskOutput` 获取所有任务的结果，然后：
-1. Collect feedback from all configured models
-2. Categorize by severity (Critical, Major, Minor, Suggestion)
-3. Remove duplicate concerns
-4. Cross-validate findings across models
-5. Prioritize actionable items
-
-### Step 4: 呈现审查结果
-Provide unified review report to user with recommendations.
+## 待审查代码
+<粘贴 git diff 内容>
 
 ## 输出格式
-1. **Configuration** – models used for review
-2. **Review Summary** – overall assessment
-3. **Critical Issues** – must fix before merge
-4. **Major Issues** – should fix
-5. **Minor Issues** – nice to fix
-6. **Suggestions** – optional improvements
-7. **Recommended Actions** – prioritized fix list
+按 Critical/Major/Minor/Suggestion 分类列出问题
+EOF
 
-## 注意事项
-- **审查模型已在安装时注入**: {{REVIEW_MODELS}}
-- **No arguments** = auto-review git changes (`git diff HEAD`)
-- **With arguments** = review specified content
-- **Use `run_in_background: true` for parallel execution** to avoid blocking
-- 多模型结果交叉验证，综合反馈
-- Use HEREDOC syntax (`<<'EOF'`) to avoid shell escaping issues
+# Gemini 前端审查
+~/.claude/bin/codeagent-wrapper --backend gemini - "$PWD" <<'EOF' &
+[角色] 前端代码审查专家
+[任务] 审查以下代码变更
+
+## 审查重点
+- 可访问性：ARIA、键盘导航、色彩对比
+- 响应式：移动端适配、断点
+- 设计一致性：组件复用、样式规范
+- 用户体验：加载状态、错误提示
+
+## 待审查代码
+<粘贴 git diff 内容>
+
+## 输出格式
+按 Critical/Major/Minor/Suggestion 分类列出问题
+EOF
+```
+2. 使用 `TaskOutput` 监控并获取 2 个模型的审查结果。
+
+**⚠️ 强制规则：必须等待 TaskOutput 返回两个模型的完整结果后才能进入下一阶段，禁止跳过或提前继续！**
+
+### 🔀 阶段 3：综合反馈
+
+`[模式：综合]`
+
+1. 收集双方审查结果
+2. 按严重程度分类：Critical / Major / Minor / Suggestion
+3. 去重合并 + 交叉验证
+
+### 📊 阶段 4：呈现审查结果
+
+`[模式：总结]`
+
+```markdown
+## 📋 代码审查报告
+
+### 审查范围
+- 变更文件：<数量> | 代码行数：+X / -Y
+
+### 关键问题 (Critical)
+> 必须修复才能合并
+1. <问题描述> - [Codex/Gemini]
+
+### 主要问题 (Major) / 次要问题 (Minor) / 建议 (Suggestions)
+...
+
+### 总体评价
+- 代码质量：[优秀/良好/需改进]
+- 是否可合并：[是/否/需修复后]
+```
+
+---
+
+## 关键规则
+
+1. **无参数 = 审查 git diff** – 自动获取当前变更
+2. **heredoc 语法** – 必须使用 `<<'EOF'` 传递多行任务
+3. **双模型交叉验证** – 后端问题以 Codex 为准，前端问题以 Gemini 为准
+4. **必须等待所有模型返回** – 禁止提前进入下一步
