@@ -152,7 +152,7 @@ const zhCN = {
       },
     },
     uninstall: {
-      confirm: '确定要卸载 CCG 吗？这将移除所有已安装的命令和配置。',
+      confirm: '确定要卸载 CCG 吗？这将强制移除所有命令目录、配置文件和数据。',
       alsoRemoveAceTool: '同时移除 ace-tool MCP 配置？',
       uninstalling: '正在卸载...',
       success: '卸载成功！',
@@ -313,7 +313,7 @@ const en = {
       },
     },
     uninstall: {
-      confirm: 'Are you sure you want to uninstall CCG? This will remove all installed commands and configurations.',
+      confirm: 'Are you sure you want to uninstall CCG? This will force remove all command directories, config files and data.',
       alsoRemoveAceTool: 'Also remove ace-tool MCP configuration?',
       uninstalling: 'Uninstalling...',
       success: 'Uninstallation successful!',
