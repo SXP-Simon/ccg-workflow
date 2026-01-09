@@ -13,8 +13,24 @@ $ARGUMENTS
 **调用语法**（并行用 `run_in_background: true`，串行用 `false`）：
 
 ```
+# 新会话调用
 Bash({
-  command: "~/.claude/bin/codeagent-wrapper --backend <codex|gemini> [--resume <SESSION_ID>] - \"$PWD\" <<'EOF'
+  command: "~/.claude/bin/codeagent-wrapper --backend <codex|gemini> - \"$PWD\" <<'EOF'
+ROLE_FILE: <角色提示词路径>
+<TASK>
+需求：<增强后的需求（如未增强则用 $ARGUMENTS）>
+上下文：<前序阶段收集的项目上下文、计划文件内容等>
+</TASK>
+OUTPUT: 期望输出格式
+EOF",
+  run_in_background: true,
+  timeout: 3600000,
+  description: "简短描述"
+})
+
+# 复用会话调用
+Bash({
+  command: "~/.claude/bin/codeagent-wrapper --backend <codex|gemini> resume <SESSION_ID> - \"$PWD\" <<'EOF'
 ROLE_FILE: <角色提示词路径>
 <TASK>
 需求：<增强后的需求（如未增强则用 $ARGUMENTS）>
@@ -37,7 +53,7 @@ EOF",
 | 实施 | `~/.claude/.ccg/prompts/codex/architect.md` | `~/.claude/.ccg/prompts/gemini/frontend.md` |
 | 审查 | `~/.claude/.ccg/prompts/codex/reviewer.md` | `~/.claude/.ccg/prompts/gemini/reviewer.md` |
 
-**会话复用**：每次调用返回 `SESSION_ID: xxx`，后续阶段用 `--resume xxx` 复用上下文。
+**会话复用**：每次调用返回 `SESSION_ID: xxx`，后续阶段用 `resume xxx` 复用上下文。
 
 **并行调用**：使用 `run_in_background: true` 启动，用 `TaskOutput` 等待结果。**必须等所有模型返回后才能进入下一阶段**。
 
