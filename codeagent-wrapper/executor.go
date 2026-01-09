@@ -1102,6 +1102,8 @@ waitLoop:
 					terminated = true
 				}
 			}
+			waitErr = <-waitCh
+			break waitLoop
 		case <-completeSeen:
 			completeSeenObserved = true
 			if messageTimer != nil {
