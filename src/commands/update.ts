@@ -74,7 +74,9 @@ export async function update(): Promise<void> {
       return
     }
 
-    await performUpdate(currentVersion, latestVersion || currentVersion, hasUpdate || needsWorkflowUpdate)
+    // Pass localVersion as fromVersion for accurate display
+    const fromVersion = needsWorkflowUpdate ? localVersion : currentVersion
+    await performUpdate(fromVersion, latestVersion || currentVersion, hasUpdate || needsWorkflowUpdate)
   }
   catch (error) {
     spinner.stop()
