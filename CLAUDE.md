@@ -2,11 +2,23 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-01-09 (v1.7.10)
+**Last Updated**: 2026-01-09 (v1.7.11)
 
 ---
 
 ## 变更记录 (Changelog)
+
+### 2026-01-09 (v1.7.11)
+- 🐛 **修复 npm 全局安装用户的更新和卸载问题**：
+  - 新增 `checkIfGlobalInstall()` 函数检测 npm 全局安装
+  - 更新功能：检测到全局安装时引导用户使用 `npm install -g ccg-workflow@latest`
+  - 卸载功能：提示两步卸载流程，避免"显示成功但命令仍可用"的困惑
+- 📝 **完善文档**：README 中新增全局安装用户的卸载说明
+- 🔧 **涉及文件**：
+  - `src/commands/update.ts` - 添加全局安装检测和引导
+  - `src/commands/menu.ts` - 添加卸载引导逻辑
+  - `README.md` - 完善卸载说明
+- 💡 **用户价值**：解决"全局安装 + npx 混用"导致的更新/卸载混乱问题
 
 ### 2026-01-09 (v1.7.10)
 - 🐛 **修复 Windows 路径兼容性问题**：新增 `convertToGitBashPath` 函数，支持 Windows 路径转换（`C:\Users\...` → `/c/Users/...`）

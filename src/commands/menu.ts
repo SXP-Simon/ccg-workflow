@@ -1,5 +1,7 @@
 import ansis from 'ansis'
 import inquirer from 'inquirer'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { configMcp } from './config-mcp'
@@ -7,6 +9,8 @@ import { i18n } from '../i18n'
 import { uninstallAceTool, uninstallWorkflows } from '../utils/installer'
 import { init } from './init'
 import { update } from './update'
+
+const execAsync = promisify(exec)
 
 export async function showMainMenu(): Promise<void> {
   console.log()
@@ -67,14 +71,39 @@ function showHelp(): void {
   console.log()
 }
 
+/**
+ * Check if CCG is installed globally via npm
+ */
+async function checkIfGlobalInstall(): Promise<boolean> {
+  try {
+    const { stdout } = await execAsync('npm list -g ccg-workflow --depth=0', { timeout: 5000 })
+    return stdout.includes('ccg-workflow@')
+  }
+  catch {
+    return false
+  }
+}
+
 async function uninstall(): Promise<void> {
   console.log()
+
+  // Check if installed globally via npm
+  const isGlobalInstall = await checkIfGlobalInstall()
+
+  if (isGlobalInstall) {
+    console.log(ansis.yellow('⚠️  检测到你是通过 npm 全局安装的'))
+    console.log()
+    console.log('完整卸载需要两步：')
+    console.log(`  ${ansis.cyan('1. 移除工作流文件')} (即将执行)`)
+    console.log(`  ${ansis.cyan('2. 卸载 npm 全局包')} (需要手动执行)`)
+    console.log()
+  }
 
   // Confirm uninstall
   const { confirm } = await inquirer.prompt([{
     type: 'confirm',
     name: 'confirm',
-    message: i18n.t('menu:uninstall.confirm'),
+    message: isGlobalInstall ? '继续卸载工作流文件？' : i18n.t('menu:uninstall.confirm'),
     default: false,
   }])
 
@@ -99,7 +128,7 @@ async function uninstall(): Promise<void> {
   const result = await uninstallWorkflows(installDir)
 
   if (result.success) {
-    console.log(ansis.green(i18n.t('menu:uninstall.success')))
+    console.log(ansis.green('✅ 工作流文件已移除'))
 
     if (result.removedCommands.length > 0) {
       console.log()
@@ -127,6 +156,18 @@ async function uninstall(): Promise<void> {
       console.log()
       console.log(ansis.cyan('已移除二进制文件:'))
       console.log(`  ${ansis.gray('•')} codeagent-wrapper`)
+    }
+
+    // If globally installed, show instructions to uninstall npm package
+    if (isGlobalInstall) {
+      console.log()
+      console.log(ansis.yellow.bold('🔸 最后一步：卸载 npm 全局包'))
+      console.log()
+      console.log('请在新的终端窗口中运行：')
+      console.log()
+      console.log(ansis.cyan.bold('  npm uninstall -g ccg-workflow'))
+      console.log()
+      console.log(ansis.gray('(完成后 ccg 命令将彻底移除)'))
     }
   }
   else {
