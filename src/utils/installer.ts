@@ -586,26 +586,19 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
   // Remove CCG commands directory
   if (await fs.pathExists(commandsDir)) {
     try {
+      // Get list for reporting
       const files = await fs.readdir(commandsDir)
       for (const file of files) {
         if (file.endsWith('.md')) {
-          await fs.remove(join(commandsDir, file))
           result.removedCommands.push(file.replace('.md', ''))
         }
       }
-      // Also remove agents subdirectory if exists
-      const agentsSubDir = join(commandsDir, 'agents')
-      if (await fs.pathExists(agentsSubDir)) {
-        await fs.remove(agentsSubDir)
-      }
-      // Remove the directory if empty
-      const remaining = await fs.readdir(commandsDir)
-      if (remaining.length === 0) {
-        await fs.remove(commandsDir)
-      }
+
+      // Force remove the entire directory
+      await fs.remove(commandsDir)
     }
     catch (error) {
-      result.errors.push(`Failed to remove commands: ${error}`)
+      result.errors.push(`Failed to remove commands directory: ${error}`)
       result.success = false
     }
   }
@@ -613,15 +606,17 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
   // Remove CCG agents directory
   if (await fs.pathExists(agentsDir)) {
     try {
+      // Get list for reporting
       const files = await fs.readdir(agentsDir)
       for (const file of files) {
-        await fs.remove(join(agentsDir, file))
         result.removedAgents.push(file.replace('.md', ''))
       }
+
+      // Force remove the entire directory
       await fs.remove(agentsDir)
     }
     catch (error) {
-      result.errors.push(`Failed to remove agents: ${error}`)
+      result.errors.push(`Failed to remove agents directory: ${error}`)
       result.success = false
     }
   }
@@ -633,6 +628,7 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
       for (const file of files) {
         result.removedSkills.push(file)
       }
+      // Try to remove parent skills directory if it's the only skill
       await fs.remove(skillsDir)
     }
     catch (error) {
@@ -641,17 +637,7 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
     }
   }
 
-  // Remove CCG prompts directory (in .ccg/)
-  if (await fs.pathExists(promptsDir)) {
-    try {
-      await fs.remove(promptsDir)
-      result.removedPrompts.push('codex', 'gemini')
-    }
-    catch (error) {
-      result.errors.push(`Failed to remove prompts: ${error}`)
-      result.success = false
-    }
-  }
+  // Remove CCG prompts directory (in .ccg/) - handled by removing .ccg dir below
 
   // Remove codeagent-wrapper binary
   if (await fs.pathExists(binDir)) {
@@ -669,8 +655,17 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
     }
   }
 
-  // Remove .ccg config directory (optional - keep config.toml for now)
-  // Users can manually delete ~/.claude/.ccg/ if they want
+  // Remove .ccg config directory (Force remove)
+  if (await fs.pathExists(ccgConfigDir)) {
+    try {
+      await fs.remove(ccgConfigDir)
+      result.removedPrompts.push('ALL_PROMPTS_AND_CONFIGS')
+    }
+    catch (error) {
+      result.errors.push(`Failed to remove .ccg directory: ${error}`)
+      // Don't mark as failure just for config, but good to know
+    }
+  }
 
   return result
 }
