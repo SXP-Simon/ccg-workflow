@@ -32,8 +32,24 @@ description: '前端专项工作流（研究→构思→计划→执行→优化
 **调用语法**：
 
 ```
+# 新会话调用
 Bash({
-  command: "~/.claude/bin/codeagent-wrapper --backend gemini [--resume <SESSION_ID>] - \"$PWD\" <<'EOF'
+  command: "~/.claude/bin/codeagent-wrapper --backend gemini - \"$PWD\" <<'EOF'
+ROLE_FILE: <角色提示词路径>
+<TASK>
+需求：<增强后的需求（如未增强则用 $ARGUMENTS）>
+上下文：<前序阶段收集的项目上下文、分析结果等>
+</TASK>
+OUTPUT: 期望输出格式
+EOF",
+  run_in_background: false,
+  timeout: 3600000,
+  description: "简短描述"
+})
+
+# 复用会话调用
+Bash({
+  command: "~/.claude/bin/codeagent-wrapper --backend gemini resume <SESSION_ID> - \"$PWD\" <<'EOF'
 ROLE_FILE: <角色提示词路径>
 <TASK>
 需求：<增强后的需求（如未增强则用 $ARGUMENTS）>
@@ -55,7 +71,7 @@ EOF",
 | 规划 | `~/.claude/.ccg/prompts/gemini/architect.md` |
 | 审查 | `~/.claude/.ccg/prompts/gemini/reviewer.md` |
 
-**会话复用**：每次调用返回 `SESSION_ID: xxx`，后续阶段用 `--resume xxx` 复用上下文。阶段 2 保存 `GEMINI_SESSION`，阶段 3 和 5 使用 `--resume` 复用。
+**会话复用**：每次调用返回 `SESSION_ID: xxx`，后续阶段用 `resume xxx` 复用上下文。阶段 2 保存 `GEMINI_SESSION`，阶段 3 和 5 使用 `resume` 复用。
 
 ---
 
@@ -93,7 +109,7 @@ EOF",
 
 `[模式：计划]` - Gemini 主导规划
 
-调用 Gemini（`--resume $GEMINI_SESSION`），使用规划提示词，输出组件结构、UI流程、样式方案。
+调用 Gemini（`resume $GEMINI_SESSION`），使用规划提示词，输出组件结构、UI流程、样式方案。
 
 Claude 综合规划，请求用户批准后存入 `.claude/plan/任务名.md`
 
