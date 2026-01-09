@@ -143,6 +143,17 @@ const WORKFLOW_CONFIGS: WorkflowConfig[] = [
     descriptionEn: 'Dual-model code review, auto-review git diff when no args',
   },
   {
+    id: 'enhance',
+    name: 'Prompt 增强',
+    nameEn: 'Prompt Enhancement',
+    category: 'development',
+    commands: ['enhance'],
+    defaultSelected: true,
+    order: 9.5,
+    description: 'ace-tool Prompt 增强工具',
+    descriptionEn: 'ace-tool prompt enhancement',
+  },
+  {
     id: 'init-project',
     name: '项目初始化',
     nameEn: 'Project Init',
@@ -223,8 +234,8 @@ export const WORKFLOW_PRESETS = {
   full: {
     name: '完整',
     nameEn: 'Full',
-    description: '全部命令（14个）',
-    descriptionEn: 'All commands (14)',
+    description: '全部命令（15个）',
+    descriptionEn: 'All commands (15)',
     workflows: WORKFLOW_CONFIGS.map(w => w.id),
   },
 }

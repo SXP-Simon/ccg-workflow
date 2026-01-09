@@ -169,23 +169,22 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     return
   }
 
-  // Step 2: Ask if user wants to reconfigure routing
+  // Step 2: Read current config (no reconfiguration needed - routing is fixed since v1.7.0)
   const config = await readCcgConfig()
-  const newRouting = await askReconfigureRouting(config?.routing)
 
   // Step 3: Delete old workflows and install new ones
-  spinner = ora('正在删除旧工作流并安装新工作流...').start()
+  spinner = ora('正在更新工作流和 codeagent-wrapper 二进制...').start()
 
   try {
     const workflows = config?.workflows?.installed || []
 
     const installDir = join(homedir(), '.claude')
     const result = await installWorkflows(workflows, installDir, true, {
-      routing: newRouting || config?.routing,
+      routing: config?.routing, // Use existing routing (fixed: Gemini frontend + Codex backend)
     }) // force = true
 
     if (result.success) {
-      spinner.succeed('工作流更新成功')
+      spinner.succeed('工作流和二进制文件更新成功')
 
       console.log()
       console.log(ansis.cyan(`已更新 ${result.installedCommands.length} 个命令:`))
@@ -193,18 +192,10 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
         console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
       }
 
-      // Update config version and routing
+      // Update config version
       if (config) {
         config.general.version = toVersion
-        if (newRouting) {
-          config.routing = newRouting
-        }
         await writeCcgConfig(config)
-      }
-
-      if (newRouting) {
-        console.log()
-        console.log(ansis.green('✓ 模型路由配置已更新'))
       }
     }
     else {
