@@ -149,12 +149,62 @@ async function askReconfigureRouting(currentRouting?: ModelRouting): Promise<Mod
 }
 
 /**
+ * Check if CCG is installed globally via npm
+ */
+async function checkIfGlobalInstall(): Promise<boolean> {
+  try {
+    const { stdout } = await execAsync('npm list -g ccg-workflow --depth=0', { timeout: 5000 })
+    return stdout.includes('ccg-workflow@')
+  }
+  catch {
+    return false
+  }
+}
+
+/**
  * Perform the actual update process
  */
 async function performUpdate(fromVersion: string, toVersion: string, isNewVersion: boolean): Promise<void> {
   console.log()
   console.log(ansis.yellow.bold('⚙️  开始更新...'))
   console.log()
+
+  // Check if installed globally via npm
+  const isGlobalInstall = await checkIfGlobalInstall()
+
+  if (isGlobalInstall) {
+    console.log(ansis.yellow('⚠️  检测到你是通过 npm 全局安装的'))
+    console.log()
+    console.log('推荐的更新方式：')
+    console.log()
+    console.log(ansis.cyan('  npm install -g ccg-workflow@latest'))
+    console.log()
+    console.log(ansis.gray('这将同时更新命令和工作流文件'))
+    console.log()
+
+    const { useNpmUpdate } = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'useNpmUpdate',
+      message: '改用 npm 更新（推荐）？',
+      default: true,
+    }])
+
+    if (useNpmUpdate) {
+      console.log()
+      console.log(ansis.cyan('请在新的终端窗口中运行：'))
+      console.log()
+      console.log(ansis.cyan.bold('  npm install -g ccg-workflow@latest'))
+      console.log()
+      console.log(ansis.gray('(运行完成后，当前版本将自动更新)'))
+      console.log()
+      return
+    }
+
+    console.log()
+    console.log(ansis.yellow('⚠️  继续使用内置更新（仅更新工作流文件）'))
+    console.log(ansis.gray('注意：这不会更新 ccg 命令本身'))
+    console.log()
+  }
 
   // Step 1: Download latest package (force fresh download)
   let spinner = ora('正在下载最新版本...').start()

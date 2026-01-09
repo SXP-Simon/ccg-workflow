@@ -307,7 +307,9 @@ Windows：
 <details>
 <summary><strong>Q6: 如何卸载？</strong></summary>
 
-**方式 1：交互式卸载**
+**⚠️ 重要：根据安装方式选择卸载方法**
+
+#### 方式 1：npx 安装用户（推荐）
 
 ```bash
 npx ccg-workflow
@@ -321,15 +323,33 @@ npx ccg-workflow
 - `~/.claude/bin/codeagent-wrapper*` - 二进制文件
 - `~/.claude/.ccg/` - 配置目录（可选保留）
 
-**方式 2：手动清理**
+#### 方式 2：npm 全局安装用户
+
+**如果你曾经运行过 `npm install -g ccg-workflow`，需要两步卸载：**
 
 ```bash
-# 删除所有安装文件
+# 第 1 步：卸载工作流文件
+npx ccg-workflow
+# 选择 "卸载工作流"
+
+# 第 2 步：卸载 npm 全局包（必须执行，否则 ccg 命令仍可用）
+npm uninstall -g ccg-workflow
+```
+
+**v1.7.11 新增**：系统会自动检测全局安装并提示第 2 步操作。
+
+#### 方式 3：手动清理
+
+```bash
+# 删除所有工作流文件
 rm -rf ~/.claude/commands/ccg
 rm -rf ~/.claude/agents/ccg
 rm -rf ~/.claude/skills/multi-model-collaboration
 rm -rf ~/.claude/bin/codeagent-wrapper*
 rm -rf ~/.claude/.ccg
+
+# 如果是全局安装，还需执行
+npm uninstall -g ccg-workflow
 
 # 清理 MCP 配置（如果安装了 ace-tool）
 # 手动编辑 ~/.claude.json 删除 ace-tool 相关配置
@@ -337,10 +357,10 @@ rm -rf ~/.claude/.ccg
 
 **⚠️ 注意：npx 缓存问题**
 
-`ccg-workflow` 通过 npx 运行，npx 会缓存已下载的包。如果卸载后重新安装仍使用旧版本，需要清理 npx 缓存：
+如果卸载后重新安装仍使用旧版本，清理 npx 缓存：
 
 ```bash
-# 清理 npx 缓存（强制下载最新版本）
+# 清理 npx 缓存
 npx clear-npx-cache
 # 或
 rm -rf ~/.npm/_npx
