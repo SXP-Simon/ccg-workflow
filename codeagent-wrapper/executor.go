@@ -1121,6 +1121,12 @@ waitLoop:
 			messageTimerCh = nil
 			if !terminated {
 				logWarnFn(fmt.Sprintf("%s output parsed; terminating lingering backend", commandName))
+				// FIX: Close stdout FIRST to unblock cmd.Wait() on Windows.
+				// On Windows, child processes may hold stdout handles open even after
+				// the main process is killed via taskkill. cmd.Wait() blocks until ALL
+				// stdout handles are closed. Closing stdout here ensures the parser
+				// goroutine receives EOF and cmd.Wait() can complete.
+				closeWithReason(stdout, "messageTimer")
 				if timer := terminateCommandFn(cmd); timer != nil {
 					forceKillTimer = timer
 					terminated = true

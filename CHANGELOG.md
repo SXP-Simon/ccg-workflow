@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.22] - 2026-01-13
+
+### 🐛 Bug 修复
+
+**真正修复 Windows Codex 进程挂起问题**
+
+#### 问题背景
+
+v1.7.21 的修复不完整，Windows 上 Codex 完成后 codeagent-wrapper 进程仍然挂起：
+- 日志显示 "terminating lingering backend" 后就卡住了
+- `taskkill /T /F` 成功执行，但 `cmd.Wait()` 仍然阻塞
+
+#### 根本原因
+
+`cmd.Wait()` 阻塞直到 **所有 stdout 句柄关闭**，而不仅仅是主进程退出。在 Windows 上：
+1. Codex CLI 启动子进程（Node.js workers）
+2. 子进程继承了 stdout 句柄
+3. `taskkill /T /F` 杀死进程树
+4. 但 Go 的 stdout pipe 仍然打开
+5. `cmd.Wait()` 等待 pipe 关闭 → 永远阻塞
+
+#### 修复方案
+
+在 `messageTimerCh` case 中，**先关闭 stdout**，再终止进程：
+
+```go
+case <-messageTimerCh:
+    // ...
+    if !terminated {
+        // FIX: Close stdout FIRST to unblock cmd.Wait()
+        closeWithReason(stdout, "messageTimer")  // ← 新增
+        if timer := terminateCommandFn(cmd); timer != nil {
+            // ...
+        }
+    }
+```
+
+#### 执行流程（修复后）
+
+1. `completeSeen` → 启动 5 秒计时器
+2. `messageTimerCh` 触发 → **先关闭 stdout**
+3. parser goroutine 收到 EOF → 返回
+4. `cmd.Wait()` 不再阻塞 → 返回
+5. `waitCh` 收到信号 → `waitLoop` 正常退出
+6. wrapper 正常输出结果并退出（exit code 0）
+
+#### 影响范围
+
+- ✅ **修复前**：Windows + Codex 完成后挂起
+- ✅ **修复后**：所有平台正常退出
+- ✅ **向后兼容**：Unix 平台行为不变（Unix 进程退出时自动关闭句柄）
+
+---
+
 ## [1.7.21] - 2026-01-13
 
 ### 🐛 Bug 修复
