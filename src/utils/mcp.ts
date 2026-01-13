@@ -87,6 +87,11 @@ export async function writeClaudeCodeConfig(config: ClaudeCodeConfig): Promise<v
 export function applyPlatformCommand(config: McpServerConfig): void {
   // Only process if command exists (avoid wrapping SSE services)
   if (isWindows() && config.command) {
+    // 幂等性检查：如果 command 已经是 'cmd'，说明已处理过，跳过
+    if (config.command === 'cmd') {
+      return
+    }
+
     const mcpCmd = getMcpCommand(config.command)
 
     // Only modify if command needs Windows wrapper (cmd /c)
@@ -144,6 +149,47 @@ export function buildMcpServerConfig(
 }
 
 /**
+ * Repair corrupted Windows MCP configuration
+ * Fixes issues like duplicated commands in args array
+ *
+ * @param config - MCP server configuration to repair
+ * @returns true if config was repaired, false if no repair needed
+ */
+export function repairCorruptedMcpArgs(config: McpServerConfig): boolean {
+  if (!isWindows() || config.command !== 'cmd' || !config.args) {
+    return false
+  }
+
+  const args = config.args
+  let repaired = false
+
+  // 检测并修复 args 开头的错误模式
+  // 正确格式: ['/c', 'npx', '-y', ...]
+  // 错误格式1: ['cmd', '/c', 'npx', ...] (开头多余的 cmd)
+  // 错误格式2: ['/c', 'npx', 'npx', ...] (重复的命令)
+  // 错误格式3: ['cmd', '/c', 'npx', 'npx', ...] (两种错误的组合)
+
+  // 移除开头多余的 'cmd'
+  if (args[0] === 'cmd') {
+    args.shift()
+    repaired = true
+  }
+
+  // 确保第一个是 '/c'
+  if (args[0] !== '/c') {
+    return repaired
+  }
+
+  // 检测并移除重复的命令 (如 'npx', 'npx')
+  if (args.length >= 3 && args[1] === args[2]) {
+    args.splice(2, 1) // 移除重复的命令
+    repaired = true
+  }
+
+  return repaired
+}
+
+/**
  * Fix Windows MCP configuration by applying platform wrappers
  * This function processes all MCP servers in the config and applies Windows-specific fixes
  *
@@ -161,7 +207,11 @@ export function fixWindowsMcpConfig(config: ClaudeCodeConfig): ClaudeCodeConfig 
   // Fix each MCP server configuration
   for (const [serverName, serverConfig] of Object.entries(fixed.mcpServers || {})) {
     if (serverConfig && typeof serverConfig === 'object' && 'command' in serverConfig) {
-      applyPlatformCommand(serverConfig as McpServerConfig)
+      const mcpConfig = serverConfig as McpServerConfig
+      // 先尝试修复损坏的配置
+      repairCorruptedMcpArgs(mcpConfig)
+      // 再应用平台命令包装（幂等，已处理过的会跳过）
+      applyPlatformCommand(mcpConfig)
     }
   }
 
