@@ -1380,6 +1380,8 @@ func killProcessTree(pid int) error {
 	cmd := exec.Command("taskkill", "/T", "/F", "/PID", fmt.Sprintf("%d", pid))
 	cmd.Stdout = nil
 	cmd.Stderr = nil
+	// Hide CMD window on Windows
+	hideWindowsConsole(cmd)
 	return cmd.Run()
 }
 

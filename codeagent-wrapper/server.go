@@ -123,6 +123,8 @@ func openBrowser(url string) {
 	case "windows":
 		// Use rundll32 for better compatibility
 		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		// Hide CMD window on Windows
+		hideWindowsConsole(cmd)
 	default:
 		return
 	}
