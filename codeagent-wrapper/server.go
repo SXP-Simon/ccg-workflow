@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -86,6 +87,29 @@ func (ws *WebServer) Start() error {
 	go openBrowser(url)
 
 	return nil
+}
+
+// Stop gracefully shuts down the web server
+func (ws *WebServer) Stop() error {
+	if ws == nil || ws.server == nil {
+		return nil
+	}
+
+	// Create a context with a short timeout for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Close all client connections
+	ws.mu.Lock()
+	for _, clients := range ws.clients {
+		for _, ch := range clients {
+			close(ch)
+		}
+	}
+	ws.clients = make(map[string][]chan ContentEvent)
+	ws.mu.Unlock()
+
+	return ws.server.Shutdown(ctx)
 }
 
 // openBrowser opens the specified URL in the default browser
@@ -314,6 +338,19 @@ func (ws *WebServer) generateIndexHTML() string {
         const output = document.getElementById('output');
         const liveIndicator = document.getElementById('liveIndicator');
         let connected = false;
+        let userScrolled = false;
+
+        // Detect if user manually scrolled up
+        output.addEventListener('scroll', () => {
+            const isAtBottom = output.scrollHeight - output.scrollTop - output.clientHeight < 50;
+            userScrolled = !isAtBottom;
+        });
+
+        // Reliable auto-scroll function
+        function scrollToBottom() {
+            if (userScrolled) return; // Respect user's scroll position
+            output.scrollTop = output.scrollHeight;
+        }
 
         async function connectToStream() {
             try {
@@ -368,10 +405,8 @@ func (ws *WebServer) generateIndexHTML() string {
                         cursorEl.className = 'cursor';
                         output.appendChild(cursorEl);
 
-                        // Auto-scroll to bottom
-                        requestAnimationFrame(() => {
-                            output.scrollTop = output.scrollHeight;
-                        });
+                        // Auto-scroll to bottom (use setTimeout for reliable DOM update)
+                        setTimeout(scrollToBottom, 0);
                     }
                     if (data.done) {
                         const cursor = output.querySelector('.cursor');
@@ -382,10 +417,9 @@ func (ws *WebServer) generateIndexHTML() string {
                         doneEl.textContent = '✓ 完成';
                         output.appendChild(doneEl);
 
-                        // Auto-scroll to bottom
-                        requestAnimationFrame(() => {
-                            output.scrollTop = output.scrollHeight;
-                        });
+                        // Force scroll to bottom on completion
+                        userScrolled = false;
+                        setTimeout(scrollToBottom, 0);
 
                         es.close();
 

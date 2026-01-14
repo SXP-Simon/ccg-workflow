@@ -97,6 +97,7 @@ export async function setupCommands(cli: CAC): Promise<void> {
     .option('--lang, -l <lang>', 'Display language (zh-CN, en)')
     .option('--force, -f', 'Force overwrite existing configuration')
     .option('--skip-prompt, -s', 'Skip all interactive prompts (non-interactive mode)')
+    .option('--skip-mcp', 'Skip MCP configuration (used during update)')
     .option('--frontend, -F <models>', 'Frontend models (comma-separated: gemini,codex,claude)')
     .option('--backend, -B <models>', 'Backend models (comma-separated: codex,gemini,claude)')
     .option('--mode, -m <mode>', 'Collaboration mode (parallel, smart, sequential)')

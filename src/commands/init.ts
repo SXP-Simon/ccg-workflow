@@ -28,7 +28,11 @@ export async function init(options: InitOptions = {}): Promise<void> {
   let aceToolBaseUrl = ''
   let aceToolToken = ''
 
-  if (!options.skipPrompt) {
+  // Skip MCP configuration if --skip-mcp is passed (used during update)
+  if (options.skipMcp) {
+    mcpProvider = 'skip'
+  }
+  else if (!options.skipPrompt) {
     console.log()
     console.log(ansis.cyan.bold(`  🔧 MCP 工具配置`))
     console.log()
@@ -272,93 +276,57 @@ export async function init(options: InitOptions = {}): Promise<void> {
       })
     }
 
-    // Show binary installation result and configure PATH
+    // Show binary installation result
     if (result.binInstalled && result.binPath) {
       console.log()
       console.log(ansis.cyan(`  ${i18n.t('init:installedBinary')}`))
       console.log(`    ${ansis.green('✓')} codeagent-wrapper ${ansis.gray(`→ ${result.binPath}`)}`)
-      console.log()
 
       const platform = process.platform
-      const exportCommand = `export PATH="${result.binPath}:$PATH"`
 
       if (platform === 'win32') {
-        // Windows: Show manual instructions
-        console.log(ansis.yellow(`  ⚠ ${i18n.t('init:pathWarning')}`))
-        console.log()
-        console.log(ansis.cyan(`  ${i18n.t('init:windowsPathInstructions')}`))
-        console.log(ansis.gray(`     1. ${i18n.t('init:windowsStep1')}`))
-        console.log(ansis.gray(`     2. ${i18n.t('init:windowsStep2')}`))
-        console.log(ansis.gray(`     3. ${i18n.t('init:windowsStep3')}`))
-        console.log(ansis.gray(`        ${result.binPath.replace(/\//g, '\\')}`))
-        console.log(ansis.gray(`     4. ${i18n.t('init:windowsStep4')}`))
-        console.log()
-        console.log(ansis.cyan(`  ${i18n.t('init:orUsePowerShell')}`))
+        // Windows: Auto-configure PATH using PowerShell
         const windowsPath = result.binPath.replace(/\//g, '\\')
-        console.log(ansis.gray(`     $currentPath = [System.Environment]::GetEnvironmentVariable('PATH', 'User')`))
-        console.log(ansis.gray(`     $newPath = '${windowsPath}'`))
-        console.log(ansis.gray(`     if ($currentPath -notlike "*$newPath*") {`))
-        console.log(ansis.gray(`         [System.Environment]::SetEnvironmentVariable('PATH', "$currentPath;$newPath", 'User')`))
-        console.log(ansis.gray(`     }`))
-      }
-      else {
-        // macOS/Linux: Offer auto-configuration
-        console.log(ansis.yellow(`  ⚠ ${i18n.t('init:pathWarning')}`))
+        try {
+          const { execSync } = await import('node:child_process')
+          // Check if already in PATH
+          const currentPath = execSync('powershell -Command "[System.Environment]::GetEnvironmentVariable(\'PATH\', \'User\')"', { encoding: 'utf-8' }).trim()
 
-        if (!options.skipPrompt) {
-          console.log()
-          const { autoConfigurePath } = await inquirer.prompt([{
-            type: 'confirm',
-            name: 'autoConfigurePath',
-            message: i18n.t('init:autoConfigurePathPrompt'),
-            default: true,
-          }])
-
-          if (autoConfigurePath) {
-            const shellRc = process.env.SHELL?.includes('zsh') ? join(homedir(), '.zshrc') : join(homedir(), '.bashrc')
-            const shellRcDisplay = process.env.SHELL?.includes('zsh') ? '~/.zshrc' : '~/.bashrc'
-
-            try {
-              // Check if already configured
-              let rcContent = ''
-              if (await fs.pathExists(shellRc)) {
-                rcContent = await fs.readFile(shellRc, 'utf-8')
-              }
-
-              if (rcContent.includes(result.binPath) || rcContent.includes('/.claude/bin')) {
-                console.log(ansis.green(`  ✓ ${i18n.t('init:pathAlreadyConfigured', { file: shellRcDisplay })}`))
-              }
-              else {
-                // Append to shell config
-                const configLine = `\n# CCG multi-model collaboration system\n${exportCommand}\n`
-                await fs.appendFile(shellRc, configLine, 'utf-8')
-                console.log(ansis.green(`  ✓ ${i18n.t('init:pathConfigured', { file: shellRcDisplay })}`))
-                console.log()
-                console.log(ansis.cyan(`  ${i18n.t('init:restartShellPrompt')}`))
-                console.log(ansis.gray(`     source ${shellRcDisplay}`))
-              }
-            }
-            catch (error) {
-              console.log(ansis.red(`  ✗ ${i18n.t('init:pathConfigFailed')}`))
-              console.log(ansis.gray(`     ${i18n.t('init:manualConfigInstructions', { file: shellRcDisplay })}`))
-              console.log(ansis.gray(`     ${exportCommand}`))
-            }
-          }
-          else {
-            const shellRc = process.env.SHELL?.includes('zsh') ? '~/.zshrc' : '~/.bashrc'
-            console.log()
-            console.log(ansis.cyan(`  ${i18n.t('init:manualConfigInstructions', { file: shellRc })}`))
-            console.log(ansis.gray(`     ${exportCommand}`))
-            console.log(ansis.gray(`     source ${shellRc}`))
+          if (!currentPath.includes(windowsPath) && !currentPath.includes('.claude\\bin')) {
+            // Add to user PATH
+            execSync(`powershell -Command "[System.Environment]::SetEnvironmentVariable('PATH', '$env:PATH;${windowsPath}', 'User')"`, { stdio: 'pipe' })
+            console.log(`    ${ansis.green('✓')} PATH ${ansis.gray('→ 用户环境变量')}`)
           }
         }
-        else {
-          // Non-interactive mode: just show instructions
-          const shellRc = process.env.SHELL?.includes('zsh') ? '~/.zshrc' : '~/.bashrc'
-          console.log()
-          console.log(ansis.cyan(`  ${i18n.t('init:manualConfigInstructions', { file: shellRc })}`))
-          console.log(ansis.gray(`     ${exportCommand}`))
-          console.log(ansis.gray(`     source ${shellRc}`))
+        catch {
+          // Silently ignore PATH config errors on Windows
+        }
+      }
+      else if (!options.skipPrompt) {
+        // macOS/Linux: Auto-configure PATH silently
+        const exportCommand = `export PATH="${result.binPath}:$PATH"`
+        const shellRc = process.env.SHELL?.includes('zsh') ? join(homedir(), '.zshrc') : join(homedir(), '.bashrc')
+        const shellRcDisplay = process.env.SHELL?.includes('zsh') ? '~/.zshrc' : '~/.bashrc'
+
+        try {
+          // Check if already configured
+          let rcContent = ''
+          if (await fs.pathExists(shellRc)) {
+            rcContent = await fs.readFile(shellRc, 'utf-8')
+          }
+
+          if (rcContent.includes(result.binPath) || rcContent.includes('/.claude/bin')) {
+            // Already configured, no action needed
+          }
+          else {
+            // Append to shell config
+            const configLine = `\n# CCG multi-model collaboration system\n${exportCommand}\n`
+            await fs.appendFile(shellRc, configLine, 'utf-8')
+            console.log(`    ${ansis.green('✓')} PATH ${ansis.gray(`→ ${shellRcDisplay}`)}`)
+          }
+        }
+        catch {
+          // Silently ignore PATH config errors
         }
       }
     }
