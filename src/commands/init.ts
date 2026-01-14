@@ -32,14 +32,8 @@ export async function init(options: InitOptions = {}): Promise<void> {
   let aceToolToken = ''
 
   // Skip MCP configuration if --skip-mcp is passed (used during update)
-  // Also preserve existing liteMode setting from config
   if (options.skipMcp) {
     mcpProvider = 'skip'
-    // Read existing config to preserve liteMode setting
-    const existingConfig = await readCcgConfig()
-    if (existingConfig?.performance?.liteMode !== undefined) {
-      liteMode = existingConfig.performance.liteMode
-    }
   }
   else if (!options.skipPrompt) {
     console.log()
@@ -123,14 +117,20 @@ export async function init(options: InitOptions = {}): Promise<void> {
       console.log(ansis.gray(`     • 可稍后手动配置任何 MCP 服务`))
       console.log()
     }
+  }
 
-    // Performance mode selection
+  // Performance mode selection (always ask unless skipPrompt is true)
+  if (!options.skipPrompt) {
+    // Read existing config to show current setting
+    const existingConfig = await readCcgConfig()
+    const currentLiteMode = existingConfig?.performance?.liteMode || false
+
     console.log()
     const { enableWebUI } = await inquirer.prompt([{
       type: 'confirm',
       name: 'enableWebUI',
       message: `启用 Web UI 实时输出？${ansis.gray('(禁用可加速响应)')}`,
-      default: true,
+      default: !currentLiteMode, // Default to current setting (inverted)
     }])
 
     liteMode = !enableWebUI
@@ -167,8 +167,8 @@ export async function init(options: InitOptions = {}): Promise<void> {
   console.log(ansis.yellow('━'.repeat(50)))
   console.log()
 
-  // Confirm in interactive mode
-  if (!options.skipPrompt) {
+  // Confirm in interactive mode (skip if force is true)
+  if (!options.skipPrompt && !options.force) {
     const { confirmed } = await inquirer.prompt([{
       type: 'confirm',
       name: 'confirmed',
