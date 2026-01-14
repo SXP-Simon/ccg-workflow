@@ -7,7 +7,7 @@ import ora from 'ora'
 import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { checkForUpdates, compareVersions } from '../utils/version'
-import { installWorkflows } from '../utils/installer'
+import { uninstallWorkflows } from '../utils/installer'
 import { readCcgConfig, writeCcgConfig } from '../utils/config'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 import { i18n } from '../i18n'
@@ -293,53 +293,61 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     }
   }
 
-  // Step 3: Read current config (no reconfiguration needed - routing is fixed since v1.7.0)
-  const config = await readCcgConfig()
-
-  // Step 4: Delete old workflows and install new ones
-  spinner = ora('正在更新工作流和 codeagent-wrapper 二进制...').start()
+  // Step 3: Delete old workflows first
+  // IMPORTANT: We must uninstall first, then let the new version install itself
+  // This avoids the issue where the old version's PACKAGE_ROOT doesn't have new binaries
+  spinner = ora('正在删除旧工作流...').start()
 
   try {
-    // IMPORTANT: Use getAllCommandIds() to install ALL commands (including newly added ones)
-    // Don't use config?.workflows?.installed as it may not include new commands
-    const { getAllCommandIds } = await import('../utils/installer')
-    const workflows = getAllCommandIds()
-
     const installDir = join(homedir(), '.claude')
-    const result = await installWorkflows(workflows, installDir, true, {
-      routing: config?.routing, // Use existing routing (fixed: Gemini frontend + Codex backend)
-    }) // force = true
+    const uninstallResult = await uninstallWorkflows(installDir)
 
-    if (result.success) {
-      spinner.succeed('工作流和二进制文件更新成功')
-
-      console.log()
-      console.log(ansis.cyan(`已更新 ${result.installedCommands.length} 个命令:`))
-      for (const cmd of result.installedCommands) {
-        console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
-      }
-
-      // Update config version and installed workflows list
-      if (config) {
-        config.general.version = toVersion
-        config.workflows = {
-          installed: workflows, // Update to include all current commands
-        }
-        await writeCcgConfig(config)
-      }
+    if (uninstallResult.success) {
+      spinner.succeed('旧工作流已删除')
     }
     else {
-      spinner.fail('更新失败')
-      console.log(ansis.red('部分文件更新失败:'))
-      for (const error of result.errors) {
-        console.log(ansis.red(`  • ${error}`))
+      spinner.warn('部分文件删除失败，继续安装...')
+      for (const error of uninstallResult.errors) {
+        console.log(ansis.yellow(`  • ${error}`))
       }
-      return
     }
   }
   catch (error) {
-    spinner.fail('更新失败')
+    spinner.warn(`删除旧工作流时出错: ${error}，继续安装...`)
+  }
+
+  // Step 4: Install new workflows using the latest version via npx
+  // This ensures we use the new version's binary files
+  spinner = ora('正在安装新版本工作流和二进制...').start()
+
+  try {
+    // Use npx to run the latest version's init command with --force flag
+    // This ensures the new version's PACKAGE_ROOT is used for binary installation
+    await execAsync(`npx --yes ccg-workflow@latest init --force --skip-mcp`, {
+      timeout: 120000,
+      env: {
+        ...process.env,
+        CCG_UPDATE_MODE: 'true', // Signal to init that this is an update
+      },
+    })
+    spinner.succeed('新版本安装成功')
+
+    // Read updated config to display installed commands
+    const config = await readCcgConfig()
+    if (config?.workflows?.installed) {
+      console.log()
+      console.log(ansis.cyan(`已安装 ${config.workflows.installed.length} 个命令:`))
+      for (const cmd of config.workflows.installed) {
+        console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
+      }
+    }
+  }
+  catch (error) {
+    spinner.fail('安装新版本失败')
     console.log(ansis.red(`错误: ${error}`))
+    console.log()
+    console.log(ansis.yellow('请尝试手动运行:'))
+    console.log(ansis.cyan('  npx ccg-workflow@latest'))
     return
   }
 

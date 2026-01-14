@@ -68,6 +68,7 @@ export interface WorkflowConfig {
 export interface InitOptions {
   lang?: SupportedLang
   skipPrompt?: boolean
+  skipMcp?: boolean // 更新时跳过 MCP 配置
   force?: boolean
   // 非交互模式参数
   frontend?: string

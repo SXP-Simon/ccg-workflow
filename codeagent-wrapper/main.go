@@ -148,6 +148,11 @@ func run() (exitCode int) {
 		if logger != nil {
 			logger.Flush()
 		}
+		// Shutdown WebServer if it was started
+		if globalWebServer != nil {
+			_ = globalWebServer.Stop()
+			globalWebServer = nil
+		}
 		if err := closeLogger(); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: failed to close logger: %v\n", err)
 		}
