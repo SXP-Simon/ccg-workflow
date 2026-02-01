@@ -15,13 +15,13 @@ description: '双模型交叉审查（独立工具，随时可用）'
 
 **Steps**
 1. **Select Proposal**
-   - Run `/opsx:list` to display Active Changes.
+   - Run `openspec list --json` to display Active Changes.
    - Confirm with user which proposal ID to review.
-   - Run `/opsx:show <proposal_id>` to load spec and tasks.
+   - Run `openspec status --change "<proposal_id>" --json` to load spec and tasks.
 
 2. **Collect Implementation Artifacts**
    - Identify all files modified by this proposal.
-   - Use `git diff` or `/opsx:diff <proposal_id>` to get change summary.
+   - Use `git diff` to get change summary.
    - Load relevant spec constraints and PBT properties from `openspec/changes/<id>/specs/`.
 
 3. **Multi-Model Review (PARALLEL)**
@@ -113,8 +113,8 @@ Review is complete when:
 - [ ] User decision captured (archive / return to impl / defer)
 
 **Reference**
-- View proposal: `/opsx:show <id>`
+- View proposal: `openspec status --change "<id>" --json`
 - Check spec constraints: `rg -n "CONSTRAINT:|MUST|INVARIANT:" openspec/changes/<id>/specs/`
-- View implementation diff: `/opsx:diff <id>` or `git diff`
+- View implementation diff: `git diff`
 - Archive (after passing): `/ccg:spec-impl` → Step 10
 <!-- CCG:SPEC:REVIEW:END -->

@@ -16,9 +16,9 @@ description: '多模型分析 → 消除歧义 → 零决策可执行计划'
 
 **Steps**
 1. **Select Change**
-   - Run `/opsx:list` to display Active Changes.
+   - Run `openspec list --json` to display Active Changes.
    - Confirm with user which change ID to refine.
-   - Run `/opsx:status <change_id>` to review current state.
+   - Run `openspec status --change "<change_id>" --json` to review current state.
 
 2. **Multi-Model Implementation Analysis (PARALLEL)**
    - **CRITICAL**: You MUST launch BOTH Codex AND Gemini in a SINGLE message with TWO Bash tool calls.
@@ -102,8 +102,8 @@ A change is ready for implementation only when:
 - [ ] User has explicitly approved all constraint decisions
 
 **Reference**
-- Inspect change: `/opsx:status <id>`
-- Check conflicts: `/opsx:schemas`
+- Inspect change: `openspec status --change "<id>" --json`
+- List changes: `openspec list --json`
 - Search patterns: `rg -n "INVARIANT:|PROPERTY:" openspec/`
 - Use `AskUserQuestion` for ANY ambiguity—never assume
 <!-- CCG:SPEC:PLAN:END -->

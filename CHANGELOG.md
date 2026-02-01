@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.56] - 2026-02-01
+
+### 🐛 重要修复：OpenSpec CLI 集成
+
+**修复 CCG 与 OpenSpec CLI 的集成问题**
+
+#### 问题描述
+- CCG spec 命令模板中错误地尝试通过 `Skill(opsx:list)` 调用 OPSX 命令
+- 使用了不存在的命令选项（如 `--json` 用于 `new change`）
+- 混淆了 CLI 命令 `openspec` 和斜杠命令 `/opsx:`
+
+#### 修复内容
+
+**1. 修正命令调用方式**
+- ❌ 之前：`Skill(opsx:list)` 或 `Run /opsx:list`
+- ✅ 现在：`openspec list --json`（通过 Bash 调用）
+
+**2. 修正命令语法**
+- ❌ 之前：`openspec new "<name>" --json`
+- ✅ 现在：`openspec new change "<name>"`（移除不支持的 `--json`）
+
+**3. 统一命令名称**
+- 明确说明 CLI 命令是 `openspec`，不是 `opsx`
+- `/opsx:xxx` 是 Claude 斜杠命令，内部调用 `openspec` CLI
+
+#### 修改的文件
+- ✅ `templates/commands/spec-init.md` - 添加 CLI 命令说明和初始化检查
+- ✅ `templates/commands/spec-research.md` - 修复 `new change` 语法，添加变更存在性检查
+- ✅ `templates/commands/spec-plan.md` - 替换所有 `/opsx:` 引用为 CLI 调用
+- ✅ `templates/commands/spec-impl.md` - 替换所有 `/opsx:` 引用为 CLI 调用
+- ✅ `templates/commands/spec-review.md` - 替换所有 `/opsx:` 引用为 CLI 调用
+
+#### 已验证的命令
+- ✅ `openspec --version`
+- ✅ `openspec list --json`
+- ✅ `openspec status --change "<id>" --json`
+- ✅ `openspec new change "<name>"`
+- ✅ `npx @fission-ai/openspec --version`
+- ✅ `npx @fission-ai/openspec init --tools claude`
+
+#### 新增文档
+- `OPSX_INTEGRATION_FIX.md` - 详细修复说明
+- `OPENSPEC_COMMANDS_REFERENCE.md` - OpenSpec CLI 命令参考
+- `FINAL_VERIFICATION.md` - 最终验证报告
+
+**影响范围**：所有使用 `/ccg:spec-*` 命令的用户
+
+---
+
 ## [1.7.54] - 2026-01-26
 
 ### 🐛 紧急修复

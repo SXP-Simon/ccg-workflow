@@ -16,9 +16,9 @@ description: '按规范执行 + 多模型协作 + 归档'
 
 **Steps**
 1. **Select Change**
-   - Run `/opsx:list` to inspect Active Changes.
+   - Run `openspec list --json` to inspect Active Changes.
    - Confirm with user which change ID to implement.
-   - Run `/opsx:show <change_id>` to review tasks.
+   - Run `openspec status --change "<change_id>" --json` to review tasks.
 
 2. **Apply OPSX Change**
    - Use `/ccg:spec-impl` (which uses OpenSpec skills internally) to enter implementation mode.
@@ -111,9 +111,8 @@ description: '按规范执行 + 多模型协作 + 归档'
     - This merges spec deltas to `openspec/specs/` and moves change to archive.
 
 **Reference**
-- Check task status: `/opsx:show <id>`
-- Validate before archive: `/opsx:validate <id>`
-- View active changes: `/opsx:list`
+- Check task status: `openspec status --change "<id>" --json`
+- View active changes: `openspec list --json`
 - Search existing patterns: `rg -n "function|class" <file>`
 
 **Exit Criteria**

@@ -19,25 +19,38 @@ description: '初始化 OpenSpec (OPSX) 环境 + 验证多模型 MCP 工具'
    - Inform user which OS was detected.
 
 2. **Check and Install OpenSpec (OPSX)**
-   - Verify if OPSX commands are available: `/opsx:version`
-   - If not installed or not found:
+   - **IMPORTANT**: OpenSpec CLI command is `openspec`, NOT `opsx`
+   - Verify if OpenSpec is available:
+     ```bash
+     npx @fission-ai/openspec --version
+     ```
+   - If not found, install globally:
      ```bash
      npm install -g @fission-ai/openspec@latest
      ```
-   - **Path Verification**:
-     - If `/opsx:version` command is not found after installation:
-       1. Ensure Claude Code commands are properly loaded
-       2. Restart Claude Code session if needed
-       3. Check if OPSX skills are installed in `.claude/skills/`
-   - Confirm installation success by running `/opsx:version` again.
+   - After installation, verify again:
+     ```bash
+     openspec --version
+     ```
+   - If `openspec` command not found after global install, use `npx`:
+     ```bash
+     npx @fission-ai/openspec --version
+     ```
+   - **Note**: Always use `openspec` (not `opsx`) for CLI commands.
 
 3. **Initialize OPSX for Current Project**
-   - Run:
+   - Check if already initialized:
      ```bash
-     /opsx:init --tools claude
+     ls -la openspec/ .claude/skills/openspec-* 2>/dev/null || echo "Not initialized"
      ```
-   - Verify `openspec/` directory structure is created.
-   - Verify `.claude/skills/` contains `opsx-*` skills.
+   - If not initialized, run:
+     ```bash
+     npx @fission-ai/openspec init --tools claude
+     ```
+   - Verify initialization:
+     - Check `openspec/` directory exists
+     - Check `.claude/skills/` contains `openspec-*` skills
+     - Check `.claude/commands/opsx/` contains OPSX commands
    - Report any errors with remediation steps.
 
 4. **Validate Multi-Model MCP Tools**
@@ -84,7 +97,8 @@ description: '初始化 OpenSpec (OPSX) 环境 + 验证多模型 MCP 工具'
    - Code Review: `/ccg:spec-review` (Independent dual-model review)
 
 **Reference**
-- OpenSpec (OPSX) CLI: `/opsx:help`
+- OpenSpec (OPSX) CLI: `npx @fission-ai/openspec --help`
+- OPSX Commands: `/opsx:new`, `/opsx:continue`, `/opsx:apply`, etc.
 - CCG Workflow: `npx ccg-workflow`
 - Codex/Gemini MCP: Bundled with codeagent-wrapper
 - Node.js >= 18.x required for OpenSpec

@@ -31,12 +31,16 @@ description: '需求 → 约束集（并行探索 + OPSX 提案）'
    - Use enhanced prompt for ALL subsequent steps.
 
 1. **Generate OPSX Change**
-   - Create a new change using OPSX command:
+   - Check if change already exists:
      ```bash
-     /opsx:new "<brief-descriptive-name>"
+     openspec list --json
+     ```
+   - If change doesn't exist, create it:
+     ```bash
+     openspec new change "<brief-descriptive-name>"
      ```
    - This scaffolds `openspec/changes/<name>/` with proposal.md.
-   - If change already exists, use `/opsx:list` to find it and continue.
+   - If change already exists, continue with existing change.
 
 2. **Initial Codebase Assessment**
    - Use `mcp__ace-tool__search_context` to scan codebase.
@@ -98,7 +102,7 @@ description: '需求 → 约束集（并行探索 + OPSX 提案）'
    - If approaching 80K tokens, suggest: "Run `/clear` and continue with `/ccg:spec-plan`"
 
 **Reference**
-- OPSX CLI: `/opsx:status`, `/opsx:show`
+- OPSX CLI: `openspec status --change "<id>" --json`, `openspec list --json`
 - Check prior research: `ls openspec/changes/*/`
 - Use `AskUserQuestion` for ANY ambiguity—never assume or guess
 <!-- CCG:SPEC:RESEARCH:END -->
