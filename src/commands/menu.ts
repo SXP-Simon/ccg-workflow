@@ -3,7 +3,8 @@ import inquirer from 'inquirer'
 import { exec, spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import { homedir } from 'node:os'
-import { join } from 'pathe'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'pathe'
 import fs from 'fs-extra'
 import { configMcp } from './config-mcp'
 import { i18n } from '../i18n'
@@ -30,6 +31,7 @@ export async function showMainMenu(): Promise<void> {
         { name: `${ansis.blue('➜')} ${i18n.t('menu:options.update')}`, value: 'update' },
         { name: `${ansis.cyan('⚙')} 配置 MCP`, value: 'config-mcp' },
         { name: `${ansis.cyan('🔑')} 配置 API`, value: 'config-api' },
+        { name: `${ansis.magenta('🎭')} 配置输出风格`, value: 'config-style' },
         { name: `${ansis.yellow('🔧')} 实用工具`, value: 'tools' },
         { name: `${ansis.blue('📦')} 安装 Claude Code`, value: 'install-claude' },
         { name: `${ansis.magenta('➜')} ${i18n.t('menu:options.uninstall')}`, value: 'uninstall' },
@@ -51,6 +53,9 @@ export async function showMainMenu(): Promise<void> {
         break
       case 'config-api':
         await configApi()
+        break
+      case 'config-style':
+        await configOutputStyle()
         break
       case 'tools':
         await handleTools()
@@ -211,6 +216,88 @@ async function configApi(): Promise<void> {
   console.log()
   console.log(ansis.green('✓ API 配置已保存'))
   console.log(ansis.gray(`  配置文件: ${settingsPath}`))
+}
+
+// ============ 配置输出风格 ============
+
+// 风格来源：
+// - abyss-cultivator: https://github.com/telagod/code-abyss
+// - engineer-professional, nekomata-engineer, laowang-engineer, ojousama-engineer: https://github.com/UfoMiao/zcf
+const OUTPUT_STYLES = [
+  { id: 'default', name: '默认', desc: 'Claude Code 原生风格' },
+  { id: 'engineer-professional', name: '专业工程师', desc: '简洁专业的技术风格' },
+  { id: 'nekomata-engineer', name: '猫娘工程师', desc: '可爱猫娘语气喵~' },
+  { id: 'laowang-engineer', name: '老王工程师', desc: '接地气的老王风格' },
+  { id: 'ojousama-engineer', name: '大小姐工程师', desc: '优雅大小姐语气' },
+  { id: 'abyss-cultivator', name: '邪修风格', desc: '宿命深渊·道语标签' },
+]
+
+async function configOutputStyle(): Promise<void> {
+  console.log()
+  console.log(ansis.cyan.bold('  配置输出风格'))
+  console.log()
+
+  const settingsPath = join(homedir(), '.claude', 'settings.json')
+  let settings: Record<string, any> = {}
+  if (await fs.pathExists(settingsPath)) {
+    settings = await fs.readJson(settingsPath)
+  }
+
+  const currentStyle = settings.outputStyle || 'default'
+  console.log(ansis.gray(`  当前风格: ${currentStyle}`))
+  console.log()
+
+  const { style } = await inquirer.prompt([{
+    type: 'list',
+    name: 'style',
+    message: '选择输出风格',
+    choices: OUTPUT_STYLES.map(s => ({
+      name: `${s.name} ${ansis.gray(`- ${s.desc}`)}`,
+      value: s.id,
+    })),
+    default: currentStyle,
+  }])
+
+  if (style === currentStyle) {
+    console.log(ansis.gray('风格未变更'))
+    return
+  }
+
+  // 如果选择自定义风格，需要复制文件
+  if (style !== 'default') {
+    const outputStylesDir = join(homedir(), '.claude', 'output-styles')
+    await fs.ensureDir(outputStylesDir)
+
+    // 从模板复制风格文件
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
+    // 从 dist/shared 或 src/commands 回到包根目录
+    let pkgRoot = dirname(dirname(__dirname))
+    if (!await fs.pathExists(join(pkgRoot, 'templates'))) {
+      pkgRoot = dirname(pkgRoot) // 再上一级
+    }
+    const templatePath = join(pkgRoot, 'templates', 'output-styles', `${style}.md`)
+    const destPath = join(outputStylesDir, `${style}.md`)
+
+    if (await fs.pathExists(templatePath)) {
+      await fs.copy(templatePath, destPath)
+      console.log(ansis.green(`✓ 已安装风格文件: ${style}.md`))
+    }
+  }
+
+  // 更新 settings.json
+  if (style === 'default') {
+    delete settings.outputStyle
+  }
+  else {
+    settings.outputStyle = style
+  }
+
+  await fs.writeJson(settingsPath, settings, { spaces: 2 })
+
+  console.log()
+  console.log(ansis.green(`✓ 输出风格已设置为: ${style}`))
+  console.log(ansis.gray('  重启 Claude Code CLI 使配置生效'))
 }
 
 // ============ 安装 Claude Code ============
