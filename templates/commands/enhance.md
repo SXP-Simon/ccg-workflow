@@ -1,5 +1,5 @@
 ---
-description: 使用 ace-tool enhance_prompt 优化 Prompt，展示原始与增强版本供确认
+description: 内置 Prompt 增强，将模糊需求转化为结构化任务描述
 ---
 
 ## Usage

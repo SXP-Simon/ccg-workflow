@@ -381,13 +381,11 @@ function injectConfigVariables(content: string, config: {
     // ContextWeaver MCP tools
     processed = processed.replace(/\{\{MCP_SEARCH_TOOL\}\}/g, 'mcp__contextweaver__codebase-retrieval')
     processed = processed.replace(/\{\{MCP_SEARCH_PARAM\}\}/g, 'information_request')
-    processed = processed.replace(/\{\{MCP_ENHANCE_TOOL\}\}/g, '') // ContextWeaver 没有 enhance 功能
   }
   else {
     // ace-tool / ace-tool-rs MCP tools (default)
     processed = processed.replace(/\{\{MCP_SEARCH_TOOL\}\}/g, 'mcp__ace-tool__search_context')
     processed = processed.replace(/\{\{MCP_SEARCH_PARAM\}\}/g, 'query')
-    processed = processed.replace(/\{\{MCP_ENHANCE_TOOL\}\}/g, 'mcp__ace-tool__enhance_prompt')
   }
 
   return processed
