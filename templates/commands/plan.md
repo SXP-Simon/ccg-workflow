@@ -79,17 +79,7 @@ TaskOutput({ task_id: "<task_id>", block: true, timeout: 600000 })
 
 #### 1.1 Prompt 增强（必须首先执行）
 
-**⚠️ 必须调用 `{{MCP_ENHANCE_TOOL}}` 工具**：
-
-```
-{{MCP_ENHANCE_TOOL}}({
-  prompt: "$ARGUMENTS",
-  conversation_history: "<最近5-10轮对话历史>",
-  project_root_path: "{{WORKDIR}}"
-})
-```
-
-等待返回增强后的 prompt，**用增强结果替代原始 $ARGUMENTS** 用于后续所有阶段。
+**Prompt 增强**（按 `/ccg:enhance` 的逻辑执行）：分析 $ARGUMENTS 的意图、缺失信息、隐含假设，补全为结构化需求（明确目标、技术约束、范围边界、验收标准），**用增强结果替代原始 $ARGUMENTS** 用于后续所有阶段。
 
 #### 1.2 上下文检索
 

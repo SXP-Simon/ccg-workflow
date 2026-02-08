@@ -9,7 +9,7 @@ description: '需求 → 约束集（并行探索 + OPSX 提案）'
 - Strictly adhere to OPSX rules when writing spec-structured documents.
 
 **Guardrails**
-- **STOP! BEFORE ANY OTHER ACTION**: You MUST call `{{MCP_ENHANCE_TOOL}}` FIRST. This is NON-NEGOTIABLE.
+- **STOP! BEFORE ANY OTHER ACTION**: You MUST perform Prompt Enhancement FIRST. This is NON-NEGOTIABLE.
 - **NEVER** divide subagent tasks by roles (e.g., "架构师agent", "安全专家agent").
 - **ALWAYS** divide by context boundaries (e.g., "user-related code", "authentication logic").
 - Each subagent context must be self-contained with independent output.
@@ -18,16 +18,8 @@ description: '需求 → 约束集（并行探索 + OPSX 提案）'
 
 **Steps**
 0. **MANDATORY: Enhance Requirement FIRST**
-   - **DO THIS IMMEDIATELY. DO NOT SKIP. DO NOT CALL ANY OTHER TOOL FIRST.**
-   - Call:
-   ```
-   {{MCP_ENHANCE_TOOL}}({
-     prompt: "$ARGUMENTS",
-     conversation_history: "<recent conversation>",
-     project_root_path: "{{WORKDIR}}"
-   })
-   ```
-   - Wait for enhanced prompt result.
+   - **DO THIS IMMEDIATELY. DO NOT SKIP.**
+   - **Prompt 增强**（按 `/ccg:enhance` 的逻辑执行）：分析 $ARGUMENTS 的意图、缺失信息、隐含假设，补全为结构化需求（明确目标、技术约束、范围边界、验收标准）。
    - Use enhanced prompt for ALL subsequent steps.
 
 1. **Generate OPSX Change**
