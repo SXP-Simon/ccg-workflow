@@ -44,7 +44,7 @@ EOF
 
 **Gemini 前端诊断**：
 ```bash
-~/.claude/bin/codeagent-wrapper --backend gemini --gemini-model gemini-3-pro-preview - "$(pwd)" <<'EOF'
+~/.claude/bin/codeagent-wrapper --backend gemini --gemini-model gemini-3.1-pro-preview - "$(pwd)" <<'EOF'
 ROLE_FILE: ~/.claude/.ccg/prompts/gemini/debugger.md
 <TASK>
 需求：<增强后的需求>

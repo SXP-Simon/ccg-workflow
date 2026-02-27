@@ -62,7 +62,7 @@ description: '初始化 OpenSpec (OPSX) 环境 + 验证多模型 MCP 工具'
      ```
    - Test Gemini backend:
      ```bash
-     ~/.claude/bin/codeagent-wrapper --backend gemini --gemini-model gemini-3-pro-preview - "{{WORKDIR}}" <<< "echo test"
+     ~/.claude/bin/codeagent-wrapper --backend gemini --gemini-model gemini-3.1-pro-preview - "{{WORKDIR}}" <<< "echo test"
      ```
    - For each unavailable tool, display warning with installation instructions.
 
