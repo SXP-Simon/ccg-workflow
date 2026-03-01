@@ -11,7 +11,7 @@ description: '双模型交叉审查（独立工具，随时可用）'
 **Guardrails**
 - **MANDATORY**: Both Codex AND Gemini must complete review before synthesis.
 - Review scope is strictly limited to the proposal's changes—no scope creep.
-- Refer to `openspec/AGENTS.md` for spec conventions if reviewing OpenSpec proposals.
+- Refer to `openspec/config.yaml` for project conventions when reviewing OpenSpec proposals.
 
 **Steps**
 1. **Select Proposal**
@@ -117,5 +117,6 @@ Review is complete when:
 - View proposal: `openspec status --change "<id>" --json`
 - Check spec constraints: `rg -n "CONSTRAINT:|MUST|INVARIANT:" openspec/changes/<id>/specs/`
 - View implementation diff: `git diff`
-- Archive (after passing): `/ccg:spec-impl` → Step 10
+- Verify implementation (v1.2+): `/opsx:verify` — validates implementation matches artifacts
+- Archive (after passing): `/opsx:archive` or `/ccg:spec-impl` → Step 10
 <!-- CCG:SPEC:REVIEW:END -->

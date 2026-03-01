@@ -1,0 +1,1117 @@
+{
+  "files": [
+    {
+      "path": ".ace-tool/index.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 5532,
+      "lines": 81
+    },
+    {
+      "path": ".claude/commands/opsx/apply.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4546,
+      "lines": 152
+    },
+    {
+      "path": ".claude/commands/opsx/archive.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4826,
+      "lines": 157
+    },
+    {
+      "path": ".claude/commands/opsx/bulk-archive.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7556,
+      "lines": 242
+    },
+    {
+      "path": ".claude/commands/opsx/continue.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4960,
+      "lines": 114
+    },
+    {
+      "path": ".claude/commands/opsx/explore.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6650,
+      "lines": 174
+    },
+    {
+      "path": ".claude/commands/opsx/ff.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4003,
+      "lines": 94
+    },
+    {
+      "path": ".claude/commands/opsx/new.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2664,
+      "lines": 69
+    },
+    {
+      "path": ".claude/commands/opsx/onboard.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 12809,
+      "lines": 525
+    },
+    {
+      "path": ".claude/commands/opsx/sync.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4356,
+      "lines": 134
+    },
+    {
+      "path": ".claude/commands/opsx/verify.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6431,
+      "lines": 164
+    },
+    {
+      "path": ".claude/index.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 5949,
+      "lines": 208
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 9406,
+      "lines": 108
+    },
+    {
+      "path": ".claude/skills/openspec-apply-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4724,
+      "lines": 156
+    },
+    {
+      "path": ".claude/skills/openspec-archive-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4029,
+      "lines": 114
+    },
+    {
+      "path": ".claude/skills/openspec-bulk-archive-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7665,
+      "lines": 246
+    },
+    {
+      "path": ".claude/skills/openspec-continue-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5054,
+      "lines": 118
+    },
+    {
+      "path": ".claude/skills/openspec-explore/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10673,
+      "lines": 290
+    },
+    {
+      "path": ".claude/skills/openspec-ff-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4438,
+      "lines": 101
+    },
+    {
+      "path": ".claude/skills/openspec-new-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2880,
+      "lines": 74
+    },
+    {
+      "path": ".claude/skills/openspec-onboard/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 12890,
+      "lines": 529
+    },
+    {
+      "path": ".claude/skills/openspec-sync-specs/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4485,
+      "lines": 138
+    },
+    {
+      "path": ".claude/skills/openspec-verify-change/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6541,
+      "lines": 168
+    },
+    {
+      "path": ".magi/sessions/session-1771002787363-6oaeolf/session.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 162,
+      "lines": 8
+    },
+    {
+      "path": ".spec-workflow/templates/design-template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2573,
+      "lines": 96
+    },
+    {
+      "path": ".spec-workflow/templates/product-template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1527,
+      "lines": 51
+    },
+    {
+      "path": ".spec-workflow/templates/requirements-template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1302,
+      "lines": 50
+    },
+    {
+      "path": ".spec-workflow/templates/structure-template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4581,
+      "lines": 145
+    },
+    {
+      "path": ".spec-workflow/templates/tasks-template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 13804,
+      "lines": 139
+    },
+    {
+      "path": ".spec-workflow/templates/tech-template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4338,
+      "lines": 99
+    },
+    {
+      "path": ".spec-workflow/user-templates/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2398,
+      "lines": 64
+    },
+    {
+      "path": "1.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 22686,
+      "lines": 482
+    },
+    {
+      "path": "AGENTS.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 0,
+      "lines": 0
+    },
+    {
+      "path": "CHANGELOG.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 74773,
+      "lines": 2394
+    },
+    {
+      "path": "CLAUDE.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10424,
+      "lines": 330
+    },
+    {
+      "path": "FINAL_VERIFICATION.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3274,
+      "lines": 127
+    },
+    {
+      "path": "OPENSPEC_COMMANDS_REFERENCE.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3865,
+      "lines": 97
+    },
+    {
+      "path": "OPSX_INTEGRATION_FIX.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4503,
+      "lines": 145
+    },
+    {
+      "path": "POST_DRAFT.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10670,
+      "lines": 390
+    },
+    {
+      "path": "POST_OPENSPEC.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4852,
+      "lines": 186
+    },
+    {
+      "path": "README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6885,
+      "lines": 240
+    },
+    {
+      "path": "WINDOWS_FIX.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7697,
+      "lines": 265
+    },
+    {
+      "path": "config.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 1727,
+      "lines": 61
+    },
+    {
+      "path": "openspec/config.yaml",
+      "type": "source",
+      "language": "YAML",
+      "size": 1029,
+      "lines": 29
+    },
+    {
+      "path": "package.json",
+      "type": "config",
+      "language": "JSON",
+      "size": 2760,
+      "lines": 98
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "type": "source",
+      "language": "YAML",
+      "size": 186370,
+      "lines": 5608
+    },
+    {
+      "path": "src/cli-setup.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 5578,
+      "lines": 142
+    },
+    {
+      "path": "src/cli.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 223,
+      "lines": 11
+    },
+    {
+      "path": "src/commands/config-mcp.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 7889,
+      "lines": 239
+    },
+    {
+      "path": "src/commands/diagnose-mcp.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 2385,
+      "lines": 90
+    },
+    {
+      "path": "src/commands/init.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 22306,
+      "lines": 558
+    },
+    {
+      "path": "src/commands/menu.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 20578,
+      "lines": 633
+    },
+    {
+      "path": "src/commands/update.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 13097,
+      "lines": 378
+    },
+    {
+      "path": "src/i18n/index.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 13725,
+      "lines": 369
+    },
+    {
+      "path": "src/index.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 783,
+      "lines": 33
+    },
+    {
+      "path": "src/types/cli.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 363,
+      "lines": 15
+    },
+    {
+      "path": "src/types/index.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 1949,
+      "lines": 102
+    },
+    {
+      "path": "src/utils/config.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 2327,
+      "lines": 93
+    },
+    {
+      "path": "src/utils/installer.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 39586,
+      "lines": 1251
+    },
+    {
+      "path": "src/utils/mcp.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 8734,
+      "lines": 315
+    },
+    {
+      "path": "src/utils/migration.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 4375,
+      "lines": 139
+    },
+    {
+      "path": "src/utils/platform.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 1590,
+      "lines": 74
+    },
+    {
+      "path": "src/utils/version.ts",
+      "type": "source",
+      "language": "TypeScript",
+      "size": 2671,
+      "lines": 114
+    },
+    {
+      "path": "templates/commands/agents/get-current-datetime.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 835,
+      "lines": 29
+    },
+    {
+      "path": "templates/commands/agents/init-architect.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5779,
+      "lines": 114
+    },
+    {
+      "path": "templates/commands/agents/planner.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7531,
+      "lines": 320
+    },
+    {
+      "path": "templates/commands/agents/ui-ux-designer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 13724,
+      "lines": 573
+    },
+    {
+      "path": "templates/commands/analyze.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5072,
+      "lines": 161
+    },
+    {
+      "path": "templates/commands/backend.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5261,
+      "lines": 166
+    },
+    {
+      "path": "templates/commands/clean-branches.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2346,
+      "lines": 117
+    },
+    {
+      "path": "templates/commands/commit.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2474,
+      "lines": 122
+    },
+    {
+      "path": "templates/commands/debug.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4636,
+      "lines": 155
+    },
+    {
+      "path": "templates/commands/enhance.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1755,
+      "lines": 64
+    },
+    {
+      "path": "templates/commands/execute.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10244,
+      "lines": 317
+    },
+    {
+      "path": "templates/commands/feat.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6630,
+      "lines": 201
+    },
+    {
+      "path": "templates/commands/frontend.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5340,
+      "lines": 166
+    },
+    {
+      "path": "templates/commands/init.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2555,
+      "lines": 100
+    },
+    {
+      "path": "templates/commands/optimize.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5458,
+      "lines": 168
+    },
+    {
+      "path": "templates/commands/plan.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 8553,
+      "lines": 259
+    },
+    {
+      "path": "templates/commands/review.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4321,
+      "lines": 139
+    },
+    {
+      "path": "templates/commands/rollback.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2403,
+      "lines": 116
+    },
+    {
+      "path": "templates/commands/spec-impl.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5412,
+      "lines": 126
+    },
+    {
+      "path": "templates/commands/spec-init.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4374,
+      "lines": 106
+    },
+    {
+      "path": "templates/commands/spec-plan.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5389,
+      "lines": 110
+    },
+    {
+      "path": "templates/commands/spec-research.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4612,
+      "lines": 100
+    },
+    {
+      "path": "templates/commands/spec-review.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6705,
+      "lines": 121
+    },
+    {
+      "path": "templates/commands/team-exec.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3692,
+      "lines": 107
+    },
+    {
+      "path": "templates/commands/team-plan.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4445,
+      "lines": 118
+    },
+    {
+      "path": "templates/commands/team-research.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5497,
+      "lines": 123
+    },
+    {
+      "path": "templates/commands/team-review.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4276,
+      "lines": 95
+    },
+    {
+      "path": "templates/commands/test.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5502,
+      "lines": 183
+    },
+    {
+      "path": "templates/commands/workflow.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7067,
+      "lines": 190
+    },
+    {
+      "path": "templates/commands/worktree.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2781,
+      "lines": 128
+    },
+    {
+      "path": "templates/prompts/claude/analyzer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1446,
+      "lines": 59
+    },
+    {
+      "path": "templates/prompts/claude/architect.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1745,
+      "lines": 54
+    },
+    {
+      "path": "templates/prompts/claude/debugger.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1771,
+      "lines": 71
+    },
+    {
+      "path": "templates/prompts/claude/optimizer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1903,
+      "lines": 73
+    },
+    {
+      "path": "templates/prompts/claude/reviewer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1461,
+      "lines": 63
+    },
+    {
+      "path": "templates/prompts/claude/tester.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1580,
+      "lines": 69
+    },
+    {
+      "path": "templates/prompts/codex/analyzer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1480,
+      "lines": 50
+    },
+    {
+      "path": "templates/prompts/codex/architect.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1485,
+      "lines": 46
+    },
+    {
+      "path": "templates/prompts/codex/debugger.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1571,
+      "lines": 66
+    },
+    {
+      "path": "templates/prompts/codex/optimizer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1717,
+      "lines": 74
+    },
+    {
+      "path": "templates/prompts/codex/reviewer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1727,
+      "lines": 66
+    },
+    {
+      "path": "templates/prompts/codex/tester.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1432,
+      "lines": 55
+    },
+    {
+      "path": "templates/prompts/gemini/analyzer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1552,
+      "lines": 53
+    },
+    {
+      "path": "templates/prompts/gemini/architect.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1649,
+      "lines": 47
+    },
+    {
+      "path": "templates/prompts/gemini/debugger.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1632,
+      "lines": 70
+    },
+    {
+      "path": "templates/prompts/gemini/frontend.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1726,
+      "lines": 56
+    },
+    {
+      "path": "templates/prompts/gemini/optimizer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1913,
+      "lines": 77
+    },
+    {
+      "path": "templates/prompts/gemini/reviewer.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1823,
+      "lines": 73
+    },
+    {
+      "path": "templates/prompts/gemini/tester.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1601,
+      "lines": 61
+    },
+    {
+      "path": "tsconfig.json",
+      "type": "config",
+      "language": "JSON",
+      "size": 480,
+      "lines": 21
+    }
+  ],
+  "directories": [
+    {
+      "path": ".ace-tool",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude",
+      "fileCount": 2,
+      "subdirCount": 2
+    },
+    {
+      "path": ".claude/commands",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": ".claude/commands/opsx",
+      "fileCount": 10,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills",
+      "fileCount": 0,
+      "subdirCount": 10
+    },
+    {
+      "path": ".claude/skills/openspec-apply-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-archive-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-bulk-archive-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-continue-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-explore",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-ff-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-new-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-onboard",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-sync-specs",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".claude/skills/openspec-verify-change",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": ".magi",
+      "fileCount": 0,
+      "subdirCount": 2
+    },
+    {
+      "path": ".magi/knowledge",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".magi/sessions",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": ".magi/sessions/session-1771002787363-6oaeolf",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": ".magi/sessions/session-1771002787363-6oaeolf/plans",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".magi/sessions/session-1771002787363-6oaeolf/snapshots",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".setting",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": ".spec-workflow",
+      "fileCount": 0,
+      "subdirCount": 6
+    },
+    {
+      "path": ".spec-workflow/approvals",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".spec-workflow/archive",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".spec-workflow/specs",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".spec-workflow/steering",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": ".spec-workflow/templates",
+      "fileCount": 6,
+      "subdirCount": 0
+    },
+    {
+      "path": ".spec-workflow/user-templates",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "__pycache__",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "bin",
+      "fileCount": 7,
+      "subdirCount": 0
+    },
+    {
+      "path": "codeagent-wrapper",
+      "fileCount": 37,
+      "subdirCount": 0
+    },
+    {
+      "path": "docs",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "openspec",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "openspec/changes",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "openspec/changes/archive",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "openspec/specs",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "src",
+      "fileCount": 3,
+      "subdirCount": 4
+    },
+    {
+      "path": "src/commands",
+      "fileCount": 5,
+      "subdirCount": 0
+    },
+    {
+      "path": "src/i18n",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "src/types",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "src/utils",
+      "fileCount": 6,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates",
+      "fileCount": 0,
+      "subdirCount": 5
+    },
+    {
+      "path": "templates/commands",
+      "fileCount": 26,
+      "subdirCount": 1
+    },
+    {
+      "path": "templates/commands/agents",
+      "fileCount": 4,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates/commands-v2",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "templates/commands-v2/agents",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates/examples",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "templates/examples/parallel-execution",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "templates/examples/parallel-execution/.claude",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "templates/examples/parallel-execution/.claude/tasks",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "templates/examples/parallel-execution/.claude/tasks/user-auth-20260117-1430",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates/prompts",
+      "fileCount": 0,
+      "subdirCount": 3
+    },
+    {
+      "path": "templates/prompts/claude",
+      "fileCount": 6,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates/prompts/codex",
+      "fileCount": 6,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates/prompts/gemini",
+      "fileCount": 7,
+      "subdirCount": 0
+    }
+  ],
+  "techStack": {
+    "languages": [
+      "TypeScript",
+      "JavaScript"
+    ],
+    "frameworks": [],
+    "buildTools": [
+      "npm scripts"
+    ],
+    "testFrameworks": []
+  },
+  "dependencies": {
+    "dependencies": {
+      "ansis": "^4.1.0",
+      "cac": "^6.7.14",
+      "fs-extra": "^11.3.2",
+      "i18next": "^25.5.2",
+      "i18next-fs-backend": "^2.6.0",
+      "inquirer": "^12.9.6",
+      "ora": "^9.0.0",
+      "pathe": "^2.0.3",
+      "smol-toml": "^1.4.2"
+    },
+    "devDependencies": {
+      "@antfu/eslint-config": "^5.4.1",
+      "@types/fs-extra": "^11.0.4",
+      "@types/inquirer": "^9.0.9",
+      "@types/node": "^22.0.0",
+      "eslint": "^9.36.0",
+      "tsx": "^4.20.5",
+      "typescript": "^5.9.2",
+      "unbuild": "^3.6.1"
+    }
+  },
+  "entryPoints": [
+    "src/i18n/index.ts",
+    "src/index.ts",
+    "src/types/index.ts"
+  ],
+  "lastIndexed": 1771002787417
+}

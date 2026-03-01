@@ -43,10 +43,14 @@ description: '初始化 OpenSpec (OPSX) 环境 + 验证多模型 MCP 工具'
      ```bash
      ls -la openspec/ .claude/skills/openspec-* 2>/dev/null || echo "Not initialized"
      ```
-   - If not initialized, run:
+   - If not initialized, run interactive setup (v1.2+ auto-detects AI tools):
      ```bash
-     npx @fission-ai/openspec init --tools claude
+     npx @fission-ai/openspec init
      ```
+   - **Profile Selection** (v1.2+):
+     - `core` profile (default): 4 essential workflows (`propose`, `explore`, `apply`, `archive`)
+     - `custom` profile: Pick any subset of workflows
+     - To change profile later: `openspec config profile`
    - Verify initialization:
      - Check `openspec/` directory exists
      - Check `.claude/skills/` contains `openspec-*` skills
@@ -99,7 +103,8 @@ description: '初始化 OpenSpec (OPSX) 环境 + 验证多模型 MCP 工具'
 
 **Reference**
 - OpenSpec (OPSX) CLI: `npx @fission-ai/openspec --help`
-- OPSX Commands: `/opsx:new`, `/opsx:continue`, `/opsx:apply`, etc.
+- OPSX Commands (v1.2+): `/opsx:propose` (one-step), `/opsx:explore`, `/opsx:new`, `/opsx:ff`, `/opsx:apply`, `/opsx:verify`, `/opsx:archive`
+- Profile Management: `openspec config profile`
 - CCG Workflow: `npx ccg-workflow`
 - Codex/Gemini MCP: Bundled with codeagent-wrapper
 - Node.js >= 18.x required for OpenSpec
