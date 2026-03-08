@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.70] - 2026-03-09
+
+### ✨ 新功能
+
+- **菜单 UI 大改版**：ASCII Art "CCG" Logo + ╔═══╗ 双线边框 + 编号/字母快捷键 + CJK 宽度感知对齐
+- **`visWidth()` CJK 宽度计算**：正确处理中日韩字符的终端显示宽度，修复中英混排对齐问题
+
+### 🔄 变更
+
+- **MCP 推荐调整**：ace-tool 恢复为默认推荐（`search_context` 可用，`enhance_prompt` 已不可用），中转推荐更新为 https://acemcp.heroman.wtf/
+- **ContextWeaver 降为备选**：仍可使用，需硅基流动 API Key
+
+### 🗑️ 移除
+
+- **清理仓库垃圾文件**：移除 `1.md`、`FINAL_VERIFICATION.md`、`OPENSPEC_COMMANDS_REFERENCE.md`、`OPSX_INTEGRATION_FIX.md`、`config.json`、`verify-*.sh`、`test-local-install.sh`、`.magi/`、`.claude/index.json`
+- **更新 `.gitignore`**：添加 `.magi/`、`verify-*.sh`、`*_FIX.md`、`*_REFERENCE.md` 防止再次提交
+
+---
+
 ## [1.7.69] - 2026-03-09
 
 ### ✨ 新功能

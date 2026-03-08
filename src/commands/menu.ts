@@ -6,71 +6,211 @@ import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'pathe'
 import fs from 'fs-extra'
+import { parse as parseTOML } from 'smol-toml'
+import { version } from '../../package.json'
 import { configMcp } from './config-mcp'
 import { i18n } from '../i18n'
 import { uninstallWorkflows } from '../utils/installer'
+import { readCcgConfig } from '../utils/config'
 import { init } from './init'
 import { update } from './update'
 import { isWindows } from '../utils/platform'
 
 const execAsync = promisify(exec)
 
+// ═══════════════════════════════════════════════════════
+// UI Helpers
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Get visual display width of a string (CJK = 2, ASCII = 1)
+ */
+function visWidth(s: string): number {
+  const stripped = s.replace(/\x1B\[[0-9;]*m/g, '')
+  let w = 0
+  for (const ch of stripped) {
+    const code = ch.codePointAt(0) || 0
+    // CJK Unified Ideographs + common fullwidth ranges
+    if (
+      (code >= 0x2E80 && code <= 0x9FFF)
+      || (code >= 0xF900 && code <= 0xFAFF)
+      || (code >= 0xFE30 && code <= 0xFE4F)
+      || (code >= 0xFF00 && code <= 0xFF60)
+      || (code >= 0xFFE0 && code <= 0xFFE6)
+      || (code >= 0x1F300 && code <= 0x1F9FF) // Emojis
+      || (code >= 0x20000 && code <= 0x2FA1F) // CJK Extension B+
+    ) {
+      w += 2
+    }
+    else {
+      w += 1
+    }
+  }
+  return w
+}
+
+/**
+ * Pad a string to a fixed visible width (ANSI + CJK aware)
+ */
+function pad(s: string, w: number): string {
+  const diff = w - visWidth(s)
+  return diff > 0 ? s + ' '.repeat(diff) : s
+}
+
+const INNER_W = 60
+
+/**
+ * Center a string (with ANSI) inside a fixed-width area
+ */
+function centerLine(s: string, w: number): string {
+  const vis = visWidth(s)
+  const left = Math.max(0, Math.floor((w - vis) / 2))
+  const right = Math.max(0, w - vis - left)
+  return ' '.repeat(left) + s + ' '.repeat(right)
+}
+
+/**
+ * Draw a boxed row: ║ <content padded to INNER_W> ║
+ */
+function boxRow(content: string): string {
+  const vis = visWidth(content)
+  const gap = Math.max(0, INNER_W - vis)
+  return ansis.cyan('║') + content + ' '.repeat(gap) + ansis.cyan('║')
+}
+
+function drawHeader(statusParts: string[]): void {
+  const top = ansis.cyan('╔' + '═'.repeat(INNER_W) + '╗')
+  const bot = ansis.cyan('╚' + '═'.repeat(INNER_W) + '╝')
+  const empty = boxRow(' '.repeat(INNER_W))
+
+  // ASCII Art Logo
+  const logo = [
+    '  ██████╗  ██████╗  ██████╗ ',
+    ' ██╔════╝ ██╔════╝ ██╔════╝ ',
+    ' ██║      ██║      ██║  ███╗',
+    ' ██║      ██║      ██║   ██║',
+    ' ╚██████╗ ╚██████╗ ╚██████╔╝',
+    '  ╚═════╝  ╚═════╝  ╚═════╝ ',
+  ]
+
+  console.log()
+  console.log(top)
+  console.log(empty)
+  for (const line of logo) {
+    console.log(boxRow(centerLine(ansis.bold.white(line), INNER_W)))
+  }
+  console.log(empty)
+  console.log(boxRow(centerLine(ansis.gray('Claude + Codex + Gemini'), INNER_W)))
+  console.log(boxRow(centerLine(ansis.gray('Multi-Model Collaboration'), INNER_W)))
+  console.log(empty)
+  if (statusParts.length > 0) {
+    const statusLine = statusParts.join(ansis.gray('  |  '))
+    console.log(boxRow(centerLine(statusLine, INNER_W)))
+    console.log(empty)
+  }
+  console.log(bot)
+  console.log()
+}
+
+function groupSep(label: string): ReturnType<typeof inquirer.Separator> {
+  const w = 42
+  const labelW = visWidth(label)
+  const remaining = Math.max(0, w - labelW - 2)
+  const left = Math.floor(remaining / 2)
+  const right = remaining - left
+  return new inquirer.Separator(ansis.gray(`${'─'.repeat(left)} ${label} ${'─'.repeat(right)}`))
+}
+
+// ═══════════════════════════════════════════════════════
+// Main Menu
+// ═══════════════════════════════════════════════════════
+
 export async function showMainMenu(): Promise<void> {
   while (true) {
-    console.log()
-    console.log(ansis.cyan.bold(`  CCG - Claude + Codex + Gemini`))
-    console.log(ansis.gray('  Multi-Model Collaboration System'))
-    console.log()
+    // Read config for status display
+    const config = await readCcgConfig()
+    const cmdCount = config?.workflows?.installed?.length || 0
+    const lang = config?.general?.language || 'zh-CN'
+    const mcpProvider = config?.mcp?.provider || '—'
+
+    // Build status parts
+    const statusParts = [
+      ansis.green(`v${version}`),
+      ansis.white(`${cmdCount} commands`),
+      ansis.yellow(lang),
+    ]
+    if (mcpProvider && mcpProvider !== '—' && mcpProvider !== 'skip') {
+      statusParts.push(ansis.magenta(mcpProvider))
+    }
+
+    drawHeader(statusParts)
+
+    const isZh = lang === 'zh-CN'
+
+    // Build menu item helper: "  N. Label  - description"
+    const item = (key: string, label: string, desc: string) => ({
+      name: `  ${ansis.green(key + '.')} ${pad(label, 20)} ${ansis.gray('- ' + desc)}`,
+      value: key,
+    })
 
     const { action } = await inquirer.prompt([{
       type: 'list',
       name: 'action',
       message: i18n.t('menu:title'),
+      pageSize: 20,
       choices: [
-        { name: `${ansis.green('➜')} ${i18n.t('menu:options.init')}`, value: 'init' },
-        { name: `${ansis.blue('➜')} ${i18n.t('menu:options.update')}`, value: 'update' },
-        { name: `${ansis.cyan('⚙')} ${i18n.t('menu:options.configMcp')}`, value: 'config-mcp' },
-        { name: `${ansis.cyan('🔑')} ${i18n.t('menu:options.configApi')}`, value: 'config-api' },
-        { name: `${ansis.magenta('🎭')} ${i18n.t('menu:options.configStyle')}`, value: 'config-style' },
-        { name: `${ansis.yellow('🔧')} ${i18n.t('menu:options.tools')}`, value: 'tools' },
-        { name: `${ansis.blue('📦')} ${i18n.t('menu:options.installClaude')}`, value: 'install-claude' },
-        { name: `${ansis.magenta('➜')} ${i18n.t('menu:options.uninstall')}`, value: 'uninstall' },
-        { name: `${ansis.yellow('?')} ${i18n.t('menu:options.help')}`, value: 'help' },
-        new inquirer.Separator(),
-        { name: `${ansis.red('✕')} ${i18n.t('menu:options.exit')}`, value: 'exit' },
+        groupSep(isZh ? 'Claude Code' : 'Claude Code'),
+        item('1', i18n.t('menu:options.init'), isZh ? '安装 CCG 工作流' : 'Install CCG workflows'),
+        item('2', i18n.t('menu:options.update'), isZh ? '更新到最新版本' : 'Update to latest version'),
+        item('3', i18n.t('menu:options.configMcp'), isZh ? '代码检索 MCP 工具' : 'Code retrieval MCP tool'),
+        item('4', i18n.t('menu:options.configApi'), isZh ? '自定义 API 端点' : 'Custom API endpoint'),
+        item('5', i18n.t('menu:options.configStyle'), isZh ? '选择输出人格' : 'Choose output personality'),
+
+        groupSep(isZh ? '其他工具' : 'Tools'),
+        item('T', i18n.t('menu:options.tools'), 'ccusage, CCometixLine'),
+        item('C', i18n.t('menu:options.installClaude'), isZh ? '安装/重装 CLI' : 'Install/reinstall CLI'),
+
+        groupSep('CCG'),
+        item('H', i18n.t('menu:options.help'), isZh ? '查看全部斜杠命令' : 'View all slash commands'),
+        item('-', i18n.t('menu:options.uninstall'), isZh ? '移除 CCG 配置' : 'Remove CCG config'),
+
+        new inquirer.Separator(ansis.gray('─'.repeat(42))),
+        { name: `  ${ansis.red('Q.')} ${i18n.t('menu:options.exit')}`, value: 'Q' },
       ],
     }])
 
     switch (action) {
-      case 'init':
+      case '1':
         await init()
         break
-      case 'update':
+      case '2':
         await update()
         break
-      case 'config-mcp':
+      case '3':
         await configMcp()
         break
-      case 'config-api':
+      case '4':
         await configApi()
         break
-      case 'config-style':
+      case '5':
         await configOutputStyle()
         break
-      case 'tools':
+      case 'T':
         await handleTools()
         break
-      case 'install-claude':
+      case 'C':
         await handleInstallClaude()
         break
-      case 'uninstall':
+      case '-':
         await uninstall()
         break
-      case 'help':
+      case 'H':
         showHelp()
         break
-      case 'exit':
-        console.log(ansis.gray(i18n.t('common:goodbye')))
+      case 'Q':
+        console.log()
+        console.log(ansis.gray(`  ${i18n.t('common:goodbye')}`))
+        console.log()
         return
     }
 
@@ -84,53 +224,91 @@ export async function showMainMenu(): Promise<void> {
   }
 }
 
+// (visWidth and pad are defined in UI Helpers section above)
+
+// ═══════════════════════════════════════════════════════
+// Help
+// ═══════════════════════════════════════════════════════
+
 function showHelp(): void {
+  const config = readCcgConfigSync()
+  const isZh = (config?.general?.language || 'zh-CN') === 'zh-CN'
+
   console.log()
-  console.log(ansis.cyan.bold(i18n.t('menu:help.title')))
+  console.log(ansis.cyan.bold(`  ${i18n.t('menu:help.title')}`))
   console.log()
 
+  const col1 = 22 // command column width
+  const section = (title: string) => console.log(ansis.yellow.bold(`  ${title}`))
+  const cmd = (name: string, desc: string) => console.log(`  ${ansis.green(name.padEnd(col1))} ${ansis.gray(desc)}`)
+
   // Development Workflows
-  console.log(ansis.yellow.bold(`  ${i18n.t('menu:help.sections.devWorkflow')}`))
-  console.log(`  ${ansis.green('/ccg:workflow')}    ${i18n.t('menu:help.descriptions.workflow')}`)
-  console.log(`  ${ansis.green('/ccg:plan')}        ${i18n.t('menu:help.descriptions.plan')}`)
-  console.log(`  ${ansis.green('/ccg:execute')}     ${i18n.t('menu:help.descriptions.execute')}`)
-  console.log(`  ${ansis.green('/ccg:frontend')}    ${i18n.t('menu:help.descriptions.frontend')}`)
-  console.log(`  ${ansis.green('/ccg:backend')}     ${i18n.t('menu:help.descriptions.backend')}`)
-  console.log(`  ${ansis.green('/ccg:feat')}        ${i18n.t('menu:help.descriptions.feat')}`)
-  console.log(`  ${ansis.green('/ccg:analyze')}     ${i18n.t('menu:help.descriptions.analyze')}`)
-  console.log(`  ${ansis.green('/ccg:debug')}       ${i18n.t('menu:help.descriptions.debug')}`)
-  console.log(`  ${ansis.green('/ccg:optimize')}    ${i18n.t('menu:help.descriptions.optimize')}`)
-  console.log(`  ${ansis.green('/ccg:test')}        ${i18n.t('menu:help.descriptions.test')}`)
-  console.log(`  ${ansis.green('/ccg:review')}      ${i18n.t('menu:help.descriptions.review')}`)
+  section(i18n.t('menu:help.sections.devWorkflow'))
+  cmd('/ccg:workflow', i18n.t('menu:help.descriptions.workflow'))
+  cmd('/ccg:plan', i18n.t('menu:help.descriptions.plan'))
+  cmd('/ccg:execute', i18n.t('menu:help.descriptions.execute'))
+  cmd('/ccg:frontend', i18n.t('menu:help.descriptions.frontend'))
+  cmd('/ccg:backend', i18n.t('menu:help.descriptions.backend'))
+  cmd('/ccg:feat', i18n.t('menu:help.descriptions.feat'))
+  cmd('/ccg:analyze', i18n.t('menu:help.descriptions.analyze'))
+  cmd('/ccg:debug', i18n.t('menu:help.descriptions.debug'))
+  cmd('/ccg:optimize', i18n.t('menu:help.descriptions.optimize'))
+  cmd('/ccg:test', i18n.t('menu:help.descriptions.test'))
+  cmd('/ccg:review', i18n.t('menu:help.descriptions.review'))
+  console.log()
+
+  // Agent Teams
+  section(isZh ? 'Agent Teams 并行实施:' : 'Agent Teams Parallel:')
+  cmd('/ccg:team-research', isZh ? '需求 → 约束集' : 'Requirements → Constraints')
+  cmd('/ccg:team-plan', isZh ? '约束 → 并行计划' : 'Constraints → Parallel plan')
+  cmd('/ccg:team-exec', isZh ? '并行实施' : 'Parallel execution')
+  cmd('/ccg:team-review', isZh ? '双模型审查' : 'Dual-model review')
   console.log()
 
   // OpenSpec Workflows
-  console.log(ansis.yellow.bold(`  ${i18n.t('menu:help.sections.opsx')}`))
-  console.log(`  ${ansis.green('/ccg:spec-init')}      ${i18n.t('menu:help.descriptions.specInit')}`)
-  console.log(`  ${ansis.green('/ccg:spec-research')} ${i18n.t('menu:help.descriptions.specResearch')}`)
-  console.log(`  ${ansis.green('/ccg:spec-plan')}     ${i18n.t('menu:help.descriptions.specPlan')}`)
-  console.log(`  ${ansis.green('/ccg:spec-impl')}     ${i18n.t('menu:help.descriptions.specImpl')}`)
-  console.log(`  ${ansis.green('/ccg:spec-review')}   ${i18n.t('menu:help.descriptions.specReview')}`)
+  section(i18n.t('menu:help.sections.opsx'))
+  cmd('/ccg:spec-init', i18n.t('menu:help.descriptions.specInit'))
+  cmd('/ccg:spec-research', i18n.t('menu:help.descriptions.specResearch'))
+  cmd('/ccg:spec-plan', i18n.t('menu:help.descriptions.specPlan'))
+  cmd('/ccg:spec-impl', i18n.t('menu:help.descriptions.specImpl'))
+  cmd('/ccg:spec-review', i18n.t('menu:help.descriptions.specReview'))
   console.log()
 
   // Git Tools
-  console.log(ansis.yellow.bold(`  ${i18n.t('menu:help.sections.gitTools')}`))
-  console.log(`  ${ansis.green('/ccg:commit')}      ${i18n.t('menu:help.descriptions.commit')}`)
-  console.log(`  ${ansis.green('/ccg:rollback')}    ${i18n.t('menu:help.descriptions.rollback')}`)
-  console.log(`  ${ansis.green('/ccg:clean-branches')} ${i18n.t('menu:help.descriptions.cleanBranches')}`)
-  console.log(`  ${ansis.green('/ccg:worktree')}    ${i18n.t('menu:help.descriptions.worktree')}`)
+  section(i18n.t('menu:help.sections.gitTools'))
+  cmd('/ccg:commit', i18n.t('menu:help.descriptions.commit'))
+  cmd('/ccg:rollback', i18n.t('menu:help.descriptions.rollback'))
+  cmd('/ccg:clean-branches', i18n.t('menu:help.descriptions.cleanBranches'))
+  cmd('/ccg:worktree', i18n.t('menu:help.descriptions.worktree'))
   console.log()
 
   // Project Init
-  console.log(ansis.yellow.bold(`  ${i18n.t('menu:help.sections.projectMgmt')}`))
-  console.log(`  ${ansis.green('/ccg:init')}        ${i18n.t('menu:help.descriptions.init')}`)
+  section(i18n.t('menu:help.sections.projectMgmt'))
+  cmd('/ccg:init', i18n.t('menu:help.descriptions.init'))
+  cmd('/ccg:enhance', isZh ? 'Prompt 增强' : 'Prompt enhancement')
   console.log()
 
-  console.log(ansis.gray(i18n.t('menu:help.hint')))
+  console.log(ansis.gray(`  ${i18n.t('menu:help.hint')}`))
   console.log()
 }
 
-// ============ API Configuration ============
+/**
+ * Synchronous config read for non-async contexts (help display)
+ */
+function readCcgConfigSync(): any {
+  try {
+    const configPath = join(homedir(), '.claude', '.ccg', 'config.toml')
+    if (fs.pathExistsSync(configPath)) {
+      return parseTOML(fs.readFileSync(configPath, 'utf-8'))
+    }
+  }
+  catch { /* ignore */ }
+  return null
+}
+
+// ═══════════════════════════════════════════════════════
+// API Configuration
+// ═══════════════════════════════════════════════════════
 
 async function configApi(): Promise<void> {
   console.log()
@@ -214,11 +392,13 @@ async function configApi(): Promise<void> {
   await fs.writeJson(settingsPath, settings, { spaces: 2 })
 
   console.log()
-  console.log(ansis.green(`✓ ${i18n.t('menu:api.saved')}`))
-  console.log(ansis.gray(`  ${i18n.t('common:configFile')}: ${settingsPath}`))
+  console.log(ansis.green(`  ✓ ${i18n.t('menu:api.saved')}`))
+  console.log(ansis.gray(`    ${i18n.t('common:configFile')}: ${settingsPath}`))
 }
 
-// ============ Output Style Configuration ============
+// ═══════════════════════════════════════════════════════
+// Output Style Configuration
+// ═══════════════════════════════════════════════════════
 
 const OUTPUT_STYLES = [
   { id: 'default', nameKey: 'menu:style.default', descKey: 'menu:style.defaultDesc' },
@@ -276,7 +456,7 @@ async function configOutputStyle(): Promise<void> {
 
     if (await fs.pathExists(templatePath)) {
       await fs.copy(templatePath, destPath)
-      console.log(ansis.green(`✓ ${i18n.t('menu:style.installed', { style })}`))
+      console.log(ansis.green(`  ✓ ${i18n.t('menu:style.installed', { style })}`))
     }
   }
 
@@ -291,11 +471,13 @@ async function configOutputStyle(): Promise<void> {
   await fs.writeJson(settingsPath, settings, { spaces: 2 })
 
   console.log()
-  console.log(ansis.green(`✓ ${i18n.t('menu:style.set', { style })}`))
-  console.log(ansis.gray(`  ${i18n.t('common:restartToApply')}`))
+  console.log(ansis.green(`  ✓ ${i18n.t('menu:style.set', { style })}`))
+  console.log(ansis.gray(`    ${i18n.t('common:restartToApply')}`))
 }
 
-// ============ Install Claude Code ============
+// ═══════════════════════════════════════════════════════
+// Install Claude Code
+// ═══════════════════════════════════════════════════════
 
 async function handleInstallClaude(): Promise<void> {
   console.log()
@@ -313,7 +495,7 @@ async function handleInstallClaude(): Promise<void> {
   }
 
   if (isInstalled) {
-    console.log(ansis.yellow(`⚠ ${i18n.t('menu:claude.alreadyInstalled')}`))
+    console.log(ansis.yellow(`  ⚠ ${i18n.t('menu:claude.alreadyInstalled')}`))
     const { confirm } = await inquirer.prompt([{
       type: 'confirm',
       name: 'confirm',
@@ -322,20 +504,20 @@ async function handleInstallClaude(): Promise<void> {
     }])
 
     if (!confirm) {
-      console.log(ansis.gray(i18n.t('common:cancelled')))
+      console.log(ansis.gray(`  ${i18n.t('common:cancelled')}`))
       return
     }
 
     // Uninstall
     console.log()
-    console.log(ansis.yellow(`⏳ ${i18n.t('menu:claude.uninstalling')}`))
+    console.log(ansis.yellow(`  ⏳ ${i18n.t('menu:claude.uninstalling')}`))
     try {
       const uninstallCmd = isWindows() ? 'npm uninstall -g @anthropic-ai/claude-code' : 'sudo npm uninstall -g @anthropic-ai/claude-code'
       await execAsync(uninstallCmd, { timeout: 60000 })
-      console.log(ansis.green(`✓ ${i18n.t('menu:claude.uninstallSuccess')}`))
+      console.log(ansis.green(`  ✓ ${i18n.t('menu:claude.uninstallSuccess')}`))
     }
     catch (e) {
-      console.log(ansis.red(`✗ ${i18n.t('menu:claude.uninstallFailed', { error: String(e) })}`))
+      console.log(ansis.red(`  ✗ ${i18n.t('menu:claude.uninstallFailed', { error: String(e) })}`))
       return
     }
   }
@@ -349,7 +531,7 @@ async function handleInstallClaude(): Promise<void> {
     name: 'method',
     message: i18n.t('menu:claude.selectMethod'),
     choices: [
-      { name: `npm ${ansis.green(`(${i18n.t('menu:claude.npmRecommended')})`)} ${ansis.gray('- npm install -g')}`, value: 'npm' },
+      { name: `npm ${ansis.green('(⭐)')} ${ansis.gray('- npm install -g')}`, value: 'npm' },
       ...((isMac || isLinux) ? [{ name: `homebrew ${ansis.gray('- brew install')}`, value: 'homebrew' }] : []),
       ...((isMac || isLinux) ? [{ name: `curl ${ansis.gray('- official script')}`, value: 'curl' }] : []),
       ...(isWindows() ? [
@@ -365,7 +547,7 @@ async function handleInstallClaude(): Promise<void> {
     return
 
   console.log()
-  console.log(ansis.yellow(`⏳ ${i18n.t('menu:claude.installing')}`))
+  console.log(ansis.yellow(`  ⏳ ${i18n.t('menu:claude.installing')}`))
 
   try {
     if (method === 'npm') {
@@ -385,14 +567,18 @@ async function handleInstallClaude(): Promise<void> {
       await execAsync('cmd /c "curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd"', { timeout: 300000 })
     }
 
-    console.log(ansis.green(`✓ ${i18n.t('menu:claude.installSuccess')}`))
+    console.log(ansis.green(`  ✓ ${i18n.t('menu:claude.installSuccess')}`))
     console.log()
-    console.log(ansis.cyan(`💡 ${i18n.t('menu:claude.runHint')}`))
+    console.log(ansis.cyan(`  💡 ${i18n.t('menu:claude.runHint')}`))
   }
   catch (e) {
-    console.log(ansis.red(`✗ ${i18n.t('menu:claude.installFailed', { error: String(e) })}`))
+    console.log(ansis.red(`  ✗ ${i18n.t('menu:claude.installFailed', { error: String(e) })}`))
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// Uninstall
+// ═══════════════════════════════════════════════════════
 
 /**
  * Check if CCG is installed globally via npm
@@ -414,11 +600,11 @@ async function uninstall(): Promise<void> {
   const isGlobalInstall = await checkIfGlobalInstall()
 
   if (isGlobalInstall) {
-    console.log(ansis.yellow(`⚠️  ${i18n.t('menu:uninstall.globalDetected')}`))
+    console.log(ansis.yellow(`  ⚠️  ${i18n.t('menu:uninstall.globalDetected')}`))
     console.log()
-    console.log(i18n.t('menu:uninstall.twoSteps'))
-    console.log(`  ${ansis.cyan(`1. ${i18n.t('menu:uninstall.step1')}`)} (${i18n.t('menu:uninstall.step1Hint')})`)
-    console.log(`  ${ansis.cyan(`2. ${i18n.t('menu:uninstall.step2')}`)} (${i18n.t('menu:uninstall.step2Hint')})`)
+    console.log(`  ${i18n.t('menu:uninstall.twoSteps')}`)
+    console.log(`    ${ansis.cyan(`1. ${i18n.t('menu:uninstall.step1')}`)} ${ansis.gray(`(${i18n.t('menu:uninstall.step1Hint')})`)}`)
+    console.log(`    ${ansis.cyan(`2. ${i18n.t('menu:uninstall.step2')}`)} ${ansis.gray(`(${i18n.t('menu:uninstall.step2Hint')})`)}`)
     console.log()
   }
 
@@ -431,71 +617,73 @@ async function uninstall(): Promise<void> {
   }])
 
   if (!confirm) {
-    console.log(ansis.gray(i18n.t('menu:uninstall.cancelled')))
+    console.log(ansis.gray(`  ${i18n.t('menu:uninstall.cancelled')}`))
     return
   }
 
   console.log()
-  console.log(ansis.yellow(i18n.t('menu:uninstall.uninstalling')))
+  console.log(ansis.yellow(`  ${i18n.t('menu:uninstall.uninstalling')}`))
 
   // Uninstall workflows
   const installDir = join(homedir(), '.claude')
   const result = await uninstallWorkflows(installDir)
 
   if (result.success) {
-    console.log(ansis.green(`✅ ${i18n.t('menu:uninstall.success')}`))
+    console.log(ansis.green(`  ✅ ${i18n.t('menu:uninstall.success')}`))
 
     if (result.removedCommands.length > 0) {
       console.log()
-      console.log(ansis.cyan(i18n.t('menu:uninstall.removedCommands')))
+      console.log(ansis.cyan(`  ${i18n.t('menu:uninstall.removedCommands')}`))
       for (const cmd of result.removedCommands) {
-        console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
+        console.log(`    ${ansis.gray('•')} /ccg:${cmd}`)
       }
     }
 
     if (result.removedAgents.length > 0) {
       console.log()
-      console.log(ansis.cyan(i18n.t('menu:uninstall.removedAgents')))
+      console.log(ansis.cyan(`  ${i18n.t('menu:uninstall.removedAgents')}`))
       for (const agent of result.removedAgents) {
-        console.log(`  ${ansis.gray('•')} ${agent}`)
+        console.log(`    ${ansis.gray('•')} ${agent}`)
       }
     }
 
     if (result.removedSkills.length > 0) {
       console.log()
-      console.log(ansis.cyan(i18n.t('menu:uninstall.removedSkills')))
-      console.log(`  ${ansis.gray('•')} multi-model-collaboration`)
+      console.log(ansis.cyan(`  ${i18n.t('menu:uninstall.removedSkills')}`))
+      console.log(`    ${ansis.gray('•')} multi-model-collaboration`)
     }
 
     if (result.removedBin) {
       console.log()
-      console.log(ansis.cyan(i18n.t('menu:uninstall.removedBin')))
-      console.log(`  ${ansis.gray('•')} codeagent-wrapper`)
+      console.log(ansis.cyan(`  ${i18n.t('menu:uninstall.removedBin')}`))
+      console.log(`    ${ansis.gray('•')} codeagent-wrapper`)
     }
 
     // If globally installed, show instructions to uninstall npm package
     if (isGlobalInstall) {
       console.log()
-      console.log(ansis.yellow.bold(`🔸 ${i18n.t('menu:uninstall.lastStep')}`))
+      console.log(ansis.yellow.bold(`  🔸 ${i18n.t('menu:uninstall.lastStep')}`))
       console.log()
-      console.log(i18n.t('menu:uninstall.runInNewTerminal'))
+      console.log(`  ${i18n.t('menu:uninstall.runInNewTerminal')}`)
       console.log()
-      console.log(ansis.cyan.bold('  npm uninstall -g ccg-workflow'))
+      console.log(ansis.cyan.bold('    npm uninstall -g ccg-workflow'))
       console.log()
-      console.log(ansis.gray(`(${i18n.t('menu:uninstall.afterDone')})`))
+      console.log(ansis.gray(`  (${i18n.t('menu:uninstall.afterDone')})`))
     }
   }
   else {
-    console.log(ansis.red(i18n.t('menu:uninstall.failed')))
+    console.log(ansis.red(`  ${i18n.t('menu:uninstall.failed')}`))
     for (const error of result.errors) {
-      console.log(ansis.red(`  ${error}`))
+      console.log(ansis.red(`    ${error}`))
     }
   }
 
   console.log()
 }
 
-// ============ Tools ============
+// ═══════════════════════════════════════════════════════
+// Tools
+// ═══════════════════════════════════════════════════════
 
 async function handleTools(): Promise<void> {
   console.log()
@@ -505,10 +693,10 @@ async function handleTools(): Promise<void> {
     name: 'tool',
     message: i18n.t('menu:tools.title'),
     choices: [
-      { name: `${ansis.green('📊')} ccusage ${ansis.gray(`- ${i18n.t('menu:tools.ccusage')}`)}`, value: 'ccusage' },
-      { name: `${ansis.blue('📟')} CCometixLine ${ansis.gray(`- ${i18n.t('menu:tools.ccline')}`)}`, value: 'ccline' },
+      { name: `${ansis.green('📊')} ccusage        ${ansis.gray(`${i18n.t('menu:tools.ccusage')}`)}`, value: 'ccusage' },
+      { name: `${ansis.blue('📟')} CCometixLine   ${ansis.gray(`${i18n.t('menu:tools.ccline')}`)}`, value: 'ccline' },
       new inquirer.Separator(),
-      { name: `${ansis.gray(i18n.t('common:back'))}`, value: 'cancel' },
+      { name: `${ansis.gray(`← ${i18n.t('common:back')}`)}`, value: 'cancel' },
     ],
   }])
 
@@ -525,8 +713,8 @@ async function handleTools(): Promise<void> {
 
 async function runCcusage(): Promise<void> {
   console.log()
-  console.log(ansis.cyan(`📊 ${i18n.t('menu:tools.runningCcusage')}`))
-  console.log(ansis.gray('$ npx ccusage@latest'))
+  console.log(ansis.cyan(`  📊 ${i18n.t('menu:tools.runningCcusage')}`))
+  console.log(ansis.gray('  $ npx ccusage@latest'))
   console.log()
 
   return new Promise((resolve) => {
@@ -550,7 +738,7 @@ async function handleCCometixLine(): Promise<void> {
       { name: `${ansis.green('➜')} ${i18n.t('menu:tools.cclineInstall')}`, value: 'install' },
       { name: `${ansis.red('✕')} ${i18n.t('menu:tools.cclineUninstall')}`, value: 'uninstall' },
       new inquirer.Separator(),
-      { name: `${ansis.gray(i18n.t('common:back'))}`, value: 'cancel' },
+      { name: `${ansis.gray(`← ${i18n.t('common:back')}`)}`, value: 'cancel' },
     ],
   }])
 
@@ -567,15 +755,13 @@ async function handleCCometixLine(): Promise<void> {
 
 async function installCCometixLine(): Promise<void> {
   console.log()
-  console.log(ansis.yellow(`⏳ ${i18n.t('menu:tools.cclineInstalling')}`))
+  console.log(ansis.yellow(`  ⏳ ${i18n.t('menu:tools.cclineInstalling')}`))
 
   try {
-    // 1. Install npm package globally
     const installCmd = isWindows() ? 'npm install -g @cometix/ccline' : 'sudo npm install -g @cometix/ccline'
     await execAsync(installCmd, { timeout: 120000 })
-    console.log(ansis.green(`✓ ${i18n.t('menu:tools.cclineInstallSuccess')}`))
+    console.log(ansis.green(`  ✓ ${i18n.t('menu:tools.cclineInstallSuccess')}`))
 
-    // 2. Configure Claude Code statusLine
     const settingsPath = join(homedir(), '.claude', 'settings.json')
     let settings: Record<string, any> = {}
 
@@ -593,36 +779,34 @@ async function installCCometixLine(): Promise<void> {
 
     await fs.ensureDir(join(homedir(), '.claude'))
     await fs.writeJson(settingsPath, settings, { spaces: 2 })
-    console.log(ansis.green(`✓ ${i18n.t('menu:tools.cclineConfigured')}`))
+    console.log(ansis.green(`  ✓ ${i18n.t('menu:tools.cclineConfigured')}`))
 
     console.log()
-    console.log(ansis.cyan(`💡 ${i18n.t('common:restartToApply')}`))
+    console.log(ansis.cyan(`  💡 ${i18n.t('common:restartToApply')}`))
   }
   catch (error) {
-    console.log(ansis.red(`✗ ${i18n.t('menu:tools.cclineInstallFailed', { error: String(error) })}`))
+    console.log(ansis.red(`  ✗ ${i18n.t('menu:tools.cclineInstallFailed', { error: String(error) })}`))
   }
 }
 
 async function uninstallCCometixLine(): Promise<void> {
   console.log()
-  console.log(ansis.yellow(`⏳ ${i18n.t('menu:tools.cclineUninstalling')}`))
+  console.log(ansis.yellow(`  ⏳ ${i18n.t('menu:tools.cclineUninstalling')}`))
 
   try {
-    // 1. Remove statusLine config
     const settingsPath = join(homedir(), '.claude', 'settings.json')
     if (await fs.pathExists(settingsPath)) {
       const settings = await fs.readJson(settingsPath)
       delete settings.statusLine
       await fs.writeJson(settingsPath, settings, { spaces: 2 })
-      console.log(ansis.green(`✓ ${i18n.t('menu:tools.cclineConfigRemoved')}`))
+      console.log(ansis.green(`  ✓ ${i18n.t('menu:tools.cclineConfigRemoved')}`))
     }
 
-    // 2. Uninstall npm package
     const uninstallCmd = isWindows() ? 'npm uninstall -g @cometix/ccline' : 'sudo npm uninstall -g @cometix/ccline'
     await execAsync(uninstallCmd, { timeout: 60000 })
-    console.log(ansis.green(`✓ ${i18n.t('menu:tools.cclineUninstalled')}`))
+    console.log(ansis.green(`  ✓ ${i18n.t('menu:tools.cclineUninstalled')}`))
   }
   catch (error) {
-    console.log(ansis.red(`✗ ${i18n.t('menu:tools.cclineUninstallFailed', { error: String(error) })}`))
+    console.log(ansis.red(`  ✗ ${i18n.t('menu:tools.cclineUninstallFailed', { error: String(error) })}`))
   }
 }

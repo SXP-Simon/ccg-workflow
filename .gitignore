@@ -38,6 +38,7 @@ linux-do-post-update.md
 # Local tools cache
 .ace-tool/
 .claude/
+.magi/
 
 # Lock files (optional)
 pnpm-lock.yaml
@@ -51,6 +52,12 @@ openspec/
 docs/
 AGENTS.md
 WINDOWS_FIX.md
+
+# Temp verification/notes
+verify-*.sh
+FINAL_VERIFICATION.md
+*_FIX.md
+*_REFERENCE.md
 
 # Old package tarballs
 *.tgz

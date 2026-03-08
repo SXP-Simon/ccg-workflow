@@ -178,8 +178,8 @@ scoop install jq
 ### MCP Configuration
 
 Code retrieval MCP (choose one):
-- **ContextWeaver** (recommended) - Local hybrid search, requires SiliconFlow API Key (free)
-- **ace-tool** (paid) - Augment official, Token: https://augmentcode.com/
+- **ace-tool** (recommended) - Code search via `search_context` (note: `enhance_prompt` is no longer available). [Official](https://augmentcode.com/) | [Third-party proxy (recommended)](https://acemcp.heroman.wtf/)
+- **ContextWeaver** (alternative) - Local hybrid search, requires SiliconFlow API Key (free)
 
 Optional MCP tools:
 - **Context7** - Latest library documentation
@@ -225,7 +225,7 @@ npm uninstall -g ccg-workflow  # npm global users need this extra step
 
 ### 1. How to auto-authorize codeagent-wrapper without manual approval?
 
-CCG automatically installs the Hook during setup (v1.7.69+). If you installed an older version, add this to `~/.claude/settings.json`:
+CCG automatically installs the Hook during setup (v1.7.70+). If you installed an older version, add this to `~/.claude/settings.json`:
 
 ```json
 {
@@ -288,4 +288,4 @@ MIT
 
 ---
 
-v1.7.69 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)
+v1.7.70 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)

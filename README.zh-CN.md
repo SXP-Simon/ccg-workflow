@@ -180,8 +180,8 @@ scoop install jq
 ### MCP 配置
 
 代码检索 MCP（二选一）：
-- **ContextWeaver**（推荐）- 本地混合搜索，需要硅基流动 API Key（免费）
-- **ace-tool**（收费）- Augment 官方，Token 获取：https://augmentcode.com/
+- **ace-tool**（推荐）- 代码检索 `search_context` 可用（注：`enhance_prompt` 已不可用）。[官方](https://augmentcode.com/) | [第三方中转（推荐）](https://acemcp.heroman.wtf/)
+- **ContextWeaver**（备选）- 本地混合搜索，需要硅基流动 API Key（免费）
 
 辅助工具 MCP（可选）：
 - **Context7** - 获取最新库文档
@@ -227,7 +227,7 @@ npm uninstall -g ccg-workflow  # npm 全局用户需额外执行
 
 ### 1. 如何让 codeagent-wrapper 无需手动同意即可运行？
 
-v1.7.69+ 安装时会自动写入 Hook。如果你是旧版本用户，可手动在 `~/.claude/settings.json` 中添加：
+v1.7.70+ 安装时会自动写入 Hook。如果你是旧版本用户，可手动在 `~/.claude/settings.json` 中添加：
 
 ```json
 {
@@ -290,4 +290,4 @@ MIT
 
 ---
 
-v1.7.69 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)
+v1.7.70 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)

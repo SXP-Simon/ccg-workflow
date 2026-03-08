@@ -2,13 +2,18 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-09 (v1.7.69)
+**Last Updated**: 2026-03-09 (v1.7.70)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-09 (v1.7.70)
+- ✨ **菜单 UI 大改版**：ASCII Art Logo + 双线边框 + 编号快捷键 + CJK 宽度感知对齐
+- 🔄 **MCP 推荐调整**：ace-tool 恢复为默认推荐（`enhance_prompt` 已不可用），中转推荐 https://acemcp.heroman.wtf/
+- 🗑️ **仓库清理**：移除 11 个临时/缓存文件，更新 `.gitignore`
 
 ### 2026-03-09 (v1.7.69)
 - ✨ **国际化 (i18n)**：首次安装语言选择，CLI 全路径 i18n 化，README 英文版

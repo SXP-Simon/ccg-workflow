@@ -46,9 +46,9 @@ async function handleCodeRetrieval(): Promise<void> {
     name: 'tool',
     message: '选择代码检索工具',
     choices: [
-      { name: `ContextWeaver ${ansis.green('(推荐)')} ${ansis.gray('- 本地混合搜索')}`, value: 'contextweaver' },
-      { name: `ace-tool ${ansis.red('(收费)')} ${ansis.gray('- Node.js')}`, value: 'ace-tool' },
-      { name: `ace-tool-rs ${ansis.red('(收费)')} ${ansis.gray('- Rust')}`, value: 'ace-tool-rs' },
+      { name: `ace-tool ${ansis.green('(推荐)')} ${ansis.gray('- 代码检索（enhance_prompt 已不可用）')}`, value: 'ace-tool' },
+      { name: `ace-tool-rs ${ansis.green('(推荐)')} ${ansis.gray('- Rust 版本')}`, value: 'ace-tool-rs' },
+      { name: `ContextWeaver ${ansis.gray('- 本地混合搜索（需硅基流动 API Key）')}`, value: 'contextweaver' },
       new inquirer.Separator(),
       { name: `${ansis.gray('返回')}`, value: 'cancel' },
     ],
@@ -71,7 +71,8 @@ async function handleInstallAceTool(isRs: boolean): Promise<void> {
   console.log()
   console.log(ansis.cyan(`📖 获取 ${toolName} 访问方式：`))
   console.log(`   ${ansis.gray('•')} ${ansis.cyan('官方服务')}: ${ansis.underline('https://augmentcode.com/')}`)
-  console.log(`   ${ansis.gray('•')} ${ansis.cyan('中转服务')} ${ansis.yellow('(无需注册)')}: ${ansis.underline('https://linux.do/t/topic/1291730')}`)
+  console.log(`   ${ansis.gray('•')} ${ansis.cyan('第三方中转')} ${ansis.green('(推荐)')}: ${ansis.underline('https://acemcp.heroman.wtf/')}`)
+  console.log(`   ${ansis.gray('⚠')} ${ansis.yellow('注意')}: enhance_prompt 已不可用，search_context 代码检索正常`)
   console.log()
 
   const answers = await inquirer.prompt([
