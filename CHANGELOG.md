@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.7.74] - 2026-03-09
 
+### 🔄 变更
+
+- **spec 模板 guardrail 加固**：`spec-research`/`spec-plan`/`spec-impl` 三个模板新增 USER GUIDANCE RULE，防止 LLM 向用户暴露内部 `/opsx:*` 命令，统一引导至 `/ccg:spec-*`；`spec-plan`/`spec-impl` 额外添加 TASKS FORMAT RULE 防止 checkbox 格式问题
+
 ### 🐛 修复
 
 - **Gemini CLI `.env` 隔离**：修复 Gemini CLI 从项目目录加载 `.env` 导致全局 API Key 被覆盖的问题。codeagent-wrapper 现将 Gemini 的 `cmd.Dir` 设为 `$HOME`，项目目录通过 `--include-directories` 传入
