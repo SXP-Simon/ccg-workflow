@@ -86,6 +86,7 @@ export interface InstallResult {
   success: boolean
   installedCommands: string[]
   installedPrompts: string[]
+  installedSkills?: number
   errors: string[]
   configPath: string
   binPath?: string

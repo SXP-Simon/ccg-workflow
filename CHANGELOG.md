@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.73] - 2026-03-09
+
+### ✨ 新功能
+
+- **`/ccg:codex-exec` 命令**：新增第 26 个斜杠命令，与 `/ccg:plan` 配对使用——Codex 全权执行（MCP 搜索 + 代码实现 + 测试），Claude 仅做决策/审核，极大降低 Claude token 消耗
+- **Skills 体系**：首次引入 Claude Code 原生 Skills 机制，安装 6 个 skill 到 `~/.claude/skills/`（verify-security / verify-quality / verify-change / verify-module / gen-docs / multi-agent）
+- **context7 MCP 自动安装**：初始化时自动安装 context7（免费库文档查询），无需 API Key
+- **Codex MCP 同步**：新增 `syncMcpToCodex()`，将 CCG 管理的 MCP 服务器镜像同步到 `~/.codex/config.toml`，支持原子写 + stale 清理
+
+### 🐛 修复
+
+- **`--skip-mcp` 语义修复**：context7 安装和 Codex sync 现在正确遵守 `skipMcp` 标志
+- **Skills 安装/卸载路径一致性**：卸载时递归删除整个 `skills/` 目录，不再遗漏新 skill
+- **Skills 模板变量替换**：`fs.copy()` 后遍历 `.md` 文件执行路径替换，支持自定义 installDir
+- **MCP sync 全字段透传**：不再只复制 command/args/env，透传所有配置字段
+- **installedSkills 计数修正**：排除根 SKILL.md，数字准确反映实际 skill 数量
+- **失败反馈补全**：context7 和 Codex sync 失败时显示 `⚠` 提示，不再静默
+
+---
+
 ## [1.7.72] - 2026-03-09
 
 ### 🔄 变更

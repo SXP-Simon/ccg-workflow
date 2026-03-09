@@ -7,7 +7,7 @@ import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { i18n, initI18n } from '../i18n'
 import { createDefaultConfig, ensureCcgDir, getCcgDir, readCcgConfig, writeCcgConfig } from '../utils/config'
-import { getAllCommandIds, installAceTool, installAceToolRs, installContextWeaver, installMcpServer, installWorkflows } from '../utils/installer'
+import { getAllCommandIds, installAceTool, installAceToolRs, installContextWeaver, installMcpServer, installWorkflows, syncMcpToCodex } from '../utils/installer'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 
 /**
@@ -679,6 +679,39 @@ export async function init(options: InitOptions = {}): Promise<void> {
       }
     }
 
+    // Install context7 MCP + Codex sync (skip when --skip-mcp is passed)
+    if (!options.skipMcp) {
+      const context7Result = await installMcpServer(
+        'context7',
+        'npx',
+        ['-y', '@upstash/context7-mcp@latest'],
+      )
+      if (context7Result.success) {
+        console.log()
+        console.log(`    ${ansis.green('✓')} context7 MCP ${ansis.gray('→ ~/.claude.json')}`)
+      }
+      else {
+        console.log()
+        console.log(`    ${ansis.yellow('⚠')} context7 MCP install failed`)
+        console.log(ansis.gray(`      ${context7Result.message}`))
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Sync MCP servers to Codex (~/.codex/config.toml)
+      // Enables /ccg:codex-exec to use MCP tools (grok-search, context7, etc.)
+      // ═══════════════════════════════════════════════════════
+      const codexSyncResult = await syncMcpToCodex()
+      if (codexSyncResult.success && codexSyncResult.synced.length > 0) {
+        console.log()
+        console.log(`    ${ansis.green('✓')} Codex MCP sync: ${codexSyncResult.synced.join(', ')} ${ansis.gray('→ ~/.codex/config.toml')}`)
+      }
+      else if (!codexSyncResult.success) {
+        console.log()
+        console.log(`    ${ansis.yellow('⚠')} Codex MCP sync failed`)
+        console.log(ansis.gray(`      ${codexSyncResult.message}`))
+      }
+    }
+
     // Check jq availability and warn if missing
     const hasJq = await checkJqAvailable()
     if (!hasJq) {
@@ -713,6 +746,14 @@ export async function init(options: InitOptions = {}): Promise<void> {
       Object.entries(grouped).forEach(([model, roles]) => {
         console.log(`    ${ansis.green('✓')} ${model}: ${roles.join(', ')}`)
       })
+    }
+
+    // Show installed skills
+    if (result.installedSkills && result.installedSkills > 0) {
+      console.log()
+      console.log(ansis.cyan('  Skills:'))
+      console.log(`    ${ansis.green('✓')} ${result.installedSkills} skills installed (quality gates + multi-agent)`)
+      console.log(ansis.gray('       → ~/.claude/skills/'))
     }
 
     // Show errors if any

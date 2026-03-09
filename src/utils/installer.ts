@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import fs from 'fs-extra'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'pathe'
+import { parse as parseToml, stringify as stringifyToml } from 'smol-toml'
 import { backupClaudeCodeConfig, buildMcpServerConfig, fixWindowsMcpConfig, mergeMcpServers, readClaudeCodeConfig, writeClaudeCodeConfig } from './mcp'
 import { isWindows } from './platform'
 
@@ -50,6 +51,7 @@ const ALL_COMMANDS = [
   'team-plan', // Agent Teams 规划（Lead 调 Codex/Gemini 产出并行计划）
   'team-exec', // Agent Teams 并行实施（spawn Builders 并行写代码）
   'team-review', // Agent Teams 审查（双模型交叉审查并行产出）
+  'codex-exec', // 读取计划文件，Codex 全权执行 + 多模型审核
 ] as const
 
 // Workflow configurations (for compatibility with existing code)
@@ -340,6 +342,17 @@ const WORKFLOW_CONFIGS: WorkflowConfig[] = [
     description: '双模型交叉审查并行实施产出，分级处理 Critical/Warning/Info',
     descriptionEn: 'Dual-model cross-review with severity classification',
   },
+  {
+    id: 'codex-exec',
+    name: 'Codex 执行计划',
+    nameEn: 'Codex Plan Executor',
+    category: 'development',
+    commands: ['codex-exec'],
+    defaultSelected: true,
+    order: 3,
+    description: '读取 /ccg:plan 计划文件，Codex 全权执行 + 多模型审核',
+    descriptionEn: 'Read plan file from /ccg:plan, Codex executes + multi-model review',
+  },
 ]
 
 export function getWorkflowConfigs(): WorkflowConfig[] {
@@ -541,6 +554,30 @@ function replaceHomePathsInTemplate(content: string, installDir: string): string
   return processed
 }
 
+/**
+ * Count installed SKILL.md files in the skills directory (recursive).
+ * Excludes root-level SKILL.md (which is the index/manifest, not a skill itself).
+ */
+async function countInstalledSkills(skillsDir: string, depth = 0): Promise<number> {
+  let count = 0
+  try {
+    const entries = await fs.readdir(skillsDir, { withFileTypes: true })
+    for (const entry of entries) {
+      const fullPath = join(skillsDir, entry.name)
+      if (entry.isDirectory()) {
+        count += await countInstalledSkills(fullPath, depth + 1)
+      }
+      else if (entry.name === 'SKILL.md' && depth > 0) {
+        count++
+      }
+    }
+  }
+  catch {
+    // Directory doesn't exist or can't be read
+  }
+  return count
+}
+
 export async function installWorkflows(
   workflowIds: string[],
   installDir: string,
@@ -693,30 +730,39 @@ ${workflow.description}
     }
   }
 
-  // Install skills (multi-model-collaboration, etc. - should go to ~/.claude/skills/)
+  // Install skills (quality gates, multi-agent orchestration, etc. → ~/.claude/skills/)
+  // Uses recursive copy to handle nested directory structures (tools/verify-*/scripts/*.js)
   const skillsTemplateDir = join(templateDir, 'skills')
   const skillsDestDir = join(installDir, 'skills')
   if (await fs.pathExists(skillsTemplateDir)) {
     try {
-      const skillDirs = await fs.readdir(skillsTemplateDir)
-      for (const skillName of skillDirs) {
-        const srcSkillDir = join(skillsTemplateDir, skillName)
-        const destSkillDir = join(skillsDestDir, skillName)
-        const stat = await fs.stat(srcSkillDir)
-        if (stat.isDirectory()) {
-          await fs.ensureDir(destSkillDir)
-          const files = await fs.readdir(srcSkillDir)
-          for (const file of files) {
-            const srcFile = join(srcSkillDir, file)
-            const destFile = join(destSkillDir, file)
-            if (force || !(await fs.pathExists(destFile))) {
-              const templateContent = await fs.readFile(srcFile, 'utf-8')
-              const processedContent = replaceHomePathsInTemplate(templateContent, installDir)
-              await fs.writeFile(destFile, processedContent, 'utf-8')
+      // Recursive copy: preserves full directory tree (tools/lib, tools/*/scripts/, orchestration/*)
+      await fs.copy(skillsTemplateDir, skillsDestDir, {
+        overwrite: force,
+        errorOnExist: false,
+      })
+
+      // Post-copy: apply template variable replacement to .md files
+      // (handles custom installDir where ~/.claude paths need substitution)
+      const replacePathsInDir = async (dir: string): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true })
+        for (const entry of entries) {
+          const fullPath = join(dir, entry.name)
+          if (entry.isDirectory()) {
+            await replacePathsInDir(fullPath)
+          }
+          else if (entry.name.endsWith('.md')) {
+            const content = await fs.readFile(fullPath, 'utf-8')
+            const processed = replaceHomePathsInTemplate(content, installDir)
+            if (processed !== content) {
+              await fs.writeFile(fullPath, processed, 'utf-8')
             }
           }
         }
       }
+      await replacePathsInDir(skillsDestDir)
+
+      result.installedSkills = await countInstalledSkills(skillsDestDir)
     }
     catch (error) {
       result.errors.push(`Failed to install skills: ${error}`)
@@ -819,7 +865,7 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
   const commandsDir = join(installDir, 'commands', 'ccg')
   const promptsDir = join(installDir, '.ccg', 'prompts')
   const agentsDir = join(installDir, 'agents', 'ccg')
-  const skillsDir = join(installDir, 'skills', 'multi-model-collaboration')
+  const skillsDir = join(installDir, 'skills')
   const binDir = join(installDir, 'bin')
   const ccgConfigDir = join(installDir, '.ccg')
 
@@ -861,14 +907,28 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
     }
   }
 
-  // Remove CCG skills directory
+  // Remove CCG skills directory (recursive — matches new install pattern)
   if (await fs.pathExists(skillsDir)) {
     try {
-      const files = await fs.readdir(skillsDir)
-      for (const file of files) {
-        result.removedSkills.push(file)
+      // Collect skill names for reporting (SKILL.md files, excluding root)
+      const collectSkillNames = async (dir: string, depth: number): Promise<string[]> => {
+        const names: string[] = []
+        const entries = await fs.readdir(dir, { withFileTypes: true })
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            names.push(...await collectSkillNames(join(dir, entry.name), depth + 1))
+          }
+          else if (entry.name === 'SKILL.md' && depth > 0) {
+            // Use parent directory name as skill name
+            const parts = dir.split('/')
+            names.push(parts[parts.length - 1])
+          }
+        }
+        return names
       }
-      // Try to remove parent skills directory if it's the only skill
+      result.removedSkills = await collectSkillNames(skillsDir, 0)
+
+      // Remove entire skills directory
       await fs.remove(skillsDir)
     }
     catch (error) {
@@ -1271,5 +1331,127 @@ export async function uninstallMcpServer(id: string): Promise<{ success: boolean
   }
   catch (error) {
     return { success: false, message: `Failed to uninstall ${id}: ${error}` }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// Codex MCP Sync — Mirror CCG-relevant MCP servers
+// from Claude (~/.claude.json) to Codex (~/.codex/config.toml)
+// ═══════════════════════════════════════════════════════
+
+/** MCP server IDs that CCG manages and should sync to Codex */
+const CCG_MCP_IDS = new Set([
+  'grok-search',
+  'context7',
+  'ace-tool',
+  'ace-tool-rs',
+  'contextweaver',
+])
+
+/**
+ * Sync (mirror) CCG-managed MCP servers from Claude's ~/.claude.json
+ * to Codex's ~/.codex/config.toml
+ *
+ * - Only touches servers in CCG_MCP_IDS — user's custom MCP servers are untouched.
+ * - Servers present in Claude are added/updated with ALL fields (not just command/args/env).
+ * - Servers absent from Claude but present in Codex (within CCG_MCP_IDS) are REMOVED.
+ * - Preserves all existing Codex config (model_provider, model, etc.)
+ * - Uses atomic write (temp file + rename) to prevent corruption.
+ */
+export async function syncMcpToCodex(): Promise<{
+  success: boolean
+  message: string
+  synced: string[]
+  removed: string[]
+}> {
+  const synced: string[] = []
+  const removed: string[] = []
+
+  try {
+    // 1. Read Claude's MCP config
+    const claudeConfig = await readClaudeCodeConfig()
+    const claudeMcpServers = claudeConfig?.mcpServers || {}
+
+    // Filter to only CCG-managed servers that actually exist in Claude
+    const serversToSync: Record<string, any> = {}
+    for (const [id, config] of Object.entries(claudeMcpServers)) {
+      if (CCG_MCP_IDS.has(id) && config) {
+        serversToSync[id] = config
+      }
+    }
+
+    // 2. Read or create Codex config
+    const codexConfigDir = join(homedir(), '.codex')
+    const codexConfigPath = join(codexConfigDir, 'config.toml')
+    await fs.ensureDir(codexConfigDir)
+
+    let codexConfig: Record<string, any> = {}
+    if (await fs.pathExists(codexConfigPath)) {
+      const content = await fs.readFile(codexConfigPath, 'utf-8')
+      codexConfig = parseToml(content) as Record<string, any>
+    }
+
+    // 3. Ensure mcp_servers table exists
+    if (!codexConfig.mcp_servers) {
+      codexConfig.mcp_servers = {}
+    }
+
+    // 4. Mirror: add/update CCG servers (pass through ALL fields, not just command/args/env)
+    for (const [id, claudeServer] of Object.entries(serversToSync)) {
+      const server = claudeServer as Record<string, any>
+      const codexEntry: Record<string, any> = {}
+
+      // Pass through all TOML-compatible fields from Claude config
+      for (const [key, value] of Object.entries(server)) {
+        if (value !== null && value !== undefined) {
+          codexEntry[key] = value
+        }
+      }
+
+      codexConfig.mcp_servers[id] = codexEntry
+      synced.push(id)
+    }
+
+    // 5. Mirror: remove CCG servers that no longer exist in Claude
+    for (const id of CCG_MCP_IDS) {
+      if (!serversToSync[id] && codexConfig.mcp_servers[id]) {
+        delete codexConfig.mcp_servers[id]
+        removed.push(id)
+      }
+    }
+
+    // Skip write if no changes needed
+    if (synced.length === 0 && removed.length === 0) {
+      return {
+        success: true,
+        message: 'No CCG MCP servers to sync or remove',
+        synced: [],
+        removed: [],
+      }
+    }
+
+    // 6. Atomic write: temp file + rename to prevent corruption
+    const tmpPath = `${codexConfigPath}.tmp`
+    await fs.writeFile(tmpPath, stringifyToml(codexConfig), 'utf-8')
+    await fs.rename(tmpPath, codexConfigPath)
+
+    const parts: string[] = []
+    if (synced.length > 0) parts.push(`synced: ${synced.join(', ')}`)
+    if (removed.length > 0) parts.push(`removed: ${removed.join(', ')}`)
+
+    return {
+      success: true,
+      message: `Codex MCP mirror complete (${parts.join('; ')})`,
+      synced,
+      removed,
+    }
+  }
+  catch (error) {
+    return {
+      success: false,
+      message: `Failed to sync MCP to Codex: ${error}`,
+      synced,
+      removed,
+    }
   }
 }

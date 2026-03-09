@@ -2,13 +2,20 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-09 (v1.7.72)
+**Last Updated**: 2026-03-09 (v1.7.73)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-09 (v1.7.73)
+- ✨ **`/ccg:codex-exec` 命令**：第 26 个斜杠命令，Codex 全权执行 + 多模型审核，Claude token 极低消耗
+- ✨ **Skills 体系**：6 个原生 skill（verify-security/quality/change/module + gen-docs + multi-agent）
+- ✨ **context7 MCP 自动安装**：免费库文档查询，无需 API Key
+- ✨ **Codex MCP 同步**：`syncMcpToCodex()` 镜像同步到 `~/.codex/config.toml`
+- 🐛 **修复 `--skip-mcp` / 安装卸载路径 / 模板替换 / 计数 / 失败反馈**
 
 ### 2026-03-09 (v1.7.70)
 - ✨ **菜单 UI 大改版**：ASCII Art Logo + 双线边框 + 编号快捷键 + CJK 宽度感知对齐
@@ -68,11 +75,12 @@
 **CCG (Claude + Codex + Gemini)** - 多模型协作系统的核心实现，提供：
 
 1. **多模型协作编排**：固定路由 Gemini（前端）+ Codex（后端）+ Claude（编排）
-2. **25 个斜杠命令**：开发工作流 + Git 工具 + 项目管理 + OPSX + Agent Teams
+2. **26 个斜杠命令**：开发工作流 + Git 工具 + 项目管理 + OPSX + Agent Teams + Codex 执行
 3. **13 个专家提示词**：Codex 6 个 + Gemini 7 个
-4. **跨平台 CLI 工具**：一键安装（支持 macOS、Linux、Windows）
-5. **MCP 集成**：ContextWeaver（推荐）/ ace-tool（收费）+ 辅助工具
-6. **Agent Teams 并行实施**：Team 系列 4 个独立命令，spawn Builder teammates 并行写代码
+4. **6 个原生 Skills**：质量关卡（verify-security/quality/change/module + gen-docs）+ 多 Agent 协同
+5. **跨平台 CLI 工具**：一键安装（支持 macOS、Linux、Windows）
+6. **MCP 集成**：ace-tool（推荐）/ ContextWeaver + context7（自动安装）+ Codex MCP 同步
+7. **Agent Teams 并行实施**：Team 系列 4 个独立命令，spawn Builder teammates 并行写代码
 
 ---
 
@@ -121,7 +129,7 @@ npx ccg-workflow menu
 | `npx ccg-workflow update` | 更新到最新版本 |
 | `npx ccg-workflow diagnose-mcp` | 诊断 MCP 配置 |
 
-### Slash Commands 接口（16 个）
+### Slash Commands 接口（17 个）
 
 **开发工作流**：
 | 命令 | 用途 | 模型 |
@@ -129,6 +137,7 @@ npx ccg-workflow menu
 | `/ccg:workflow` | 完整 6 阶段工作流 | Codex ∥ Gemini |
 | `/ccg:plan` | 多模型协作规划（Phase 1-2） | Codex ∥ Gemini |
 | `/ccg:execute` | 多模型协作执行（Phase 3-5） | Codex ∥ Gemini + Claude |
+| `/ccg:codex-exec` | Codex 全权执行计划（MCP + 代码 + 测试） | Codex + 多模型审核 |
 | `/ccg:frontend` | 前端专项（快速模式） | Gemini |
 | `/ccg:backend` | 后端专项（快速模式） | Codex |
 | `/ccg:feat` | 智能功能开发 | 规划 → 实施 |
@@ -171,7 +180,7 @@ v1.7.0 起，以下配置不再支持自定义：
 | 前端模型 | Gemini | 擅长 UI/CSS/组件 |
 | 后端模型 | Codex | 擅长逻辑/算法/调试 |
 | 协作模式 | smart | 最佳实践 |
-| 命令数量 | 25 个 | 全部安装 |
+| 命令数量 | 26 个 | 全部安装 |
 
 ---
 
@@ -230,10 +239,11 @@ src/
 
 ```
 templates/
-├── commands/                  # 25 个斜杠命令
+├── commands/                  # 26 个斜杠命令
 │   ├── workflow.md
 │   ├── plan.md                # 多模型协作规划
 │   ├── execute.md             # 多模型协作执行
+│   ├── codex-exec.md          # Codex 全权执行计划
 │   ├── frontend.md
 │   ├── backend.md
 │   ├── feat.md
@@ -259,8 +269,16 @@ templates/
 ├── prompts/                  # 13 个专家提示词
 │   ├── codex/
 │   └── gemini/
-└── skills/                   # 1 个 skill
-    └── multi-model-collaboration/
+└── skills/                   # 6 个 skill（质量关卡 + 多 Agent 协同）
+    ├── tools/
+    │   ├── verify-security/
+    │   ├── verify-quality/
+    │   ├── verify-change/
+    │   ├── verify-module/
+    │   ├── gen-docs/
+    │   └── lib/
+    └── orchestration/
+        └── multi-agent/
 ```
 
 ### 预编译产物

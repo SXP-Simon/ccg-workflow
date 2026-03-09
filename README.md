@@ -58,6 +58,7 @@ On first run, CCG will prompt you to select your preferred language (English or 
 | `/ccg:team-plan` | Agent Teams constraints → parallel plan |
 | `/ccg:team-exec` | Agent Teams parallel execution |
 | `/ccg:team-review` | Agent Teams dual-model review |
+| `/ccg:codex-exec` | Codex full execution (plan → code → review) |
 
 ### OPSX Spec-Driven (v1.7.52+)
 
@@ -113,8 +114,11 @@ Leverage Claude Code Agent Teams experimental feature to spawn multiple Builder 
 # 2. Review the plan (editable)
 # Plan saved to .claude/plan/user-auth.md
 
-# 3. Execute the plan (works in new sessions too)
+# 3a. Execute (Claude refactors) — fine-grained control
 /ccg:execute .claude/plan/user-auth.md
+
+# 3b. Execute (Codex does everything) — efficient, low Claude token usage
+/ccg:codex-exec .claude/plan/user-auth.md
 ```
 
 ## Configuration
@@ -125,6 +129,7 @@ Leverage Claude Code Agent Teams experimental feature to spawn multiple Builder 
 ~/.claude/
 ├── commands/ccg/       # Slash commands
 ├── agents/ccg/         # Sub-agents
+├── skills/             # Quality gates + multi-agent orchestration
 ├── bin/codeagent-wrapper
 └── .ccg/
     ├── config.toml
@@ -288,4 +293,4 @@ MIT
 
 ---
 
-v1.7.72 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)
+v1.7.73 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)
