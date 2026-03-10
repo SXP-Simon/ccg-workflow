@@ -5,6 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/ccg-workflow.svg)](https://www.npmjs.com/package/ccg-workflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
+[![Tests](https://img.shields.io/badge/Tests-131%20passed-brightgreen.svg)]()
 
 [简体中文](./README.zh-CN.md) | English
 
@@ -12,98 +13,136 @@
 
 A multi-model collaboration development system where Claude Code orchestrates Codex + Gemini. Frontend tasks route to Gemini, backend tasks route to Codex, and Claude handles orchestration and code review.
 
-## Installation
+## Why CCG?
+
+- **Zero-config model routing** — Frontend tasks automatically go to Gemini, backend tasks to Codex. No manual switching.
+- **Security by design** — External models have no write access. They return patches; Claude reviews before applying.
+- **26 slash commands** — From planning to execution, git workflow to code review, all accessible via `/ccg:*`.
+- **Spec-driven development** — Integrates [OPSX](https://github.com/fission-ai/opsx) to turn vague requirements into verifiable constraints, eliminating AI improvisation.
+
+## Architecture
+
+```
+Claude Code (Orchestrator)
+       │
+   ┌───┴───┐
+   ↓       ↓
+Codex   Gemini
+(Backend) (Frontend)
+   │       │
+   └───┬───┘
+       ↓
+  Unified Patch
+```
+
+External models have no write access — they only return patches, which Claude reviews before applying.
+
+## Quick Start
+
+### Prerequisites
+
+| Dependency | Required | Notes |
+|------------|----------|-------|
+| **Node.js 20+** | Yes | `ora@9.x` requires Node >= 20. Node 18 causes `SyntaxError` |
+| **Claude Code CLI** | Yes | [Install guide](#install-claude-code) |
+| **jq** | Yes | Used for auto-authorization hook ([install](#install-jq)) |
+| **Codex CLI** | No | Enables backend routing |
+| **Gemini CLI** | No | Enables frontend routing |
+
+### Installation
 
 ```bash
 npx ccg-workflow
 ```
 
-**Requirements**: Claude Code CLI, Node.js 20+
+On first run, CCG prompts you to select a language (English / Chinese). This preference is saved for all future sessions.
 
-> **Important**: This project depends on `ora@9.x` and `string-width@8.x`, which require Node.js >= 20. Using Node.js 18 will cause `SyntaxError: Invalid regular expression flags`. Please upgrade to Node.js 20 or higher.
+### Install jq
 
-**Optional**: Codex CLI (backend), Gemini CLI (frontend)
+```bash
+# macOS
+brew install jq
 
-## First-Time Setup
+# Linux (Debian/Ubuntu)
+sudo apt install jq
 
-On first run, CCG will prompt you to select your preferred language (English or Chinese). This preference is saved and used for all subsequent sessions.
+# Linux (RHEL/CentOS)
+sudo yum install jq
+
+# Windows
+choco install jq   # or: scoop install jq
+```
+
+### Install Claude Code
+
+```bash
+npx ccg-workflow menu  # Select "Install Claude Code"
+```
+
+Supports: npm, homebrew, curl, powershell, cmd.
 
 ## Commands
 
+### Development Workflow
+
+| Command | Description | Model |
+|---------|-------------|-------|
+| `/ccg:workflow` | Full 6-phase development workflow | Codex + Gemini |
+| `/ccg:plan` | Multi-model collaborative planning (Phase 1-2) | Codex + Gemini |
+| `/ccg:execute` | Multi-model collaborative execution (Phase 3-5) | Codex + Gemini + Claude |
+| `/ccg:codex-exec` | Codex full execution (plan → code → review) | Codex + multi-model review |
+| `/ccg:feat` | Smart feature development | Auto-routed |
+| `/ccg:frontend` | Frontend tasks (fast mode) | Gemini |
+| `/ccg:backend` | Backend tasks (fast mode) | Codex |
+
+### Analysis & Quality
+
+| Command | Description | Model |
+|---------|-------------|-------|
+| `/ccg:analyze` | Technical analysis | Codex + Gemini |
+| `/ccg:debug` | Problem diagnosis + fix | Codex + Gemini |
+| `/ccg:optimize` | Performance optimization | Codex + Gemini |
+| `/ccg:test` | Test generation | Auto-routed |
+| `/ccg:review` | Code review (auto git diff) | Codex + Gemini |
+| `/ccg:enhance` | Prompt enhancement | Built-in |
+
+### OPSX Spec-Driven
+
 | Command | Description |
 |---------|-------------|
-| `/ccg:workflow` | Full 6-phase development workflow |
-| `/ccg:plan` | Multi-model collaborative planning (Phase 1-2) |
-| `/ccg:execute` | Multi-model collaborative execution (Phase 3-5) |
-| `/ccg:feat` | Smart feature development |
-| `/ccg:frontend` | Frontend tasks (Gemini) |
-| `/ccg:backend` | Backend tasks (Codex) |
-| `/ccg:analyze` | Technical analysis |
-| `/ccg:debug` | Problem diagnosis |
-| `/ccg:optimize` | Performance optimization |
-| `/ccg:test` | Test generation |
-| `/ccg:review` | Code review |
-| `/ccg:commit` | Git commit |
-| `/ccg:rollback` | Git rollback |
-| `/ccg:clean-branches` | Clean branches |
-| `/ccg:worktree` | Worktree management |
-| `/ccg:init` | Initialize CLAUDE.md |
-| `/ccg:enhance` | Prompt enhancement |
 | `/ccg:spec-init` | Initialize OPSX environment |
 | `/ccg:spec-research` | Requirements → Constraints |
 | `/ccg:spec-plan` | Constraints → Zero-decision plan |
 | `/ccg:spec-impl` | Execute plan + archive |
 | `/ccg:spec-review` | Dual-model cross-review |
-| `/ccg:team-research` | Agent Teams requirements → constraints |
-| `/ccg:team-plan` | Agent Teams constraints → parallel plan |
-| `/ccg:team-exec` | Agent Teams parallel execution |
-| `/ccg:team-review` | Agent Teams dual-model review |
-| `/ccg:codex-exec` | Codex full execution (plan → code → review) |
 
-### OPSX Spec-Driven (v1.7.52+)
+### Agent Teams (v1.7.60+)
 
-Integrates [OPSX architecture](https://github.com/fission-ai/opsx) to turn requirements into constraints, eliminating AI improvisation:
+| Command | Description |
+|---------|-------------|
+| `/ccg:team-research` | Requirements → constraints (parallel exploration) |
+| `/ccg:team-plan` | Constraints → parallel implementation plan |
+| `/ccg:team-exec` | Spawn Builder teammates for parallel coding |
+| `/ccg:team-review` | Dual-model cross-review |
 
-```bash
-# Initialize OPSX environment
-/ccg:spec-init
+> **Prerequisite**: Enable Agent Teams in `settings.json`: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
 
-# Research requirements → output constraints
-/ccg:spec-research implement user authentication
+### Git Tools
 
-# Parallel analysis → zero-decision plan
-/ccg:spec-plan
+| Command | Description |
+|---------|-------------|
+| `/ccg:commit` | Smart commit (conventional commit format) |
+| `/ccg:rollback` | Interactive rollback |
+| `/ccg:clean-branches` | Clean merged branches |
+| `/ccg:worktree` | Worktree management |
 
-# Execute the plan
-/ccg:spec-impl
+### Project Setup
 
-# Independent review (available anytime)
-/ccg:spec-review
-```
+| Command | Description |
+|---------|-------------|
+| `/ccg:init` | Initialize project CLAUDE.md |
 
-**Note**: `/ccg:spec-*` commands are CCG's wrapper around OPSX, internally calling `/opsx:*` commands. You can `/clear` between phases — state is persisted in the `openspec/` directory, so context overflow is not a concern.
-
-### Agent Teams Parallel Execution (v1.7.60+)
-
-Leverage Claude Code Agent Teams experimental feature to spawn multiple Builder teammates for parallel coding:
-
-```bash
-# 1. Requirements research → constraints (recommended for complex projects)
-/ccg:team-research implement real-time collaboration kanban API
-
-# 2. /clear then plan → zero-decision parallel plan
-/ccg:team-plan kanban-api
-
-# 3. /clear then parallel execution → Builder teammates write code in parallel
-/ccg:team-exec
-
-# 4. /clear then review → dual-model cross-review
-/ccg:team-review
-```
-
-**Prerequisite**: Manually enable Agent Teams (`settings.json`: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`)
-
-**vs Traditional Workflow**: Team series uses `/clear` between steps to isolate context, passing state through files. Builders work in parallel, ideal for tasks decomposable into 3+ independent modules.
+## Workflow Guides
 
 ### Planning & Execution Separation
 
@@ -121,31 +160,66 @@ Leverage Claude Code Agent Teams experimental feature to spawn multiple Builder 
 /ccg:codex-exec .claude/plan/user-auth.md
 ```
 
+### OPSX Spec-Driven Workflow
+
+Integrates [OPSX architecture](https://github.com/fission-ai/opsx) to turn requirements into constraints, eliminating AI improvisation:
+
+```bash
+/ccg:spec-init                          # Initialize OPSX environment
+/ccg:spec-research implement user auth  # Research → constraints
+/ccg:spec-plan                          # Parallel analysis → zero-decision plan
+/ccg:spec-impl                          # Execute the plan
+/ccg:spec-review                        # Independent review (anytime)
+```
+
+> **Tip**: `/ccg:spec-*` commands internally call `/opsx:*`. You can `/clear` between phases — state is persisted in the `openspec/` directory.
+
+### Agent Teams Parallel Workflow
+
+Leverage Claude Code Agent Teams to spawn multiple Builder teammates for parallel coding:
+
+```bash
+/ccg:team-research implement kanban API  # 1. Requirements → constraints
+# /clear
+/ccg:team-plan kanban-api               # 2. Plan → parallel tasks
+# /clear
+/ccg:team-exec                          # 3. Builders code in parallel
+# /clear
+/ccg:team-review                        # 4. Dual-model cross-review
+```
+
+> **vs Traditional Workflow**: Team series uses `/clear` between steps to isolate context, passing state through files. Ideal for tasks decomposable into 3+ independent modules.
+
 ## Configuration
 
 ### Directory Structure
 
 ```
 ~/.claude/
-├── commands/ccg/       # Slash commands
+├── commands/ccg/       # 26 slash commands
 ├── agents/ccg/         # Sub-agents
-├── skills/             # Quality gates + multi-agent orchestration
+├── skills/ccg/         # Quality gates + multi-agent orchestration
 ├── bin/codeagent-wrapper
 └── .ccg/
-    ├── config.toml
-    └── prompts/{codex,gemini}/
+    ├── config.toml     # CCG configuration
+    └── prompts/
+        ├── codex/      # 6 Codex expert prompts
+        └── gemini/     # 7 Gemini expert prompts
 ```
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CODEAGENT_POST_MESSAGE_DELAY` | Wait time after Codex completion (seconds) | 5 |
-| `CODEX_TIMEOUT` | codeagent-wrapper execution timeout (seconds) | 7200 |
-| `BASH_DEFAULT_TIMEOUT_MS` | Claude Code Bash default timeout (ms) | 120000 |
-| `BASH_MAX_TIMEOUT_MS` | Claude Code Bash max timeout (ms) | 600000 |
+Configure in `~/.claude/settings.json` under `"env"`:
 
-Configuration in `~/.claude/settings.json`:
+| Variable | Description | Default | When to change |
+|----------|-------------|---------|----------------|
+| `CODEAGENT_POST_MESSAGE_DELAY` | Wait after Codex completion (sec) | `5` | Set to `1` if Codex process hangs |
+| `CODEX_TIMEOUT` | Wrapper execution timeout (sec) | `7200` | Increase for very long tasks |
+| `BASH_DEFAULT_TIMEOUT_MS` | Claude Code Bash timeout (ms) | `120000` | Increase if commands time out |
+| `BASH_MAX_TIMEOUT_MS` | Claude Code Bash max timeout (ms) | `600000` | Increase for long builds |
+
+<details>
+<summary>Example settings.json</summary>
 
 ```json
 {
@@ -158,79 +232,32 @@ Configuration in `~/.claude/settings.json`:
 }
 ```
 
-### codeagent-wrapper Auto-Authorization
-
-CCG automatically installs a Hook in `settings.json` to auto-authorize codeagent-wrapper commands, so you don't have to manually approve each collaboration call.
-
-**Requirement**: `jq` must be installed on your system.
-
-```bash
-# macOS
-brew install jq
-
-# Linux (Debian/Ubuntu)
-sudo apt install jq
-
-# Linux (RHEL/CentOS)
-sudo yum install jq
-
-# Windows
-choco install jq
-# or
-scoop install jq
-```
+</details>
 
 ### MCP Configuration
 
-Code retrieval MCP (choose one):
-- **ace-tool** (recommended) - Code search via `search_context` (note: `enhance_prompt` is no longer available). [Official](https://augmentcode.com/) | [Third-party proxy (recommended)](https://acemcp.heroman.wtf/)
-- **ContextWeaver** (alternative) - Local hybrid search, requires SiliconFlow API Key (free)
-
-Optional MCP tools:
-- **Context7** - Latest library documentation
-- **Playwright** - Browser automation/testing
-- **DeepWiki** - Knowledge base queries
-- **Exa** - Search engine (requires API Key)
-
 ```bash
-# Configure MCP
 npx ccg-workflow menu  # Select "Configure MCP"
 ```
 
-## Tools
+**Code retrieval** (choose one):
+- **ace-tool** (recommended) — Code search via `search_context`. [Official](https://augmentcode.com/) | [Third-party proxy](https://acemcp.heroman.wtf/)
+- **ContextWeaver** (alternative) — Local hybrid search, requires SiliconFlow API Key (free)
 
-```bash
-npx ccg-workflow menu  # Select "Tools"
-```
+**Optional tools**:
+- **Context7** — Latest library documentation (auto-installed)
+- **Playwright** — Browser automation / testing
+- **DeepWiki** — Knowledge base queries
+- **Exa** — Search engine (requires API Key)
 
-- **ccusage** - Claude Code usage analytics
-- **CCometixLine** - Status bar tool (Git + usage tracking)
+### Auto-Authorization Hook
 
-## Install Claude Code
+CCG automatically installs a Hook to auto-authorize `codeagent-wrapper` commands (requires [jq](#install-jq)).
 
-```bash
-npx ccg-workflow menu  # Select "Install Claude Code"
-```
+<details>
+<summary>Manual setup (for versions before v1.7.71)</summary>
 
-Supports multiple installation methods: npm, homebrew, curl, powershell, cmd
-
-## Update / Uninstall
-
-```bash
-# Update
-npx ccg-workflow@latest          # npx users
-npm install -g ccg-workflow@latest  # npm global users
-
-# Uninstall
-npx ccg-workflow  # Select "Uninstall"
-npm uninstall -g ccg-workflow  # npm global users need this extra step
-```
-
-## FAQ
-
-### 1. How to auto-authorize codeagent-wrapper without manual approval?
-
-CCG automatically installs the Hook during setup (v1.7.71+). If you installed an older version, add this to `~/.claude/settings.json`:
+Add to `~/.claude/settings.json`:
 
 ```json
 {
@@ -251,37 +278,49 @@ CCG automatically installs the Hook during setup (v1.7.71+). If you installed an
 }
 ```
 
-> **Note**: Requires `jq` installed on your system. See [codeagent-wrapper Auto-Authorization](#codeagent-wrapper-auto-authorization) for install instructions.
+</details>
 
-### 2. Codex CLI 0.80.0 process does not exit
+## Utilities
+
+```bash
+npx ccg-workflow menu  # Select "Tools"
+```
+
+- **ccusage** — Claude Code usage analytics
+- **CCometixLine** — Status bar tool (Git + usage tracking)
+
+## Update / Uninstall
+
+```bash
+# Update
+npx ccg-workflow@latest            # npx users
+npm install -g ccg-workflow@latest  # npm global users
+
+# Uninstall
+npx ccg-workflow  # Select "Uninstall"
+npm uninstall -g ccg-workflow  # npm global users need this extra step
+```
+
+## FAQ
+
+### Codex CLI 0.80.0 process does not exit
 
 In `--json` mode, Codex does not automatically exit after output completion.
 
-Fix: Set `CODEAGENT_POST_MESSAGE_DELAY=1`
+**Fix**: Set `CODEAGENT_POST_MESSAGE_DELAY=1` in your environment variables.
 
-## Architecture
+## Contributing
 
-```
-Claude Code (Orchestrator)
-       │
-   ┌───┴───┐
-   ↓       ↓
-Codex   Gemini
-(Backend) (Frontend)
-   │       │
-   └───┬───┘
-       ↓
-  Unified Patch
-```
+We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
-External models have no write access — they only return patches, which Claude reviews before applying.
+Looking for a place to start? Check out issues labeled [`good first issue`](https://github.com/fengshao1227/ccg-workflow/labels/good%20first%20issue).
 
 ## Credits
 
-- [cexll/myclaude](https://github.com/cexll/myclaude) - codeagent-wrapper
-- [UfoMiao/zcf](https://github.com/UfoMiao/zcf) - Git tools
-- [GudaStudio/skills](https://github.com/GuDaStudio/skills) - Routing design
-- [ace-tool](https://linux.do/t/topic/1344562) - MCP tool
+- [cexll/myclaude](https://github.com/cexll/myclaude) — codeagent-wrapper
+- [UfoMiao/zcf](https://github.com/UfoMiao/zcf) — Git tools
+- [GudaStudio/skills](https://github.com/GuDaStudio/skills) — Routing design
+- [ace-tool](https://linux.do/t/topic/1344562) — MCP tool
 
 ## Star History
 
@@ -293,4 +332,4 @@ MIT
 
 ---
 
-v1.7.75 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues)
+v1.7.76 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues) | [Contributing](./CONTRIBUTING.md)

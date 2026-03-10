@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.76] - 2026-03-10
+
+### 📝 文档
+
+- **README 重构**：命令分组展示（7 类）、新增「Why CCG?」价值主张、架构图上移、Prerequisites 合并、环境变量增加「何时修改」列、FAQ/Hook 配置去重折叠
+- **新增 CONTRIBUTING.md**：开发环境搭建、PR 流程、Commit 规范、代码标准、Good First Issue 指南
+- **新增 Issue 模板**：`.github/ISSUE_TEMPLATE/` 下 3 套模板（bug report / feature request / good first issue）
+
+---
+
 ## [1.7.75] - 2026-03-10
 
 ### 🐛 修复

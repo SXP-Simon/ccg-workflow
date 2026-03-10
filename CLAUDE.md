@@ -2,13 +2,16 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-10 (v1.7.75)
+**Last Updated**: 2026-03-10 (v1.7.76)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-10 (v1.7.76)
+- 📝 **README 重构**：命令分组（7 类）、新增 Why CCG? + CONTRIBUTING.md + Issue 模板 x3、配置章节去重折叠
 
 ### 2026-03-10 (v1.7.75)
 - 🐛 **Skills 命名空间隔离**：`skills/` → `skills/ccg/`，卸载不再误删用户自建 skill + 旧版自动迁移
