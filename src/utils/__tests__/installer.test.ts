@@ -376,7 +376,7 @@ describe('skills namespace isolation', () => {
     await fs.remove(userSkillDir)
   })
 
-  it('migrates old v1.7.73 layout to skills/ccg/', async () => {
+  it('migrates old v1.7.73 layout to skills/ccg/', { timeout: 30_000 }, async () => {
     const migrateDir = join(tmpdir(), `ccg-test-migrate-${Date.now()}`)
 
     // Simulate old layout: skills/{tools,orchestration,SKILL.md,run_skill.js}
