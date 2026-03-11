@@ -2,13 +2,17 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-11 (v1.7.80)
+**Last Updated**: 2026-03-11 (v1.7.81)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-11 (v1.7.81)
+- 🔄 **`/ccg:commit` Context 自动归档**：从 git diff 自动生成 ContextEntry，不再依赖手动 session.log
+- 🔄 **`/ccg:context log` 降为可选**：init 一次 → 正常开发 → commit 全自动
 
 ### 2026-03-11 (v1.7.80)
 - ✨ **`/ccg:context` 命令**：第 27 个斜杠命令，`.context/` 目录初始化 + 决策日志 + 压缩归档 + 历史查看

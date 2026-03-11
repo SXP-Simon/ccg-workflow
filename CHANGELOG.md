@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.81] - 2026-03-11
+
+### 🔄 变更
+
+- **`/ccg:commit` Context 自动归档**：不再依赖手动 session.log，改为从 git diff 自动分析生成 ContextEntry（decisions/bugs/changes），session.log 有内容时额外合并。`.context/` 不存在时提示 init 但不阻断
+- **`/ccg:context log` 降为可选**：核心用法简化为 `init` 一次 → 正常开发 → `/ccg:commit` 全自动归档
+
+---
+
 ## [1.7.80] - 2026-03-11
 
 ### ✨ 新功能
