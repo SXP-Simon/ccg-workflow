@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **二进制产物迁移至 GitHub Release**：`bin/codeagent-wrapper-*` 不再打包到 npm 和 git，改从 GitHub Release (`preset` tag) 按需下载，npm 包从 16.3MB 缩减至 161KB
 - **GitHub Actions CI**：新增 `.github/workflows/build-binaries.yml`，`codeagent-wrapper/` 变更时自动交叉编译 6 平台并上传到 `preset` Release
-- **installer.ts 下载逻辑**：优先从 GitHub Release 下载，失败后 fallback 到本地 `bin/`（开发/离线场景）
+- **installer.ts 下载逻辑**：仅从 GitHub Release 下载，移除本地 `bin/` fallback（开发者可用 `build-all.sh` 自行编译）
+- **移除本地二进制**：`bin/codeagent-wrapper-*` 6 个文件已从仓库删除，仅保留 `bin/ccg.mjs` 入口
 
 ---
 

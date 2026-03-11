@@ -845,26 +845,8 @@ ${workflow.description}
 
     const destBinary = join(binDir, platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper')
 
-    // Strategy 1: Download from GitHub Release (preferred)
-    let installed = false
-    try {
-      installed = await downloadBinaryFromRelease(binaryName, destBinary)
-    }
-    catch {
-      // Download failed, will try fallback
-    }
-
-    // Strategy 2: Fallback to local bin/ (development or offline)
-    if (!installed) {
-      const srcBinary = join(PACKAGE_ROOT, 'bin', binaryName)
-      if (await fs.pathExists(srcBinary)) {
-        await fs.copy(srcBinary, destBinary)
-        if (platform !== 'win32') {
-          await fs.chmod(destBinary, 0o755)
-        }
-        installed = true
-      }
-    }
+    // Download from GitHub Release (only source)
+    const installed = await downloadBinaryFromRelease(binaryName, destBinary)
 
     if (installed) {
       // Verify installation by running --version
@@ -880,7 +862,7 @@ ${workflow.description}
       }
     }
     else {
-      result.errors.push(`Failed to obtain binary: ${binaryName} (download failed, no local fallback)`)
+      result.errors.push(`Failed to download binary: ${binaryName} from GitHub Release. Check network or visit https://github.com/${GITHUB_REPO}/releases/tag/${RELEASE_TAG}`)
       result.success = false
     }
   }
