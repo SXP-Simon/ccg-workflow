@@ -112,7 +112,7 @@ function drawHeader(statusParts: string[]): void {
   console.log()
 }
 
-function groupSep(label: string): ReturnType<typeof inquirer.Separator> {
+function groupSep(label: string): InstanceType<typeof inquirer.Separator> {
   const w = 42
   const labelW = visWidth(label)
   const remaining = Math.max(0, w - labelW - 2)

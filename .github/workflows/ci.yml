@@ -26,6 +26,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Type check
+        run: pnpm typecheck
+
       - name: Run tests
         run: pnpm test
 
@@ -44,3 +47,7 @@ jobs:
       - name: Go build check
         working-directory: codeagent-wrapper
         run: go build -o /dev/null .
+
+      - name: Go test
+        working-directory: codeagent-wrapper
+        run: go test ./...

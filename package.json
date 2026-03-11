@@ -91,7 +91,6 @@
   "devDependencies": {
     "@antfu/eslint-config": "^5.4.1",
     "@types/fs-extra": "^11.0.4",
-    "@types/inquirer": "^9.0.9",
     "@types/node": "^22.0.0",
     "eslint": "^9.36.0",
     "tsx": "^4.20.5",
