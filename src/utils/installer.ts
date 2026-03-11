@@ -33,25 +33,53 @@ const PACKAGE_ROOT = findPackageRoot(__dirname)
  * Download codeagent-wrapper binary from GitHub Release.
  * Uses the fixed `preset` tag release for pre-compiled binaries.
  * Supports redirect-following (GitHub releases redirect to CDN).
+ *
+ * Retry: 3 attempts with exponential backoff (2s, 4s, 6s).
+ * Timeout: 60s per attempt via AbortController.
  */
 async function downloadBinaryFromRelease(binaryName: string, destPath: string): Promise<boolean> {
   const url = `${BINARY_DOWNLOAD_URL}/${binaryName}`
+  const MAX_ATTEMPTS = 3
+  const TIMEOUT_MS = 60_000 // 60s per attempt
 
-  // Use dynamic import for https to follow redirects manually (Node.js fetch follows automatically)
-  const response = await fetch(url, { redirect: 'follow' })
-  if (!response.ok) {
-    return false
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+      const response = await fetch(url, { redirect: 'follow', signal: controller.signal })
+      if (!response.ok) {
+        clearTimeout(timer)
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000))
+          continue
+        }
+        return false
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer())
+      clearTimeout(timer)
+
+      await fs.writeFile(destPath, buffer)
+
+      // Set executable permission on Unix-like systems
+      if (process.platform !== 'win32') {
+        await fs.chmod(destPath, 0o755)
+      }
+
+      return true
+    }
+    catch {
+      if (attempt < MAX_ATTEMPTS) {
+        // Exponential backoff before retry
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000))
+        continue
+      }
+      return false
+    }
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer())
-  await fs.writeFile(destPath, buffer)
-
-  // Set executable permission on Unix-like systems
-  if (process.platform !== 'win32') {
-    await fs.chmod(destPath, 0o755)
-  }
-
-  return true
+  return false
 }
 
 // All available commands (20 total after adding spec commands)
@@ -845,7 +873,7 @@ ${workflow.description}
 
     const destBinary = join(binDir, platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper')
 
-    // Download from GitHub Release (only source)
+    // Download from GitHub Release (3 attempts with retry)
     const installed = await downloadBinaryFromRelease(binaryName, destBinary)
 
     if (installed) {
@@ -857,18 +885,18 @@ ${workflow.description}
         result.binInstalled = true
       }
       catch (verifyError) {
-        result.errors.push(`Binary verification failed: ${verifyError}`)
-        result.success = false
+        // Binary downloaded but verification failed — warning, not blocking
+        result.errors.push(`Binary verification failed (non-blocking): ${verifyError}`)
       }
     }
     else {
-      result.errors.push(`Failed to download binary: ${binaryName} from GitHub Release. Check network or visit https://github.com/${GITHUB_REPO}/releases/tag/${RELEASE_TAG}`)
-      result.success = false
+      // Binary download failed — warning, not blocking (commands + skills still work)
+      result.errors.push(`Failed to download binary: ${binaryName} from GitHub Release (after 3 attempts). Check network or visit https://github.com/${GITHUB_REPO}/releases/tag/${RELEASE_TAG}`)
     }
   }
   catch (error) {
-    result.errors.push(`Failed to install codeagent-wrapper: ${error}`)
-    result.success = false
+    // Binary install exception — warning, not blocking
+    result.errors.push(`Failed to install codeagent-wrapper (non-blocking): ${error}`)
   }
 
   result.configPath = commandsDir

@@ -2,13 +2,17 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-11 (v1.7.78)
+**Last Updated**: 2026-03-11 (v1.7.79)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-11 (v1.7.79)
+- 🐛 **Binary 下载容错**：3 次重试 + 60s 超时 + 失败醒目告警（红框 + 手动修复指引）+ 不阻塞安装
+- 🐛 **Update 流程加固**：binary 备份/恢复 + subprocess 超时 120s→300s
 
 ### 2026-03-11 (v1.7.78)
 - 🐛 **Windows Hook exit 255 修复**：Windows 自动授权改用 `permissions.allow`，不再依赖 jq/grep

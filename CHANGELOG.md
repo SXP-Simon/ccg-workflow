@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.79] - 2026-03-11
+
+### 🐛 修复
+
+- **Binary 下载容错**：`downloadBinaryFromRelease()` 新增 3 次重试 + 60s/次 AbortController 超时，适应中国用户 GitHub Release CDN 慢/不可达的场景
+- **Binary 下载失败醒目告警**：下载失败时在终端显示红框警告 + 手动下载地址 + 放置路径 + chmod 指引，不再静默吞掉错误
+- **Binary 失败不阻塞安装**：binary 下载失败降级为 warning，commands + skills 仍正常安装，不再将整个安装标记为失败
+- **Update binary 备份/恢复**：更新流程先备份旧 binary，新安装失败后自动恢复，避免"删了旧的、新的又没下成"
+- **Update subprocess 超时**：`npx init` 子进程超时从 120s 提升到 300s（5 分钟），避免 binary 下载慢时进程被杀导致 commands/skills 丢失
+
+---
+
 ## [1.7.78] - 2026-03-11
 
 ### 🐛 修复

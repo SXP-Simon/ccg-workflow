@@ -226,7 +226,7 @@ describe('installWorkflows E2E — mcpProvider="contextweaver"', () => {
     })
     expect(result.success).toBe(true)
     expect(result.errors).toEqual([])
-  })
+  }, 30_000)
 
   it('generated command files contain contextweaver references', async () => {
     const planContent = readFileSync(join(tmpDir, 'commands', 'ccg', 'plan.md'), 'utf-8')

@@ -298,11 +298,24 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     }
   }
 
-  // Step 3: Delete old workflows first
+  // Step 3: Backup binary + Delete old workflows
   spinner = ora(i18n.t('update:removingOld')).start()
 
+  const installDir = join(homedir(), '.claude')
+  const binDir = join(installDir, 'bin')
+  const wrapperName = process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper'
+  const wrapperPath = join(binDir, wrapperName)
+  const wrapperBackup = join(binDir, `${wrapperName}.bak`)
+  let binaryBackedUp = false
+
   try {
-    const installDir = join(homedir(), '.claude')
+    // Backup existing binary before uninstall (restore if new install fails)
+    const fsExtra = await import('fs-extra')
+    if (await fsExtra.pathExists(wrapperPath)) {
+      await fsExtra.copy(wrapperPath, wrapperBackup)
+      binaryBackedUp = true
+    }
+
     const uninstallResult = await uninstallWorkflows(installDir)
 
     if (uninstallResult.success) {
@@ -324,13 +337,19 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
 
   try {
     await execAsync(`npx --yes ccg-workflow@latest init --force --skip-mcp --skip-prompt`, {
-      timeout: 120000,
+      timeout: 300000, // 5min — binary download from GitHub Release may be slow (especially in China)
       env: {
         ...process.env,
         CCG_UPDATE_MODE: 'true',
       },
     })
     spinner.succeed(i18n.t('update:installDone'))
+
+    // Clean up binary backup on success
+    if (binaryBackedUp) {
+      const fsExtra = await import('fs-extra')
+      await fsExtra.remove(wrapperBackup).catch(() => {})
+    }
 
     // Read updated config to display installed commands
     const config = await readCcgConfig()
@@ -344,6 +363,22 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
   }
   catch (error) {
     spinner.fail(i18n.t('update:installFailed'))
+
+    // Restore backed-up binary if new install failed
+    if (binaryBackedUp) {
+      try {
+        const fsExtra = await import('fs-extra')
+        if (await fsExtra.pathExists(wrapperBackup)) {
+          await fsExtra.ensureDir(binDir)
+          await fsExtra.move(wrapperBackup, wrapperPath, { overwrite: true })
+          console.log(ansis.yellow(`  • codeagent-wrapper restored from backup`))
+        }
+      }
+      catch {
+        // Backup restore failed — nothing more we can do
+      }
+    }
+
     console.log(ansis.red(`${i18n.t('common:error')}: ${error}`))
     console.log()
     console.log(ansis.yellow(i18n.t('update:manualRetry')))
