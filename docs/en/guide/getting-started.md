@@ -2,22 +2,27 @@
 
 ## What is CCG
 
-In short: **Claude Code directs Codex and Gemini to write code for you.**
+In short: **Codex and Gemini analyze. Claude writes the code. Fully transparent.**
 
 ```
-Claude Code (Director)
-       │
-   ┌───┴───┐
-   ↓       ↓
-Codex   Gemini
-(Backend) (Frontend)
-   │       │
-   └───┬───┘
-       ↓
-  Unified Patch → Claude reviews → Written to files
+Your request
+   │
+   ↓
+Claude Code (orchestration + code writing)
+   │
+   ├── Backend related → sent to Codex for analysis
+   ├── Frontend related → sent to Gemini for analysis
+   │
+   ↓
+Codex/Gemini return analysis (patches / proposals)
+   │
+   ↓
+Claude synthesizes and writes the code ← you see every change
 ```
 
-You describe what you want. CCG figures out who should handle it. The result goes through Claude's review before touching any file. Codex and Gemini never write directly to your codebase.
+**The key point**: by default, Claude is the one writing code — not a black box. You see the full process in Claude Code. Codex and Gemini are "advisors" that never directly touch your files.
+
+There's also **codex-exec mode**: Codex writes the code instead, then Claude + Gemini do multi-model cross-review. Good for well-defined tasks with lower token cost. See [Workflow Guide](/en/guide/workflows).
 
 ## What you need
 

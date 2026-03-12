@@ -2,22 +2,27 @@
 
 ## CCG 是什么
 
-一句话：**Claude Code 指挥 Codex 和 Gemini 帮你写代码。**
+一句话：**Codex 和 Gemini 负责分析，Claude 负责写代码。全程透明。**
 
 ```
-Claude Code (指挥)
-       │
-   ┌───┴───┐
-   ↓       ↓
-Codex   Gemini
-(后端)   (前端)
-   │       │
-   └───┬───┘
-       ↓
-  统一 Patch → Claude 审核 → 写入文件
+你的需求
+   │
+   ↓
+Claude Code (编排 + 写代码)
+   │
+   ├── 后端相关 → 发给 Codex 分析
+   ├── 前端相关 → 发给 Gemini 分析
+   │
+   ↓
+Codex/Gemini 返回分析结果（Patch / 方案）
+   │
+   ↓
+Claude 综合分析结果，写入代码 ← 你能看到每一行改动
 ```
 
-你发一条需求，CCG 判断该给谁干，干完了 Claude 审核，没问题才写入代码。Codex 和 Gemini 全程碰不到你的文件。
+**关键点**：默认模式下最终写代码的是 Claude，不是黑盒——你在 Claude Code 里能看到完整的改动过程。Codex 和 Gemini 是"参谋"，不直接碰你的文件。
+
+还有一种 **codex-exec 模式**：让 Codex 来写代码，写完后 Claude + Gemini 多模型交叉审查。适合目标明确的任务，token 消耗更低。详见[工作流指南](/guide/workflows)。
 
 ## 需要什么
 

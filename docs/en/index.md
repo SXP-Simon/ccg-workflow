@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: CCG
-  text: Three AIs, one codebase
-  tagline: Claude orchestrates. Codex writes backend. Gemini writes frontend. You just describe what you want.
+  text: Three AIs, fully transparent
+  tagline: Codex analyzes backend. Gemini analyzes frontend. Claude writes the code. You see every line.
   image:
     src: /logo.svg
     alt: CCG
@@ -22,10 +22,10 @@ hero:
 features:
   - icon: 🔀
     title: Automatic task routing
-    details: Say "fix the login page" and it goes to Gemini. Say "add an API endpoint" and it goes to Codex. You don't decide who does what.
+    details: Say "fix the login page" — Gemini analyzes. Say "add an API endpoint" — Codex analyzes. Claude takes their analysis and writes the code. You see every change.
   - icon: 🔒
-    title: Claude reviews everything
-    details: Codex and Gemini can only return patches. Claude reviews before anything touches your files. Your codebase stays under control.
+    title: Transparent, no black box
+    details: By default, Claude writes the code and you see the full process. Or use codex-exec to let Codex write code, with Claude + Gemini multi-model review. Either way, nothing is hidden.
   - icon: 📐
     title: No AI improvisation
     details: OPSX integration turns requirements into constraints. The AI works within boundaries, not freestyle.

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: CCG
-  text: 让三个 AI 帮你写代码
-  tagline: Claude 当指挥，Codex 写后端，Gemini 写前端。你只管提需求。
+  text: 三个 AI 协作，代码你看得见
+  tagline: Codex 分析后端，Gemini 分析前端，Claude 写代码。全程透明，没有黑盒。
   image:
     src: /logo.svg
     alt: CCG
@@ -22,10 +22,10 @@ hero:
 features:
   - icon: 🔀
     title: 前端后端自动分流
-    details: 你说"改登录页"，任务自动给 Gemini；你说"加个接口"，任务自动给 Codex。不用操心谁干什么。
+    details: 你说"改登录页"，Gemini 分析方案；你说"加个接口"，Codex 分析方案。Claude 拿到分析结果后写代码——你能看到每一行改动。
   - icon: 🔒
-    title: Claude 全程把关
-    details: Codex 和 Gemini 只能返回 Patch，最终由 Claude 审核才能写入文件。你的代码库永远在控制之中。
+    title: 代码透明，没有黑盒
+    details: 默认模式下 Claude 写代码，你看得见过程。也可以用 codex-exec 让 Codex 写代码，最后 Claude + Gemini 多模型审查。怎么选都不是黑盒。
   - icon: 📐
     title: 不让 AI 自由发挥
     details: 集成 OPSX 规范驱动，需求先变成约束条件，AI 只能在框框里干活。
