@@ -117,6 +117,39 @@ async function downloadBinaryFromRelease(binaryName: string, destPath: string): 
 }
 
 // ═══════════════════════════════════════════════════════
+// Shared file-copy helper
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Copy .md templates from srcDir → destDir with optional variable injection.
+ * Returns list of installed file stems (filename without .md).
+ */
+async function copyMdTemplates(
+  ctx: InstallContext,
+  srcDir: string,
+  destDir: string,
+  options: { inject?: boolean } = {},
+): Promise<string[]> {
+  const installed: string[] = []
+  if (!(await fs.pathExists(srcDir))) return installed
+
+  await fs.ensureDir(destDir)
+  const files = await fs.readdir(srcDir)
+  for (const file of files) {
+    if (!file.endsWith('.md')) continue
+    const destFile = join(destDir, file)
+    if (ctx.force || !(await fs.pathExists(destFile))) {
+      let content = await fs.readFile(join(srcDir, file), 'utf-8')
+      if (options.inject) content = injectConfigVariables(content, ctx.config)
+      content = replaceHomePathsInTemplate(content, ctx.installDir)
+      await fs.writeFile(destFile, content, 'utf-8')
+      installed.push(file.replace('.md', ''))
+    }
+  }
+  return installed
+}
+
+// ═══════════════════════════════════════════════════════
 // Install sub-steps
 // ═══════════════════════════════════════════════════════
 
@@ -174,25 +207,13 @@ ${workflow.description}
  * Install agent .md files from templates/commands/agents/
  */
 async function installAgentFiles(ctx: InstallContext): Promise<void> {
-  const agentsSrcDir = join(ctx.templateDir, 'commands', 'agents')
-  const agentsDestDir = join(ctx.installDir, 'agents', 'ccg')
-  if (!(await fs.pathExists(agentsSrcDir))) return
-
   try {
-    await fs.ensureDir(agentsDestDir)
-    const agentFiles = await fs.readdir(agentsSrcDir)
-    for (const file of agentFiles) {
-      if (file.endsWith('.md')) {
-        const srcFile = join(agentsSrcDir, file)
-        const destFile = join(agentsDestDir, file)
-        if (ctx.force || !(await fs.pathExists(destFile))) {
-          let content = await fs.readFile(srcFile, 'utf-8')
-          content = injectConfigVariables(content, ctx.config)
-          content = replaceHomePathsInTemplate(content, ctx.installDir)
-          await fs.writeFile(destFile, content, 'utf-8')
-        }
-      }
-    }
+    await copyMdTemplates(
+      ctx,
+      join(ctx.templateDir, 'commands', 'agents'),
+      join(ctx.installDir, 'agents', 'ccg'),
+      { inject: true },
+    )
   }
   catch (error) {
     ctx.result.errors.push(`Failed to install agents: ${error}`)
@@ -208,32 +229,20 @@ async function installPromptFiles(ctx: InstallContext): Promise<void> {
   const promptsDir = join(ctx.installDir, '.ccg', 'prompts')
   if (!(await fs.pathExists(promptsTemplateDir))) return
 
-  const modelDirs = ['codex', 'gemini', 'claude']
-  for (const model of modelDirs) {
-    const srcModelDir = join(promptsTemplateDir, model)
-    const destModelDir = join(promptsDir, model)
-
-    if (await fs.pathExists(srcModelDir)) {
-      try {
-        await fs.ensureDir(destModelDir)
-        const files = await fs.readdir(srcModelDir)
-        for (const file of files) {
-          if (file.endsWith('.md')) {
-            const srcFile = join(srcModelDir, file)
-            const destFile = join(destModelDir, file)
-            if (ctx.force || !(await fs.pathExists(destFile))) {
-              const content = await fs.readFile(srcFile, 'utf-8')
-              const processed = replaceHomePathsInTemplate(content, ctx.installDir)
-              await fs.writeFile(destFile, processed, 'utf-8')
-              ctx.result.installedPrompts.push(`${model}/${file.replace('.md', '')}`)
-            }
-          }
-        }
+  for (const model of ['codex', 'gemini', 'claude']) {
+    try {
+      const installed = await copyMdTemplates(
+        ctx,
+        join(promptsTemplateDir, model),
+        join(promptsDir, model),
+      )
+      for (const name of installed) {
+        ctx.result.installedPrompts.push(`${model}/${name}`)
       }
-      catch (error) {
-        ctx.result.errors.push(`Failed to install ${model} prompts: ${error}`)
-        ctx.result.success = false
-      }
+    }
+    catch (error) {
+      ctx.result.errors.push(`Failed to install ${model} prompts: ${error}`)
+      ctx.result.success = false
     }
   }
 }
@@ -322,29 +331,27 @@ async function installSkillFiles(ctx: InstallContext): Promise<void> {
  * Install rule .md files from templates/rules/ → ~/.claude/rules/
  */
 async function installRuleFiles(ctx: InstallContext): Promise<void> {
-  const rulesTemplateDir = join(ctx.templateDir, 'rules')
-  const rulesDestDir = join(ctx.installDir, 'rules')
-  if (!(await fs.pathExists(rulesTemplateDir))) return
-
   try {
-    await fs.ensureDir(rulesDestDir)
-    const rulesFiles = await fs.readdir(rulesTemplateDir)
-    for (const file of rulesFiles) {
-      if (file.endsWith('.md')) {
-        const srcFile = join(rulesTemplateDir, file)
-        const destFile = join(rulesDestDir, file)
-        if (ctx.force || !(await fs.pathExists(destFile))) {
-          const content = await fs.readFile(srcFile, 'utf-8')
-          const processed = replaceHomePathsInTemplate(content, ctx.installDir)
-          await fs.writeFile(destFile, processed, 'utf-8')
-        }
-      }
-    }
-    ctx.result.installedRules = true
+    const installed = await copyMdTemplates(
+      ctx,
+      join(ctx.templateDir, 'rules'),
+      join(ctx.installDir, 'rules'),
+    )
+    if (installed.length > 0) ctx.result.installedRules = true
   }
   catch (error) {
     ctx.result.errors.push(`Failed to install rules: ${error}`)
   }
+}
+
+/** Resolve platform-specific binary name. Returns null for unsupported platforms. */
+function getBinaryName(): string | null {
+  const osMap: Record<string, string> = { darwin: 'darwin', linux: 'linux', win32: 'windows' }
+  const os = osMap[process.platform]
+  if (!os) return null
+  const arch = process.arch === 'arm64' ? 'arm64' : 'amd64'
+  const ext = process.platform === 'win32' ? '.exe' : ''
+  return `codeagent-wrapper-${os}-${arch}${ext}`
 }
 
 /**
@@ -355,26 +362,14 @@ async function installBinaryFile(ctx: InstallContext): Promise<void> {
     const binDir = join(ctx.installDir, 'bin')
     await fs.ensureDir(binDir)
 
-    const platform = process.platform
-    const arch = process.arch
-    let binaryName: string
-
-    if (platform === 'darwin') {
-      binaryName = arch === 'arm64' ? 'codeagent-wrapper-darwin-arm64' : 'codeagent-wrapper-darwin-amd64'
-    }
-    else if (platform === 'linux') {
-      binaryName = arch === 'arm64' ? 'codeagent-wrapper-linux-arm64' : 'codeagent-wrapper-linux-amd64'
-    }
-    else if (platform === 'win32') {
-      binaryName = arch === 'arm64' ? 'codeagent-wrapper-windows-arm64.exe' : 'codeagent-wrapper-windows-amd64.exe'
-    }
-    else {
-      ctx.result.errors.push(`Unsupported platform: ${platform}`)
+    const binaryName = getBinaryName()
+    if (!binaryName) {
+      ctx.result.errors.push(`Unsupported platform: ${process.platform}`)
       ctx.result.success = false
       return
     }
 
-    const destBinary = join(binDir, platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper')
+    const destBinary = join(binDir, process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper')
     const installed = await downloadBinaryFromRelease(binaryName, destBinary)
 
     if (installed) {

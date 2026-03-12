@@ -207,20 +207,11 @@ RERANK_TOP_N=20
 }
 
 /**
- * Uninstall ContextWeaver MCP from Claude Code
+ * Uninstall ContextWeaver MCP from Claude Code.
+ * Delegates to generic uninstallMcpServer.
  */
-export async function uninstallContextWeaver(): Promise<{ success: boolean, message: string }> {
-  try {
-    const existingConfig = await readClaudeCodeConfig()
-    if (existingConfig?.mcpServers?.contextweaver) {
-      delete existingConfig.mcpServers.contextweaver
-      await writeClaudeCodeConfig(existingConfig)
-    }
-    return { success: true, message: 'ContextWeaver MCP uninstalled successfully' }
-  }
-  catch (error) {
-    return { success: false, message: `Failed to uninstall ContextWeaver: ${error}` }
-  }
+export function uninstallContextWeaver(): Promise<{ success: boolean, message: string }> {
+  return uninstallMcpServer('contextweaver')
 }
 
 // ═══════════════════════════════════════════════════════
@@ -247,20 +238,11 @@ export async function installFastContext(config: FastContextConfig): Promise<Mcp
 }
 
 /**
- * Uninstall Fast Context MCP from Claude Code
+ * Uninstall Fast Context MCP from Claude Code.
+ * Delegates to generic uninstallMcpServer.
  */
-export async function uninstallFastContext(): Promise<{ success: boolean, message: string }> {
-  try {
-    const existingConfig = await readClaudeCodeConfig()
-    if (existingConfig?.mcpServers?.['fast-context']) {
-      delete existingConfig.mcpServers['fast-context']
-      await writeClaudeCodeConfig(existingConfig)
-    }
-    return { success: true, message: 'fast-context MCP uninstalled successfully' }
-  }
-  catch (error) {
-    return { success: false, message: `Failed to uninstall fast-context: ${error}` }
-  }
+export function uninstallFastContext(): Promise<{ success: boolean, message: string }> {
+  return uninstallMcpServer('fast-context')
 }
 
 // ═══════════════════════════════════════════════════════
