@@ -1,34 +1,32 @@
 # Configuration
 
-## Directory Structure
-
-CCG installation layout:
+## Where things live after install
 
 ```
 ~/.claude/
-├── commands/ccg/       # 28 slash commands
+├── commands/ccg/       # 28 command templates
 ├── agents/ccg/         # 4 sub-agents
-├── skills/ccg/         # Quality gates + multi-agent orchestration
+├── skills/ccg/         # Quality checks + multi-agent orchestration
 ├── bin/codeagent-wrapper
 └── .ccg/
-    ├── config.toml     # CCG configuration
+    ├── config.toml     # CCG config
     └── prompts/
-        ├── codex/      # 6 Codex expert prompts
-        └── gemini/     # 7 Gemini expert prompts
+        ├── codex/      # 6 Codex role prompts
+        └── gemini/     # 7 Gemini role prompts
 ```
 
-## Environment Variables
+## Environment variables
 
-Configure in `~/.claude/settings.json` under `"env"`:
+Set these in `~/.claude/settings.json` under `"env"`:
 
-| Variable | Description | Default | When to change |
+| Variable | What it does | Default | When to change |
 |----------|-------------|---------|----------------|
-| `CODEAGENT_POST_MESSAGE_DELAY` | Wait after Codex completion (sec) | `5` | Set to `1` if Codex process hangs |
-| `CODEX_TIMEOUT` | Wrapper execution timeout (sec) | `7200` | Increase for very long tasks |
-| `BASH_DEFAULT_TIMEOUT_MS` | Claude Code Bash timeout (ms) | `120000` | Increase if commands time out |
-| `BASH_MAX_TIMEOUT_MS` | Claude Code Bash max timeout (ms) | `600000` | Increase for long builds |
+| `CODEAGENT_POST_MESSAGE_DELAY` | Seconds to wait after Codex finishes | `5` | Process hangs? Set to `1` |
+| `CODEX_TIMEOUT` | Total wrapper timeout (seconds) | `7200` | Very large tasks |
+| `BASH_DEFAULT_TIMEOUT_MS` | Bash command timeout (ms) | `120000` | Commands timing out |
+| `BASH_MAX_TIMEOUT_MS` | Bash max timeout (ms) | `600000` | Slow builds |
 
-::: details Example settings.json
+::: details Full settings.json example
 
 ```json
 {
@@ -42,16 +40,16 @@ Configure in `~/.claude/settings.json` under `"env"`:
 ```
 :::
 
-## Fixed Configuration
+## What's hardcoded
 
-Since v1.7.0, the following are no longer customizable:
+Since v1.7.0, these are fixed:
 
-| Setting | Fixed Value | Reason |
-|---------|------------|--------|
-| Frontend model | Gemini | Best at UI/CSS/components |
-| Backend model | Codex | Best at logic/algorithms/debugging |
-| Collaboration mode | smart | Best practice |
-| Command count | 28 | All installed |
+- Frontend model = Gemini (genuinely better at UI/CSS)
+- Backend model = Codex (genuinely better at logic/debugging)
+- Collaboration mode = smart
+- All 28 commands installed
+
+We locked these down because testing showed this combo works best. If you disagree, open an Issue — happy to discuss.
 
 ## Utilities
 
@@ -59,35 +57,23 @@ Since v1.7.0, the following are no longer customizable:
 npx ccg-workflow menu  # Select "Tools"
 ```
 
-- **ccusage** — Claude Code usage analytics
-- **CCometixLine** — Status bar tool (Git + usage tracking)
+- **ccusage** — See how much your Claude Code sessions cost
+- **CCometixLine** — Git info + usage tracking in your status bar
 
 ## FAQ
 
-### Codex CLI 0.80.0 process does not exit
+**Codex finishes but the process won't exit**
 
-In `--json` mode, Codex does not automatically exit after output completion.
+Set `CODEAGENT_POST_MESSAGE_DELAY` to `1`. Known issue with Codex CLI 0.80.0 in `--json` mode.
 
-**Fix**: Set `CODEAGENT_POST_MESSAGE_DELAY=1`.
+**Node 18 throws SyntaxError**
 
-### Node 18 throws SyntaxError
+Upgrade to Node 20+. `ora@9.x` uses Node 20 syntax.
 
-CCG depends on `ora@9.x`, which requires Node >= 20.
+**MCP tools not responding**
 
-**Fix**: Upgrade to Node 20+.
+Run `npx ccg-workflow diagnose-mcp`.
 
-### MCP tools not working
+**Can't find Agent Teams commands**
 
-**Fix**: Run `npx ccg-workflow diagnose-mcp` to check configuration.
-
-### Agent Teams commands unavailable
-
-**Fix**: Add to `settings.json`:
-
-```json
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
-}
-```
+Add `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` to your settings.json env. It's still experimental.

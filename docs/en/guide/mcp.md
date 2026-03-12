@@ -1,61 +1,50 @@
 # MCP Configuration
 
-MCP (Model Context Protocol) tools enhance Claude Code's code retrieval and search capabilities. CCG supports multiple MCP providers.
-
-## Setup
+MCP tools make Claude Code's code search smarter. Not required, but the experience is noticeably better with them.
 
 ```bash
 npx ccg-workflow menu  # Select "Configure MCP"
 ```
 
-## Code Retrieval (choose one)
+## Code retrieval (pick one)
 
-### ace-tool (Recommended)
+### ace-tool
 
-Code search service based on Augment Code, providing semantic retrieval via `search_context`.
+Semantic code search powered by Augment Code. It doesn't just grep keywords — it understands what you're looking for.
 
-- **Pros**: High search quality, good context understanding
-- **Note**: Requires Augment Code account or third-party proxy
-- [Official](https://augmentcode.com/) | [Third-party proxy](https://acemcp.heroman.wtf/)
+Needs an Augment Code account. No account? Try the [third-party proxy](https://acemcp.heroman.wtf/).
 
-### fast-context (Recommended)
+### fast-context
 
-AI-powered code search based on Windsurf Fast Context, no full-repo indexing required.
+Windsurf's Fast Context. AI-powered search that doesn't need to index your entire repo. Fast.
 
-- **Pros**: No indexing needed, fast search
-- **Note**: Requires Windsurf account
-- Supports optional API Key and `FC_INCLUDE_SNIPPETS` mode
+Needs a Windsurf account.
 
-### ContextWeaver (Alternative)
+### ContextWeaver
 
-Local hybrid search engine combining Embedding + Rerank.
+Fully local hybrid search (Embedding + Rerank). Works offline. Needs a SiliconFlow API Key (free to sign up).
 
-- **Pros**: Fully local, works offline
-- **Note**: Requires SiliconFlow API Key (free)
+## Optional tools
 
-## Optional Tools
+- **Context7** — Fetches latest library docs. Auto-installed, zero config.
+- **Playwright** — Browser automation and testing.
+- **DeepWiki** — Knowledge base queries.
+- **Exa** — Search engine, needs API Key.
 
-| Tool | Description | Requires API Key |
-|------|-------------|-----------------|
-| **Context7** | Latest library documentation | No (auto-installed) |
-| **Playwright** | Browser automation / testing | No |
-| **DeepWiki** | Knowledge base queries | No |
-| **Exa** | Search engine | Yes |
+## MCP sync
 
-## MCP Sync
+After you configure MCP, CCG auto-syncs the config to Codex and Gemini:
 
-CCG automatically syncs MCP configuration to Codex and Gemini:
+- Codex: `~/.codex/config.toml`
+- Gemini: `~/.gemini/settings.json`
 
-- **Codex sync**: `~/.codex/config.toml` — Codex can use MCP search when running `/ccg:codex-exec`
-- **Gemini sync**: `~/.gemini/settings.json` — Gemini can use the same MCP tools
+So when you run `/ccg:codex-exec`, Codex can use MCP search directly. No extra setup.
 
-Synced MCP server IDs: `grok-search`, `context7`, `ace-tool`, `contextweaver`, `fast-context`
+## Auto-authorization
 
-## Auto-Authorization Hook
+After installation, CCG sets up a Hook so `codeagent-wrapper` commands don't need manual confirmation every time. Requires [jq](https://jqlang.github.io/jq/).
 
-CCG automatically installs a Hook to authorize `codeagent-wrapper` commands (requires [jq](https://jqlang.github.io/jq/)).
-
-::: details Manual setup (for versions before v1.7.71)
+::: details Manual setup (before v1.7.71)
 
 Add to `~/.claude/settings.json`:
 
@@ -79,10 +68,10 @@ Add to `~/.claude/settings.json`:
 ```
 :::
 
-## Diagnostics
-
-If MCP tools aren't working, run the diagnostic command:
+## Something not working?
 
 ```bash
 npx ccg-workflow diagnose-mcp
 ```
+
+This checks what's wrong with your MCP setup.

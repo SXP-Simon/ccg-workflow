@@ -1,158 +1,118 @@
 # Command Reference
 
-CCG provides 28 slash commands covering the full development lifecycle. All commands are accessed via `/ccg:*`.
+28 commands, all prefixed with `/ccg:`. Grouped by purpose.
 
-## Development Workflow
+## The workhorses
 
-| Command | Description | Model |
-|---------|-------------|-------|
-| `/ccg:workflow` | Full 6-phase workflow (research → ideate → plan → execute → optimize → review) | Codex + Gemini |
-| `/ccg:plan` | Multi-model collaborative planning (Phase 1-2) | Codex + Gemini |
-| `/ccg:execute` | Multi-model collaborative execution (Phase 3-5) | Codex + Gemini + Claude |
-| `/ccg:codex-exec` | Codex full execution (plan → code → review) | Codex + multi-model review |
-| `/ccg:feat` | Smart feature development | Auto-routed |
-| `/ccg:frontend` | Frontend tasks (fast mode) | Gemini |
-| `/ccg:backend` | Backend tasks (fast mode) | Codex |
+The ones you'll use most. Frontend tasks go to Gemini, backend tasks to Codex, automatically.
 
-### Usage Examples
+| Command | What it does | Who does it |
+|---------|-------------|-------------|
+| `/ccg:workflow` | Full cycle: research → ideate → plan → execute → optimize → review | Codex + Gemini |
+| `/ccg:plan` | Just plan, don't touch code | Codex + Gemini |
+| `/ccg:execute` | Run a plan file, Claude leads | Codex + Gemini + Claude |
+| `/ccg:codex-exec` | Run a plan file, Codex leads, Claude only reviews | Codex |
+| `/ccg:feat` | Figures out whether to plan or just do it | Auto |
+| `/ccg:frontend` | Frontend work | Gemini |
+| `/ccg:backend` | Backend work | Codex |
 
 ```bash
-# Full workflow
-/ccg:workflow implement user authentication
+# Simplest usage
+/ccg:frontend change the card component to grid layout
+/ccg:backend add pagination to /api/users
 
-# Planning only (no execution)
-/ccg:plan implement user authentication
-
-# Frontend fast mode
-/ccg:frontend optimize login page responsive layout
+# Plan first, execute later
+/ccg:plan implement JWT auth
+# Plan saved to .claude/plan/ — review and edit it
+/ccg:execute .claude/plan/jwt-auth.md
 ```
 
-## Analysis & Quality
+## The investigators
 
-| Command | Description | Model |
-|---------|-------------|-------|
-| `/ccg:analyze` | Technical analysis | Codex + Gemini |
-| `/ccg:debug` | Problem diagnosis + fix | Codex + Gemini |
-| `/ccg:optimize` | Performance optimization | Codex + Gemini |
-| `/ccg:test` | Test generation | Auto-routed |
-| `/ccg:review` | Code review (auto git diff) | Codex + Gemini |
-| `/ccg:enhance` | Prompt enhancement | Built-in |
+Don't write code, just analyze. Two models cross-verify each other.
 
-### Usage Examples
+| Command | What it does |
+|---------|-------------|
+| `/ccg:analyze` | Technical analysis |
+| `/ccg:debug` | Diagnose bugs + suggest fixes |
+| `/ccg:optimize` | Find performance bottlenecks |
+| `/ccg:test` | Generate tests |
+| `/ccg:review` | Code review — no args means review latest git diff |
+| `/ccg:enhance` | Turn vague requests into structured task descriptions |
 
 ```bash
-# No args — auto-review recent changes
+# Review recent changes
 /ccg:review
 
-# Analyze a specific module
-/ccg:analyze src/auth/ security
-
-# Generate tests
-/ccg:test src/utils/validator.ts
+# Diagnose a specific issue
+/ccg:debug why does the WebSocket connection drop after 30 seconds
 ```
 
-## OPSX Spec-Driven
+## OPSX spec-driven
 
-Integrates [OPSX](https://github.com/fission-ai/opsx) architecture to turn requirements into constraints.
+Don't want the AI to improvise? This group turns requirements into constraints first, then executes within those constraints.
 
-| Command | Description |
+| Command | What it does |
 |---------|-------------|
-| `/ccg:spec-init` | Initialize OPSX environment |
-| `/ccg:spec-research` | Requirements → Constraints |
-| `/ccg:spec-plan` | Constraints → Zero-decision plan |
-| `/ccg:spec-impl` | Execute plan + archive |
-| `/ccg:spec-review` | Dual-model cross-review |
-
-### Usage Examples
+| `/ccg:spec-init` | Set up OPSX environment |
+| `/ccg:spec-research` | Research requirements, output constraints |
+| `/ccg:spec-plan` | Turn constraints into a zero-decision plan |
+| `/ccg:spec-impl` | Execute the plan |
+| `/ccg:spec-review` | Dual-model review (can use anytime) |
 
 ```bash
 /ccg:spec-init
-/ccg:spec-research implement user auth
+/ccg:spec-research implement RBAC permission system
 /ccg:spec-plan
 /ccg:spec-impl
-/ccg:spec-review
 ```
 
 ::: tip
-You can `/clear` between phases — state is persisted in the `openspec/` directory.
+State lives in `openspec/`. You can `/clear` between phases without losing anything.
 :::
 
-## Agent Teams (v1.7.60+)
+## Agent Teams (parallel)
 
-Leverage Claude Code Agent Teams to spawn multiple Builder teammates for parallel coding.
+Task splits into 3+ independent modules? Multiple Builders work at the same time.
 
-| Command | Description |
+| Command | What it does |
 |---------|-------------|
-| `/ccg:team-research` | Requirements → constraints (parallel exploration) |
-| `/ccg:team-plan` | Constraints → parallel implementation plan |
-| `/ccg:team-exec` | Spawn Builder teammates for parallel coding |
-| `/ccg:team-review` | Dual-model cross-review |
-
-::: warning Prerequisite
-Enable Agent Teams in `settings.json`:
-
-```json
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
-}
-```
-:::
-
-### Usage Examples
+| `/ccg:team-research` | Explore codebase in parallel, output constraints |
+| `/ccg:team-plan` | Split into tasks that don't step on each other |
+| `/ccg:team-exec` | Builders code in parallel |
+| `/ccg:team-review` | Codex + Gemini cross-review |
 
 ```bash
-/ccg:team-research implement kanban API
+/ccg:team-research implement order system with CRUD, payment, and notifications
 # /clear
-/ccg:team-plan kanban-api
+/ccg:team-plan order-system
 # /clear
 /ccg:team-exec
 # /clear
 /ccg:team-review
 ```
 
-## Git Tools
+::: warning
+Requires experimental feature flag: `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"` in settings.json.
+:::
 
-| Command | Description |
+## Git tools
+
+| Command | What it does |
 |---------|-------------|
-| `/ccg:commit` | Smart commit (conventional commit format) |
+| `/ccg:commit` | Analyzes diff, generates conventional commit message |
 | `/ccg:rollback` | Interactive rollback |
-| `/ccg:clean-branches` | Clean merged branches |
+| `/ccg:clean-branches` | Clean merged branches (dry-run by default, safe to try) |
 | `/ccg:worktree` | Worktree management |
 
-### Usage Examples
+## Project management
 
-```bash
-# Smart commit (auto-analyze diff)
-/ccg:commit
-
-# Interactive rollback
-/ccg:rollback
-
-# Clean merged branches (dry-run by default)
-/ccg:clean-branches
-```
-
-## Project Setup
-
-| Command | Description |
+| Command | What it does |
 |---------|-------------|
-| `/ccg:init` | Initialize project CLAUDE.md |
-| `/ccg:context` | Project context management (.context/ init, log, compress, history) |
-
-### Usage Examples
+| `/ccg:init` | Generate CLAUDE.md for the project |
+| `/ccg:context` | Manage .context directory: log decisions, compress, view history |
 
 ```bash
-# Initialize project AI context
-/ccg:init
-
-# Initialize .context directory
 /ccg:context init
-
-# Log a decision
 /ccg:context log "Chose PostgreSQL for JSONB support"
-
-# View context history
-/ccg:context history
 ```

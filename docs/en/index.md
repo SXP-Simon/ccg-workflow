@@ -3,17 +3,17 @@ layout: home
 
 hero:
   name: CCG
-  text: Claude + Codex + Gemini
-  tagline: Multi-Model Collaboration System — Claude orchestrates, Codex handles backend, Gemini handles frontend
+  text: Three AIs, one codebase
+  tagline: Claude orchestrates. Codex writes backend. Gemini writes frontend. You just describe what you want.
   image:
     src: /logo.svg
     alt: CCG
   actions:
     - theme: brand
-      text: Get Started
+      text: Get started in 3 minutes
       link: /en/guide/getting-started
     - theme: alt
-      text: Commands
+      text: See all commands
       link: /en/guide/commands
     - theme: alt
       text: GitHub
@@ -21,21 +21,21 @@ hero:
 
 features:
   - icon: 🔀
-    title: Zero-Config Model Routing
-    details: Frontend tasks automatically go to Gemini, backend tasks to Codex. No manual switching.
+    title: Automatic task routing
+    details: Say "fix the login page" and it goes to Gemini. Say "add an API endpoint" and it goes to Codex. You don't decide who does what.
   - icon: 🔒
-    title: Security by Design
-    details: External models have no write access. They return patches; Claude reviews before applying.
-  - icon: 🛠️
-    title: 28 Slash Commands
-    details: From planning to execution, git workflow to code review, all accessible via /ccg:*.
+    title: Claude reviews everything
+    details: Codex and Gemini can only return patches. Claude reviews before anything touches your files. Your codebase stays under control.
   - icon: 📐
-    title: Spec-Driven Development
-    details: Integrates OPSX to turn vague requirements into verifiable constraints, eliminating AI improvisation.
+    title: No AI improvisation
+    details: OPSX integration turns requirements into constraints. The AI works within boundaries, not freestyle.
   - icon: 👥
-    title: Agent Teams Parallel
-    details: Spawn multiple Builder teammates for parallel coding. Ideal for tasks with 3+ independent modules.
-  - icon: 📦
-    title: One-Line Install
-    details: npx ccg-workflow — supports macOS, Linux, and Windows.
+    title: Parallel coding with Agent Teams
+    details: Multiple Builders write different modules simultaneously, then dual-model cross-review catches what humans might miss.
+  - icon: ⚡
+    title: One line, ready to go
+    details: npx ccg-workflow — 28 commands, works on macOS, Linux, and Windows.
+  - icon: 🧩
+    title: MCP ecosystem built in
+    details: ace-tool, fast-context, Context7 and more — one-click setup, auto-synced to Codex and Gemini.
 ---

@@ -1,158 +1,119 @@
 # 命令参考
 
-CCG 提供 28 个斜杠命令，覆盖开发全流程。所有命令通过 `/ccg:*` 访问。
+28 个命令，全部 `/ccg:` 开头。按用途分了几组。
 
-## 开发工作流
+## 干活的
 
-| 命令 | 说明 | 模型 |
-|------|------|------|
-| `/ccg:workflow` | 6 阶段完整工作流（研究→构思→计划→执行→优化→评审） | Codex + Gemini |
-| `/ccg:plan` | 多模型协作规划（Phase 1-2） | Codex + Gemini |
-| `/ccg:execute` | 多模型协作执行（Phase 3-5） | Codex + Gemini + Claude |
-| `/ccg:codex-exec` | Codex 全权执行（计划 → 代码 → 审核） | Codex + 多模型审核 |
-| `/ccg:feat` | 智能功能开发 | 自动路由 |
-| `/ccg:frontend` | 前端任务（快速模式） | Gemini |
-| `/ccg:backend` | 后端任务（快速模式） | Codex |
+最常用的几个。前端任务自动找 Gemini，后端任务自动找 Codex。
 
-### 使用示例
+| 命令 | 干什么 | 谁来干 |
+|------|--------|--------|
+| `/ccg:workflow` | 完整走一遍：研究→构思→计划→执行→优化→评审 | Codex + Gemini |
+| `/ccg:plan` | 只做规划，不动代码 | Codex + Gemini |
+| `/ccg:execute` | 拿着计划文件开干，Claude 主导 | Codex + Gemini + Claude |
+| `/ccg:codex-exec` | 拿着计划文件开干，Codex 主导，Claude 只审核 | Codex |
+| `/ccg:feat` | 智能判断该规划还是直接干 | 自动选 |
+| `/ccg:frontend` | 前端活 | Gemini |
+| `/ccg:backend` | 后端活 | Codex |
 
 ```bash
-# 完整工作流
-/ccg:workflow 实现用户认证功能
+# 最简单的用法
+/ccg:frontend 把首页的卡片组件改成 Grid 布局
+/ccg:backend 给 /api/users 加分页参数
 
-# 只做规划（不执行）
-/ccg:plan 实现用户认证功能
-
-# 前端快速模式
-/ccg:frontend 优化登录页面的响应式布局
+# 先规划后执行
+/ccg:plan 实现 JWT 认证
+# 计划存在 .claude/plan/ 里，看完觉得没问题：
+/ccg:execute .claude/plan/jwt-auth.md
 ```
 
-## 分析与质量
+## 查问题的
 
-| 命令 | 说明 | 模型 |
-|------|------|------|
-| `/ccg:analyze` | 技术分析 | Codex + Gemini |
-| `/ccg:debug` | 问题诊断 + 修复 | Codex + Gemini |
-| `/ccg:optimize` | 性能优化 | Codex + Gemini |
-| `/ccg:test` | 测试生成 | 自动路由 |
-| `/ccg:review` | 代码审查（自动 git diff） | Codex + Gemini |
-| `/ccg:enhance` | Prompt 增强 | 内置 |
+不写代码，只分析。双模型交叉验证，一个看前端一个看后端。
 
-### 使用示例
+| 命令 | 干什么 |
+|------|--------|
+| `/ccg:analyze` | 技术分析 |
+| `/ccg:debug` | 诊断 Bug + 给修复方案 |
+| `/ccg:optimize` | 找性能瓶颈 |
+| `/ccg:test` | 生成测试 |
+| `/ccg:review` | 代码审查，不传参数就审最近的 git diff |
+| `/ccg:enhance` | 把模糊需求变成结构化描述 |
 
 ```bash
-# 无参数自动审查最近改动
+# 自动审查最近改动
 /ccg:review
 
-# 分析特定模块
-/ccg:analyze src/auth/ 的安全性
-
-# 生成测试
-/ccg:test src/utils/validator.ts
+# 诊断具体问题
+/ccg:debug 为什么 WebSocket 连接会在 30 秒后断开
 ```
 
 ## OPSX 规范驱动
 
-集成 [OPSX](https://github.com/fission-ai/opsx) 架构，把需求变成约束。
+不想让 AI 自由发挥？用这组。先把需求变成约束条件，再按约束执行。
 
-| 命令 | 说明 |
-|------|------|
+| 命令 | 干什么 |
+|------|--------|
 | `/ccg:spec-init` | 初始化 OPSX 环境 |
-| `/ccg:spec-research` | 需求 → 约束集 |
-| `/ccg:spec-plan` | 约束 → 零决策计划 |
-| `/ccg:spec-impl` | 按计划执行 + 归档 |
-| `/ccg:spec-review` | 双模型交叉审查 |
-
-### 使用示例
+| `/ccg:spec-research` | 研究需求，输出约束 |
+| `/ccg:spec-plan` | 约束变计划，所有决策在这步做完 |
+| `/ccg:spec-impl` | 按计划执行 |
+| `/ccg:spec-review` | 双模型审查（任何时候都能用） |
 
 ```bash
 /ccg:spec-init
-/ccg:spec-research 实现用户认证
+/ccg:spec-research 实现 RBAC 权限系统
+# 可以 /clear 释放上下文
 /ccg:spec-plan
 /ccg:spec-impl
-/ccg:spec-review
 ```
 
 ::: tip
-每阶段之间可 `/clear`，状态存在 `openspec/` 目录，不怕上下文爆。
+状态存在 `openspec/` 目录里，中间随便 `/clear`，不会丢。
 :::
 
-## Agent Teams（v1.7.60+）
+## Agent Teams 并行
 
-利用 Claude Code Agent Teams 实验特性，spawn 多个 Builder teammates 并行写代码。
+任务能拆成 3 个以上独立模块？用这组。多个 Builder 同时写代码。
 
-| 命令 | 说明 |
-|------|------|
-| `/ccg:team-research` | 需求 → 约束集（并行探索） |
-| `/ccg:team-plan` | 约束 → 并行实施计划 |
-| `/ccg:team-exec` | spawn Builder teammates 并行写代码 |
-| `/ccg:team-review` | 双模型交叉审查 |
-
-::: warning 前置条件
-需在 `settings.json` 中启用实验特性：
-
-```json
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
-}
-```
-:::
-
-### 使用示例
+| 命令 | 干什么 |
+|------|--------|
+| `/ccg:team-research` | 并行探索代码库，产出约束 |
+| `/ccg:team-plan` | 拆分任务，确保模块之间不打架 |
+| `/ccg:team-exec` | Builder 们同时开工 |
+| `/ccg:team-review` | Codex + Gemini 交叉审查 |
 
 ```bash
-/ccg:team-research 实现实时协作看板 API
+/ccg:team-research 实现订单系统的 CRUD + 支付 + 通知三个模块
 # /clear
-/ccg:team-plan kanban-api
+/ccg:team-plan order-system
 # /clear
 /ccg:team-exec
 # /clear
 /ccg:team-review
 ```
 
+::: warning
+需要先在 `settings.json` 里开实验特性：`"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"`
+:::
+
 ## Git 工具
 
-| 命令 | 说明 |
-|------|------|
-| `/ccg:commit` | 智能提交（conventional commit 格式） |
+| 命令 | 干什么 |
+|------|--------|
+| `/ccg:commit` | 分析 diff 自动生成 conventional commit |
 | `/ccg:rollback` | 交互式回滚 |
-| `/ccg:clean-branches` | 清理已合并分支 |
+| `/ccg:clean-branches` | 清理已合并分支（默认 dry-run，放心用） |
 | `/ccg:worktree` | Worktree 管理 |
-
-### 使用示例
-
-```bash
-# 智能提交（自动分析 diff）
-/ccg:commit
-
-# 交互式回滚
-/ccg:rollback
-
-# 清理已合并分支（默认 dry-run）
-/ccg:clean-branches
-```
 
 ## 项目管理
 
-| 命令 | 说明 |
-|------|------|
-| `/ccg:init` | 初始化项目 CLAUDE.md |
-| `/ccg:context` | 项目上下文管理（.context 初始化/日志/压缩/历史） |
-
-### 使用示例
+| 命令 | 干什么 |
+|------|--------|
+| `/ccg:init` | 给项目生成 CLAUDE.md |
+| `/ccg:context` | 管理 .context 目录：记决策、压缩日志、看历史 |
 
 ```bash
-# 初始化项目 AI 上下文
-/ccg:init
-
-# 初始化 .context 目录
 /ccg:context init
-
-# 记录决策日志
-/ccg:context log "选择 PostgreSQL 因为需要 JSONB 支持"
-
-# 查看上下文历史
-/ccg:context history
+/ccg:context log "选 PostgreSQL 是因为需要 JSONB"
 ```

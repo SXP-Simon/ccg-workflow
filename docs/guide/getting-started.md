@@ -1,9 +1,11 @@
 # 快速开始
 
-## 架构概览
+## CCG 是什么
+
+一句话：**Claude Code 指挥 Codex 和 Gemini 帮你写代码。**
 
 ```
-Claude Code (编排)
+Claude Code (指挥)
        │
    ┌───┴───┐
    ↓       ↓
@@ -12,30 +14,28 @@ Codex   Gemini
    │       │
    └───┬───┘
        ↓
-  Unified Patch
+  统一 Patch → Claude 审核 → 写入文件
 ```
 
-外部模型无写入权限，仅返回 Patch，由 Claude 审核后应用。
+你发一条需求，CCG 判断该给谁干，干完了 Claude 审核，没问题才写入代码。Codex 和 Gemini 全程碰不到你的文件。
 
-## 前置条件
+## 需要什么
 
-| 依赖 | 必需 | 说明 |
-|------|------|------|
-| **Node.js 20+** | 是 | `ora@9.x` 要求 Node >= 20 |
-| **Claude Code CLI** | 是 | [安装方法](#安装-claude-code) |
-| **jq** | 是 | 用于自动授权 Hook |
-| **Codex CLI** | 否 | 启用后端路由 |
-| **Gemini CLI** | 否 | 启用前端路由 |
+- **Node.js 20+** — 低于 20 会报错，不要问为什么（`ora@9.x` 的锅）
+- **Claude Code CLI** — 没有这个什么都跑不了
+- **jq** — 自动授权 Hook 要用
+- **Codex CLI** — 可选，装了才有后端路由
+- **Gemini CLI** — 可选，装了才有前端路由
 
-## 安装
+## 装上
 
 ```bash
 npx ccg-workflow
 ```
 
-首次运行会提示选择语言（简体中文 / English），选择后自动保存。
+第一次跑会让你选语言，选完就不问了。
 
-### 安装 jq
+### jq 怎么装
 
 ::: code-group
 
@@ -53,51 +53,42 @@ sudo yum install jq
 
 ```bash [Windows]
 choco install jq
-# 或
+# 或者
 scoop install jq
 ```
 
 :::
 
-### 安装 Claude Code
+### Claude Code 怎么装
 
 ```bash
-npx ccg-workflow menu  # 选择「安装 Claude Code」
+npx ccg-workflow menu  # 里面有「安装 Claude Code」选项
 ```
 
-支持：npm、homebrew、curl、powershell、cmd。
+npm、homebrew、curl、powershell、cmd 都支持。
 
-## 验证安装
+## 试一下
 
-安装完成后，在 Claude Code 中输入：
+装完后，在 Claude Code 里输入：
 
 ```
-/ccg:workflow 你好
+/ccg:frontend 给登录页加个暗色模式切换按钮
 ```
 
-如果看到多模型协作输出，说明安装成功。
+看到 Gemini 被调用，说明一切正常。
 
-## 更新
+## 更新和卸载
 
 ```bash
-# npx 用户
+# 更新
 npx ccg-workflow@latest
 
-# npm 全局用户
-npm install -g ccg-workflow@latest
+# 卸载
+npx ccg-workflow  # 选「卸载工作流」
 ```
 
-## 卸载
+## 然后呢
 
-```bash
-npx ccg-workflow  # 选择「卸载工作流」
-
-# npm 全局用户需额外执行
-npm uninstall -g ccg-workflow
-```
-
-## 下一步
-
-- [命令参考](/guide/commands) — 查看全部 28 个命令
-- [工作流指南](/guide/workflows) — 学习三种主要工作流
-- [MCP 配置](/guide/mcp) — 增强代码检索能力
+- [命令参考](/guide/commands) — 28 个命令，总有你用得上的
+- [工作流指南](/guide/workflows) — 什么场景用什么工作流
+- [MCP 配置](/guide/mcp) — 让代码搜索更聪明

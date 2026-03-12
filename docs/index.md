@@ -3,17 +3,17 @@ layout: home
 
 hero:
   name: CCG
-  text: Claude + Codex + Gemini
-  tagline: 多模型协作开发系统 — Claude 编排，Codex 后端，Gemini 前端
+  text: 让三个 AI 帮你写代码
+  tagline: Claude 当指挥，Codex 写后端，Gemini 写前端。你只管提需求。
   image:
     src: /logo.svg
     alt: CCG
   actions:
     - theme: brand
-      text: 快速开始
+      text: 三分钟上手
       link: /guide/getting-started
     - theme: alt
-      text: 命令参考
+      text: 看看有哪些命令
       link: /guide/commands
     - theme: alt
       text: GitHub
@@ -21,23 +21,23 @@ hero:
 
 features:
   - icon: 🔀
-    title: 零配置模型路由
-    details: 前端任务自动走 Gemini，后端任务自动走 Codex，无需手动切换模型。
+    title: 前端后端自动分流
+    details: 你说"改登录页"，任务自动给 Gemini；你说"加个接口"，任务自动给 Codex。不用操心谁干什么。
   - icon: 🔒
-    title: 安全设计
-    details: 外部模型无写入权限，仅返回 Patch，由 Claude 审核后应用。
-  - icon: 🛠️
-    title: 28 个斜杠命令
-    details: 从规划到执行、Git 工作流到代码审查，通过 /ccg:* 一站式访问。
+    title: Claude 全程把关
+    details: Codex 和 Gemini 只能返回 Patch，最终由 Claude 审核才能写入文件。你的代码库永远在控制之中。
   - icon: 📐
-    title: 规范驱动开发
-    details: 集成 OPSX，将模糊需求变成可验证约束，让 AI 没法自由发挥。
+    title: 不让 AI 自由发挥
+    details: 集成 OPSX 规范驱动，需求先变成约束条件，AI 只能在框框里干活。
   - icon: 👥
-    title: Agent Teams 并行
-    details: spawn 多个 Builder teammates 并行写代码，适合 3+ 独立模块的任务。
-  - icon: 📦
-    title: 一键安装
-    details: npx ccg-workflow 一行命令，支持 macOS、Linux、Windows 三平台。
+    title: 多人干活，一起写
+    details: Agent Teams 模式下，多个 Builder 同时写不同模块的代码，完了还有双模型交叉审查。
+  - icon: ⚡
+    title: 一行装完，开箱即用
+    details: npx ccg-workflow，28 个命令直接可用。macOS、Linux、Windows 都行。
+  - icon: 🧩
+    title: MCP 生态打通
+    details: ace-tool、fast-context、Context7 等 MCP 工具一键配置，Codex 和 Gemini 自动同步。
 ---
 
 <style>

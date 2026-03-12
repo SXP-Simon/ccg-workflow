@@ -1,123 +1,103 @@
 # Workflow Guide
 
-CCG provides three main workflows for different scenarios.
+Different tasks call for different workflows. Don't overthink it — use this decision tree.
 
-## Planning & Execution Separation
+## How to choose
 
-The most basic workflow: plan first, execute later, with human review in between.
+```
+Got a task
+  │
+  ├─ Simple, one sentence? ──→ /ccg:frontend or /ccg:backend
+  │
+  ├─ Want to review the plan first? → /ccg:plan → /ccg:execute
+  │
+  ├─ Need strict control? ──→ /ccg:spec-* series
+  │
+  ├─ Splits into 3+ modules? → /ccg:team-* series
+  │
+  └─ Full end-to-end? ──────→ /ccg:workflow
+```
+
+## Plan → Execute (most common)
+
+Codex and Gemini each produce an analysis. Claude combines them into a plan. You review it, tweak if needed, then execute.
 
 ```bash
-# 1. Generate implementation plan
 /ccg:plan implement user authentication
+# Plan saved in .claude/plan/
+# Open it, read it, edit it if you want
 
-# 2. Review the plan (editable)
-# Plan saved to .claude/plan/user-auth.md
-
-# 3a. Execute (Claude refactors) — fine-grained control
-/ccg:execute .claude/plan/user-auth.md
-
-# 3b. Execute (Codex does everything) — efficient, low Claude token usage
-/ccg:codex-exec .claude/plan/user-auth.md
+# Two ways to execute — pick one:
+/ccg:execute .claude/plan/user-auth.md   # Claude handles each step
+/ccg:codex-exec .claude/plan/user-auth.md  # Codex does everything, Claude just reviews
 ```
 
-### execute vs codex-exec
+**When to use which?**
 
-| Dimension | `/ccg:execute` | `/ccg:codex-exec` |
-|-----------|---------------|-------------------|
-| Executor | Claude-led + Codex/Gemini assist | Codex handles everything |
-| Token cost | Higher (Claude processes each step) | Very low (Claude only reviews) |
-| Best for | Complex tasks needing fine control | Clear, independently executable tasks |
-| MCP search | Claude executes | Codex executes (needs MCP sync) |
+`execute` — Complex tasks where you want Claude steering every step. Uses more tokens.
 
-## OPSX Spec-Driven Workflow
+`codex-exec` — Clear, well-defined tasks. Codex runs the whole thing, Claude reviews at the end. Much cheaper.
 
-Integrates [OPSX](https://github.com/fission-ai/opsx) to turn requirements into constraints. Best for scenarios needing **strict control**.
+## OPSX Spec-Driven (strict control)
+
+For when you don't want the AI making stuff up. Like implementing a permission system where every detail needs to be traceable.
+
+The idea: **turn requirements into constraints, then turn constraints into a zero-decision plan. During execution, there's nothing to decide — every decision was already made during planning.**
 
 ```bash
-/ccg:spec-init                          # Initialize OPSX environment
-/ccg:spec-research implement user auth  # Research → constraints
-/ccg:spec-plan                          # Parallel analysis → zero-decision plan
-/ccg:spec-impl                          # Execute the plan
-/ccg:spec-review                        # Independent review (anytime)
+/ccg:spec-init
+/ccg:spec-research implement RBAC permission system
+# This outputs constraints like:
+# - Must support role inheritance
+# - Permission check latency < 5ms
+# - Must have audit logging
+
+/ccg:spec-plan
+# Constraints → zero-decision plan
+# Every step: which file, what change, how to verify
+
+/ccg:spec-impl
+# Execute step by step, no decisions needed
+
+/ccg:spec-review
+# Independent dual-model review, use anytime
 ```
 
-### Key Features
+You can `/clear` between phases — state lives in `openspec/`, it won't disappear.
 
-- **Constraint-driven**: Requirements become verifiable constraints, not vague descriptions
-- **Zero-decision plan**: Execution requires no decisions — all decisions made during planning
-- **Persistent state**: State stored in `openspec/` directory, `/clear` between phases to free context
+## Agent Teams (parallel multi-module)
 
-::: tip
-`/ccg:spec-*` commands internally call `/opsx:*`. If using OPSX directly, use `/opsx:*` commands.
-:::
-
-## Agent Teams Parallel Workflow
-
-Leverage Claude Code Agent Teams to spawn multiple Builder teammates for parallel coding. Best for tasks **decomposable into 3+ independent modules**.
+Task splits into independent modules? Like "order CRUD + payment integration + email notifications" — three modules with no dependencies. Let three Builders work at once.
 
 ```bash
-/ccg:team-research implement kanban API  # 1. Requirements → constraints
+/ccg:team-research implement order system
+# Outputs constraints + success criteria
 # /clear
-/ccg:team-plan kanban-api               # 2. Plan → parallel tasks
+
+/ccg:team-plan order-system
+# Splits into non-overlapping subtasks, each Builder owns their files
 # /clear
-/ccg:team-exec                          # 3. Builders code in parallel
+
+/ccg:team-exec
+# Multiple Builders code in parallel
 # /clear
-/ccg:team-review                        # 4. Dual-model cross-review
+
+/ccg:team-review
+# Codex reviews + Gemini reviews, Critical = must fix
 ```
 
-### vs Traditional Workflow
+**How is this different from the normal workflow?**
 
-| Dimension | Traditional | Agent Teams |
-|-----------|------------|-------------|
-| Context | Continuous conversation | `/clear` between steps |
-| State passing | Conversation context | Files (.claude/plan/) |
-| Parallelism | Sequential | Multiple Builders in parallel |
-| Best for | General tasks | 3+ independent modules |
+Normal workflow keeps a continuous conversation — context accumulates. Team series `/clear`s between steps, passing state through files. Upside: context never blows up. Downside: you can't course-correct mid-stream.
 
-### Workflow Diagram
+Works best when: the task decomposes into 3+ independent modules with no tight coupling.
 
-```
-team-research          team-plan           team-exec          team-review
-     │                    │                    │                   │
-  Analyze             Plan & split       Builder 1 ──┐       Codex review
-     │                    │              Builder 2 ──┤            │
-  Constraints          Parallel plan     Builder 3 ──┘       Gemini review
-     │                    │                    │                   │
-     ↓                    ↓                    ↓                   ↓
-  constraints.md    plan/*.md           Code output        Review report
-```
+## Full Workflow (autopilot)
 
-## Full 6-Phase Workflow
-
-`/ccg:workflow` is the most complete workflow with 6 phases:
-
-1. **Research** — Analyze requirements, understand context
-2. **Ideate** — Propose solutions
-3. **Plan** — Create implementation plan (Codex + Gemini parallel analysis)
-4. **Execute** — Implement the plan (model routing: frontend → Gemini, backend → Codex)
-5. **Optimize** — Performance optimization and code quality
-6. **Review** — Multi-model cross-review
+`/ccg:workflow` runs all 6 phases automatically: research → ideate → plan → execute → optimize → review.
 
 ```bash
-/ccg:workflow implement a complete user auth system with registration, login, and JWT tokens
+/ccg:workflow implement full user auth with registration, login, and JWT
 ```
 
-::: info
-For large tasks, consider using `/ccg:plan` + `/ccg:execute` for step-by-step execution with plan review in between.
-:::
-
-## Workflow Selection Guide
-
-```
-Receive task
-  │
-  ├─ Simple / clear? ──────────→ /ccg:frontend or /ccg:backend
-  │
-  ├─ Needs planning? ──────────→ /ccg:plan + /ccg:execute
-  │
-  ├─ Needs strict constraints? ─→ /ccg:spec-* series
-  │
-  ├─ Decomposable into 3+ modules? → /ccg:team-* series
-  │
-  └─ Full end-to-end? ─────────→ /ccg:workflow
-```
+Good for when you don't want to babysit the process. For big tasks though, `plan + execute` gives you a checkpoint to review the plan before committing to it.

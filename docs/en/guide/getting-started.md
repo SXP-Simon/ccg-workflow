@@ -1,9 +1,11 @@
 # Getting Started
 
-## Architecture
+## What is CCG
+
+In short: **Claude Code directs Codex and Gemini to write code for you.**
 
 ```
-Claude Code (Orchestrator)
+Claude Code (Director)
        │
    ┌───┴───┐
    ↓       ↓
@@ -12,30 +14,28 @@ Codex   Gemini
    │       │
    └───┬───┘
        ↓
-  Unified Patch
+  Unified Patch → Claude reviews → Written to files
 ```
 
-External models have no write access — they only return patches, which Claude reviews before applying.
+You describe what you want. CCG figures out who should handle it. The result goes through Claude's review before touching any file. Codex and Gemini never write directly to your codebase.
 
-## Prerequisites
+## What you need
 
-| Dependency | Required | Notes |
-|------------|----------|-------|
-| **Node.js 20+** | Yes | `ora@9.x` requires Node >= 20 |
-| **Claude Code CLI** | Yes | [Install guide](#install-claude-code) |
-| **jq** | Yes | Used for auto-authorization hook |
-| **Codex CLI** | No | Enables backend routing |
-| **Gemini CLI** | No | Enables frontend routing |
+- **Node.js 20+** — Below 20 will break (`ora@9.x` requires it)
+- **Claude Code CLI** — Nothing works without this
+- **jq** — For the auto-authorization hook
+- **Codex CLI** — Optional. Enables backend routing
+- **Gemini CLI** — Optional. Enables frontend routing
 
-## Installation
+## Install
 
 ```bash
 npx ccg-workflow
 ```
 
-On first run, CCG prompts you to select a language (English / Chinese). This preference is saved for all future sessions.
+First run asks you to pick a language. After that, it remembers.
 
-### Install jq
+### Installing jq
 
 ::: code-group
 
@@ -59,45 +59,36 @@ scoop install jq
 
 :::
 
-### Install Claude Code
+### Installing Claude Code
 
 ```bash
-npx ccg-workflow menu  # Select "Install Claude Code"
+npx ccg-workflow menu  # Look for "Install Claude Code"
 ```
 
-Supports: npm, homebrew, curl, powershell, cmd.
+Works with npm, homebrew, curl, powershell, and cmd.
 
-## Verify Installation
+## Try it out
 
-After installation, type in Claude Code:
+After installing, type this in Claude Code:
 
 ```
-/ccg:workflow hello
+/ccg:frontend add a dark mode toggle to the login page
 ```
 
-If you see multi-model collaboration output, the installation is successful.
+If you see Gemini being called, you're good.
 
-## Update
+## Updating and uninstalling
 
 ```bash
-# npx users
+# Update
 npx ccg-workflow@latest
 
-# npm global users
-npm install -g ccg-workflow@latest
-```
-
-## Uninstall
-
-```bash
+# Uninstall
 npx ccg-workflow  # Select "Uninstall"
-
-# npm global users need this extra step
-npm uninstall -g ccg-workflow
 ```
 
-## Next Steps
+## What's next
 
-- [Command Reference](/en/guide/commands) — See all 28 commands
-- [Workflow Guide](/en/guide/workflows) — Learn the three main workflows
-- [MCP Configuration](/en/guide/mcp) — Enhance code retrieval
+- [Command Reference](/en/guide/commands) — All 28 commands
+- [Workflow Guide](/en/guide/workflows) — Which workflow for which scenario
+- [MCP Configuration](/en/guide/mcp) — Smarter code search

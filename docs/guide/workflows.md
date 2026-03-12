@@ -1,123 +1,103 @@
 # 工作流指南
 
-CCG 提供三种主要工作流，适用于不同场景。
+不同的活用不同的工作流。别纠结选哪个，看下面的决策树。
 
-## 规划与执行分离
+## 怎么选
 
-最基础的工作流：先规划，再执行，中间可以人工审查和修改计划。
+```
+拿到任务
+  │
+  ├─ 很简单，一句话说清？ ──→ /ccg:frontend 或 /ccg:backend
+  │
+  ├─ 想先看看计划？ ────────→ /ccg:plan → /ccg:execute
+  │
+  ├─ 不想让 AI 乱来？ ─────→ /ccg:spec-* 系列
+  │
+  ├─ 能拆成 3+ 个模块？ ───→ /ccg:team-* 系列
+  │
+  └─ 从头到尾全包？ ────────→ /ccg:workflow
+```
+
+## 规划 → 执行（最常用）
+
+先让 Codex 和 Gemini 各出一份分析，Claude 综合成计划。你看完计划觉得没问题，再执行。
 
 ```bash
-# 1. 生成实施计划
 /ccg:plan 实现用户认证功能
+# 计划保存在 .claude/plan/ 目录
+# 打开看看，不满意可以直接改
 
-# 2. 审查计划（可修改）
-# 计划保存至 .claude/plan/user-auth.md
-
-# 3a. 执行计划（Claude 重构）— 精细控制
-/ccg:execute .claude/plan/user-auth.md
-
-# 3b. 执行计划（Codex 全权）— 高效执行，Claude token 极低
-/ccg:codex-exec .claude/plan/user-auth.md
+# 两种执行方式，选一个：
+/ccg:execute .claude/plan/user-auth.md   # Claude 亲自干，精细控制
+/ccg:codex-exec .claude/plan/user-auth.md  # Codex 全干，Claude 只审核
 ```
 
-### 选择 execute 还是 codex-exec？
+**execute 和 codex-exec 怎么选？**
 
-| 维度 | `/ccg:execute` | `/ccg:codex-exec` |
-|------|---------------|-------------------|
-| 执行者 | Claude 主导 + Codex/Gemini 辅助 | Codex 全权执行 |
-| Token 消耗 | 较高（Claude 处理每一步） | 极低（Claude 只审核） |
-| 适用场景 | 需要精细控制的复杂任务 | 明确的、可独立执行的任务 |
-| MCP 搜索 | Claude 执行 | Codex 执行（需同步 MCP） |
+`execute` 适合复杂任务——Claude 处理每一步，能随时调整方向。但 token 消耗大。
 
-## OPSX 规范驱动工作流
+`codex-exec` 适合目标明确的任务——Codex 一口气干完，Claude 最后审一遍。token 消耗小得多。
 
-集成 [OPSX](https://github.com/fission-ai/opsx) 架构，把需求变成约束，让 AI 没法自由发挥。适合需要**严格控制**的场景。
+## OPSX 规范驱动（严格控制）
+
+有些场景你不想让 AI 自由发挥。比如实现权限系统，你希望每个细节都有据可查。
+
+OPSX 的思路是：**先把需求变成约束条件，再把约束变成零决策计划。执行阶段不需要做任何判断——所有判断在规划阶段就做完了。**
 
 ```bash
-/ccg:spec-init                       # 初始化 OPSX 环境
-/ccg:spec-research 实现用户认证        # 研究需求 → 输出约束集
-/ccg:spec-plan                       # 并行分析 → 零决策计划
-/ccg:spec-impl                       # 按计划执行
-/ccg:spec-review                     # 独立审查（随时可用）
+/ccg:spec-init
+/ccg:spec-research 实现 RBAC 权限系统
+# 这步会输出一堆约束条件，比如：
+# - 必须支持角色继承
+# - 权限检查延迟 < 5ms
+# - 必须有审计日志
+
+/ccg:spec-plan
+# 约束 → 零决策计划
+# 每一步该改哪个文件、改什么内容、怎么验证，都写清楚了
+
+/ccg:spec-impl
+# 按计划一步步执行，不需要再做决策
+
+/ccg:spec-review
+# 双模型独立审查，这个随时都能用
 ```
 
-### 工作流特点
+每阶段之间可以 `/clear` 释放上下文——状态存在 `openspec/` 目录里，不怕丢。
 
-- **约束驱动**：需求不再是模糊描述，而是可验证的约束条件
-- **零决策计划**：执行阶段不需要做任何决策，所有决策在规划阶段完成
-- **状态持久化**：状态存在 `openspec/` 目录，每阶段可 `/clear` 释放上下文
+## Agent Teams 并行（多模块同时开工）
 
-::: tip
-`/ccg:spec-*` 命令内部调用 `/opsx:*`。如果你直接使用 OPSX，请使用 `/opsx:*` 命令。
-:::
-
-## Agent Teams 并行工作流
-
-利用 Claude Code Agent Teams 实验特性，spawn 多个 Builder teammates 并行写代码。适合**可拆分为 3+ 独立模块**的任务。
+任务能拆成几个不相干的模块？比如"订单 CRUD + 支付对接 + 邮件通知"——三个模块互不依赖，让三个 Builder 同时写。
 
 ```bash
-/ccg:team-research 实现实时协作看板 API  # 1. 需求 → 约束集
+/ccg:team-research 实现订单系统
+# 产出约束集 + 成功判据
 # /clear
-/ccg:team-plan kanban-api               # 2. 规划 → 并行计划
+
+/ccg:team-plan order-system
+# 拆分为互不干扰的子任务，每个 Builder 只改自己的文件
 # /clear
-/ccg:team-exec                          # 3. Builder 并行写代码
+
+/ccg:team-exec
+# 多个 Builder 并行写代码
 # /clear
-/ccg:team-review                        # 4. 双模型交叉审查
+
+/ccg:team-review
+# Codex 审一遍 + Gemini 审一遍，Critical 必须修
 ```
 
-### vs 传统工作流
+**跟普通工作流比有什么区别？**
 
-| 维度 | 传统工作流 | Agent Teams |
-|------|-----------|-------------|
-| 上下文 | 连续对话 | 每步 `/clear` 隔离 |
-| 状态传递 | 对话上下文 | 文件（.claude/plan/） |
-| 并行度 | 串行 | 多 Builder 并行 |
-| 适用场景 | 通用 | 3+ 独立模块 |
+普通工作流是连续对话，上下文一直累积。Team 系列每步 `/clear`，通过文件传递状态。好处是上下文不会爆，坏处是没法随时插嘴改方向。
 
-### 工作流图
+适合的场景：任务可以拆成 3 个以上独立模块，模块之间没有强依赖。
 
-```
-team-research          team-plan           team-exec          team-review
-     │                    │                    │                   │
-  需求分析            规划拆分           Builder 1 ──┐         Codex 审查
-     │                    │            Builder 2 ──┤              │
-  约束输出            并行计划          Builder 3 ──┘         Gemini 审查
-     │                    │                    │                   │
-     ↓                    ↓                    ↓                   ↓
-  constraints.md    plan/*.md          代码产出            审查报告
-```
+## 完整工作流（全自动）
 
-## 完整 6 阶段工作流
-
-`/ccg:workflow` 是最完整的工作流，包含 6 个阶段：
-
-1. **研究** — 分析需求，理解上下文
-2. **构思** — 提出解决方案
-3. **计划** — 制定实施计划（Codex + Gemini 并行分析）
-4. **执行** — 按计划实施（模型路由：前端 → Gemini，后端 → Codex）
-5. **优化** — 性能优化和代码质量
-6. **评审** — 多模型交叉审查
+`/ccg:workflow` 自动跑完 6 个阶段：研究→构思→计划→执行→优化→评审。
 
 ```bash
-/ccg:workflow 实现完整的用户认证系统，包含注册、登录、JWT 令牌
+/ccg:workflow 实现完整的用户认证，注册、登录、JWT
 ```
 
-::: info
-对于大型任务，建议使用 `/ccg:plan` + `/ccg:execute` 分步执行，以便中间审查计划。
-:::
-
-## 工作流选择指南
-
-```
-收到任务
-  │
-  ├─ 简单/明确？ ────────────→ /ccg:frontend 或 /ccg:backend
-  │
-  ├─ 需要规划？ ─────────────→ /ccg:plan + /ccg:execute
-  │
-  ├─ 需要严格约束？ ─────────→ /ccg:spec-* 系列
-  │
-  ├─ 可拆分 3+ 模块？ ──────→ /ccg:team-* 系列
-  │
-  └─ 完整端到端？ ───────────→ /ccg:workflow
-```
+适合不想操心中间过程的场景。但对于大任务，建议还是用 `plan + execute` 分步走，中间自己看一眼计划。
