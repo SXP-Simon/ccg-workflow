@@ -49,8 +49,11 @@ ceshi/
 # Local spec workflows (OpenSpec 本地数据)
 .spec-workflow/
 openspec/
-docs/
 AGENTS.md
+
+# VitePress build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/
 WINDOWS_FIX.md
 
 # Temp verification/notes
