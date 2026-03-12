@@ -248,24 +248,35 @@ async function installPromptFiles(ctx: InstallContext): Promise<void> {
 }
 
 /**
- * Count installed SKILL.md files (recursive, excludes root-level).
+ * Recursively collect skill names (directories containing SKILL.md, excludes root).
+ * Used by both install (count) and uninstall (list names).
  */
-async function countInstalledSkills(skillsDir: string, depth = 0): Promise<number> {
-  let count = 0
+async function collectSkillNames(dir: string, depth = 0): Promise<string[]> {
+  const names: string[] = []
   try {
-    const entries = await fs.readdir(skillsDir, { withFileTypes: true })
+    const entries = await fs.readdir(dir, { withFileTypes: true })
     for (const entry of entries) {
-      const fullPath = join(skillsDir, entry.name)
       if (entry.isDirectory()) {
-        count += await countInstalledSkills(fullPath, depth + 1)
+        names.push(...await collectSkillNames(join(dir, entry.name), depth + 1))
       }
       else if (entry.name === 'SKILL.md' && depth > 0) {
-        count++
+        names.push(dir.split('/').pop()!)
       }
     }
   }
   catch { /* Directory doesn't exist or can't be read */ }
-  return count
+  return names
+}
+
+/**
+ * Remove a directory and collect .md file stems. Returns [] if dir doesn't exist.
+ */
+async function removeDirCollectMdNames(dir: string): Promise<string[]> {
+  if (!(await fs.pathExists(dir))) return []
+  const files = await fs.readdir(dir)
+  const names = files.filter(f => f.endsWith('.md')).map(f => f.replace('.md', ''))
+  await fs.remove(dir)
+  return names
 }
 
 /**
@@ -319,7 +330,7 @@ async function installSkillFiles(ctx: InstallContext): Promise<void> {
     }
     await replacePathsInDir(skillsDestDir)
 
-    ctx.result.installedSkills = await countInstalledSkills(skillsDestDir)
+    ctx.result.installedSkills = (await collectSkillNames(skillsDestDir)).length
   }
   catch (error) {
     ctx.result.errors.push(`Failed to install skills: ${error}`)
@@ -489,55 +500,27 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
   const ccgConfigDir = join(installDir, '.ccg')
 
   // Remove CCG commands directory
-  if (await fs.pathExists(commandsDir)) {
-    try {
-      const files = await fs.readdir(commandsDir)
-      for (const file of files) {
-        if (file.endsWith('.md')) {
-          result.removedCommands.push(file.replace('.md', ''))
-        }
-      }
-      await fs.remove(commandsDir)
-    }
-    catch (error) {
-      result.errors.push(`Failed to remove commands directory: ${error}`)
-      result.success = false
-    }
+  try {
+    result.removedCommands = await removeDirCollectMdNames(commandsDir)
+  }
+  catch (error) {
+    result.errors.push(`Failed to remove commands directory: ${error}`)
+    result.success = false
   }
 
   // Remove CCG agents directory
-  if (await fs.pathExists(agentsDir)) {
-    try {
-      const files = await fs.readdir(agentsDir)
-      for (const file of files) {
-        result.removedAgents.push(file.replace('.md', ''))
-      }
-      await fs.remove(agentsDir)
-    }
-    catch (error) {
-      result.errors.push(`Failed to remove agents directory: ${error}`)
-      result.success = false
-    }
+  try {
+    result.removedAgents = await removeDirCollectMdNames(agentsDir)
+  }
+  catch (error) {
+    result.errors.push(`Failed to remove agents directory: ${error}`)
+    result.success = false
   }
 
   // Remove CCG skills directory only (skills/ccg/) — preserves user's own skills
   if (await fs.pathExists(skillsDir)) {
     try {
-      const collectSkillNames = async (dir: string, depth: number): Promise<string[]> => {
-        const names: string[] = []
-        const entries = await fs.readdir(dir, { withFileTypes: true })
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            names.push(...await collectSkillNames(join(dir, entry.name), depth + 1))
-          }
-          else if (entry.name === 'SKILL.md' && depth > 0) {
-            const parts = dir.split('/')
-            names.push(parts[parts.length - 1])
-          }
-        }
-        return names
-      }
-      result.removedSkills = await collectSkillNames(skillsDir, 0)
+      result.removedSkills = await collectSkillNames(skillsDir)
       await fs.remove(skillsDir)
     }
     catch (error) {
