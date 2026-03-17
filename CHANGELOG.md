@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.7.84] - 2026-03-17
+## [1.7.85] - 2026-03-17
+
+### ✨ 新功能
+
+- **Binary 双源下载**：GitHub Release（8s 超时）→ Cloudflare R2 镜像（60s 超时）自动切换，国内用户下载体验大幅改善
 
 ### 🐛 修复
 
-- **更新时跳过 binary 重复下载**：`uninstallWorkflows()` 新增 `preserveBinary` 选项，更新流程保留已有 binary；`installBinaryFile()` 检测 binary 存在且可用时跳过下载，对网络不好的用户大幅改善体验
-- **更新失败时显示 binary 下载提示**：更新完成后校验 binary 状态，失败时显示与初始化一致的红框警告 + 手动修复指引（之前子进程输出被吞没）
+- **更新时跳过 binary 重复下载**：`uninstallWorkflows()` 新增 `preserveBinary` 选项，更新流程保留已有 binary；`installBinaryFile()` 检测 binary 存在且可用时跳过下载
+- **更新失败时显示 binary 下载提示**：更新完成后校验 binary 状态，失败时显示与初始化一致的红框警告 + 手动修复指引
 
 ### 🔄 变更
 
