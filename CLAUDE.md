@@ -2,13 +2,17 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-12 (v1.7.83)
+**Last Updated**: 2026-03-17 (v1.7.84)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-17 (v1.7.84)
+- 🐛 **更新跳过 binary 重复下载**：binary 存在且可用时跳过下载，`preserveBinary` 选项 + `verifyBinary()` / `showBinaryDownloadWarning()` 共享函数
+- 🐛 **更新失败显示 binary 提示**：与初始化一致的红框警告 + 手动修复指引
 
 ### 2026-03-12 (v1.7.83)
 - 🔄 **安装器重构**：1878 行单文件 → 5 个聚焦模块（-25%），`cmd()` 构建器 + `MCP_PROVIDERS` 注册表 + 共享管线，零功能变更

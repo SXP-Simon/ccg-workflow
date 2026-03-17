@@ -7,7 +7,7 @@ import ora from 'ora'
 import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { checkForUpdates, compareVersions } from '../utils/version'
-import { uninstallWorkflows } from '../utils/installer'
+import { showBinaryDownloadWarning, uninstallWorkflows, verifyBinary } from '../utils/installer'
 import { readCcgConfig, writeCcgConfig } from '../utils/config'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 import { i18n } from '../i18n'
@@ -298,25 +298,13 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     }
   }
 
-  // Step 3: Backup binary + Delete old workflows
+  // Step 3: Delete old workflows (preserve binary to avoid unnecessary re-download)
   spinner = ora(i18n.t('update:removingOld')).start()
 
   const installDir = join(homedir(), '.claude')
-  const binDir = join(installDir, 'bin')
-  const wrapperName = process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper'
-  const wrapperPath = join(binDir, wrapperName)
-  const wrapperBackup = join(binDir, `${wrapperName}.bak`)
-  let binaryBackedUp = false
 
   try {
-    // Backup existing binary before uninstall (restore if new install fails)
-    const fsExtra = await import('fs-extra')
-    if (await fsExtra.pathExists(wrapperPath)) {
-      await fsExtra.copy(wrapperPath, wrapperBackup)
-      binaryBackedUp = true
-    }
-
-    const uninstallResult = await uninstallWorkflows(installDir)
+    const uninstallResult = await uninstallWorkflows(installDir, { preserveBinary: true })
 
     if (uninstallResult.success) {
       spinner.succeed(i18n.t('update:oldRemoved'))
@@ -345,12 +333,6 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     })
     spinner.succeed(i18n.t('update:installDone'))
 
-    // Clean up binary backup on success
-    if (binaryBackedUp) {
-      const fsExtra = await import('fs-extra')
-      await fsExtra.remove(wrapperBackup).catch(() => {})
-    }
-
     // Read updated config to display installed commands
     const config = await readCcgConfig()
     if (config?.workflows?.installed) {
@@ -360,25 +342,14 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
         console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
       }
     }
+
+    // Step 5: Verify binary exists and is functional after update
+    if (!(await verifyBinary(installDir))) {
+      showBinaryDownloadWarning(join(installDir, 'bin'))
+    }
   }
   catch (error) {
     spinner.fail(i18n.t('update:installFailed'))
-
-    // Restore backed-up binary if new install failed
-    if (binaryBackedUp) {
-      try {
-        const fsExtra = await import('fs-extra')
-        if (await fsExtra.pathExists(wrapperBackup)) {
-          await fsExtra.ensureDir(binDir)
-          await fsExtra.move(wrapperBackup, wrapperPath, { overwrite: true })
-          console.log(ansis.yellow(`  • codeagent-wrapper restored from backup`))
-        }
-      }
-      catch {
-        // Backup restore failed — nothing more we can do
-      }
-    }
-
     console.log(ansis.red(`${i18n.t('common:error')}: ${error}`))
     console.log()
     console.log(ansis.yellow(i18n.t('update:manualRetry')))

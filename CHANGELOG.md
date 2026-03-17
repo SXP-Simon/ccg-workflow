@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.84] - 2026-03-17
+
+### 🐛 修复
+
+- **更新时跳过 binary 重复下载**：`uninstallWorkflows()` 新增 `preserveBinary` 选项，更新流程保留已有 binary；`installBinaryFile()` 检测 binary 存在且可用时跳过下载，对网络不好的用户大幅改善体验
+- **更新失败时显示 binary 下载提示**：更新完成后校验 binary 状态，失败时显示与初始化一致的红框警告 + 手动修复指引（之前子进程输出被吞没）
+
+### 🔄 变更
+
+- **提取 `showBinaryDownloadWarning()` / `verifyBinary()` 共享函数**：init.ts 和 update.ts 的 35 行重复代码合并为 `installer.ts` 中的 2 个导出函数
+- **移除 update.ts 中的 binary backup/restore 逻辑**：因 binary 不再被删除，backup 机制不再需要（-20 行）
+
+---
+
 ## [1.7.83] - 2026-03-12
 
 ### 🔄 变更

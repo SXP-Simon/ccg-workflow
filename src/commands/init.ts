@@ -7,7 +7,7 @@ import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { i18n, initI18n } from '../i18n'
 import { createDefaultConfig, ensureCcgDir, getCcgDir, readCcgConfig, writeCcgConfig } from '../utils/config'
-import { getAllCommandIds, installAceTool, installAceToolRs, installContextWeaver, installFastContext, installMcpServer, installWorkflows, syncMcpToCodex, syncMcpToGemini, writeFastContextPrompt } from '../utils/installer'
+import { getAllCommandIds, installAceTool, installAceToolRs, installContextWeaver, installFastContext, installMcpServer, installWorkflows, showBinaryDownloadWarning, syncMcpToCodex, syncMcpToGemini, writeFastContextPrompt } from '../utils/installer'
 import { isWindows } from '../utils/platform'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 
@@ -987,43 +987,7 @@ export async function init(options: InitOptions = {}): Promise<void> {
     }
     else {
       // Binary download failed — show prominent warning with manual fix instructions
-      const binDest = join(installDir, 'bin')
-      const binaryExt = process.platform === 'win32' ? '.exe' : ''
-      const platformLabel = process.platform === 'darwin'
-        ? (process.arch === 'arm64' ? 'darwin-arm64' : 'darwin-amd64')
-        : process.platform === 'linux'
-          ? (process.arch === 'arm64' ? 'linux-arm64' : 'linux-amd64')
-          : (process.arch === 'arm64' ? 'windows-arm64' : 'windows-amd64')
-      const binaryFileName = `codeagent-wrapper-${platformLabel}${binaryExt}`
-      const destFileName = `codeagent-wrapper${binaryExt}`
-      const releaseUrl = `https://github.com/fengshao1227/ccg-workflow/releases/tag/preset`
-
-      console.log()
-      console.log(ansis.red.bold(`  ╔════════════════════════════════════════════════════════════╗`))
-      console.log(ansis.red.bold(`  ║  ⚠  codeagent-wrapper 下载失败                            ║`))
-      console.log(ansis.red.bold(`  ║     Binary download failed (network issue)                 ║`))
-      console.log(ansis.red.bold(`  ╚════════════════════════════════════════════════════════════╝`))
-      console.log()
-      console.log(ansis.yellow(`  多模型协作命令 (/ccg:workflow, /ccg:plan 等) 需要此文件才能工作。`))
-      console.log(ansis.yellow(`  Multi-model commands require this binary to work.`))
-      console.log()
-      console.log(ansis.cyan(`  手动修复 / Manual fix:`))
-      console.log()
-      console.log(ansis.white(`    1. 下载 / Download:`))
-      console.log(ansis.cyan(`       ${releaseUrl}`))
-      console.log(ansis.gray(`       → 找到 ${ansis.white(binaryFileName)} 并下载`))
-      console.log()
-      console.log(ansis.white(`    2. 放到 / Place at:`))
-      console.log(ansis.cyan(`       ${binDest}/${destFileName}`))
-      console.log()
-      if (process.platform !== 'win32') {
-        console.log(ansis.white(`    3. 加权限 / Make executable:`))
-        console.log(ansis.cyan(`       chmod +x "${binDest}/${destFileName}"`))
-        console.log()
-      }
-      console.log(ansis.white(`    或重新安装 / Or re-install:`))
-      console.log(ansis.cyan(`       npx ccg-workflow@latest`))
-      console.log()
+      showBinaryDownloadWarning(join(installDir, 'bin'))
     }
 
     // Show MCP resources if user skipped installation
