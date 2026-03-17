@@ -7,15 +7,37 @@ import { isWindows } from './platform'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Find package root by looking for package.json
+/**
+ * Find package root by looking for package.json up the directory tree.
+ * Validates that the found root contains a templates/ directory.
+ *
+ * Increased depth from 5 → 10 to handle deeply nested npm cache paths
+ * on Windows (e.g., AppData\Local\npm-cache\_npx\<hash>\node_modules\...).
+ */
 function findPackageRoot(startDir: string): string {
   let dir = startDir
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     if (fs.existsSync(join(dir, 'package.json'))) {
-      return dir
+      // Validate: package root must contain templates/ directory
+      if (fs.existsSync(join(dir, 'templates'))) {
+        return dir
+      }
+      // Found package.json but no templates/ — might be a parent workspace
+      // Continue searching upward
     }
-    dir = dirname(dir)
+    const parent = dirname(dir)
+    if (parent === dir) break // Reached filesystem root
+    dir = parent
   }
+
+  // Fallback: warn loudly — this is the root cause of "silent install failure"
+  console.error(
+    `[CCG] ⚠ PACKAGE_ROOT resolution failed: could not find package.json with templates/ directory.\n`
+    + `  Start dir: ${startDir}\n`
+    + `  Last checked: ${dir}\n`
+    + `  This will cause commands/skills/prompts to not be installed.\n`
+    + `  Please report this issue at: https://github.com/fengshao1227/ccg-workflow/issues`,
+  )
   return startDir
 }
 

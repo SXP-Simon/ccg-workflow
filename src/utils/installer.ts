@@ -145,7 +145,11 @@ async function copyMdTemplates(
   options: { inject?: boolean } = {},
 ): Promise<string[]> {
   const installed: string[] = []
-  if (!(await fs.pathExists(srcDir))) return installed
+  if (!(await fs.pathExists(srcDir))) {
+    // Log warning — helps diagnose "0 commands installed" issues
+    console.error(`[CCG] Template source directory not found: ${srcDir}`)
+    return installed
+  }
 
   await fs.ensureDir(destDir)
   const files = await fs.readdir(srcDir)
@@ -241,7 +245,10 @@ async function installAgentFiles(ctx: InstallContext): Promise<void> {
 async function installPromptFiles(ctx: InstallContext): Promise<void> {
   const promptsTemplateDir = join(ctx.templateDir, 'prompts')
   const promptsDir = join(ctx.installDir, '.ccg', 'prompts')
-  if (!(await fs.pathExists(promptsTemplateDir))) return
+  if (!(await fs.pathExists(promptsTemplateDir))) {
+    ctx.result.errors.push(`Prompts template directory not found: ${promptsTemplateDir}`)
+    return
+  }
 
   for (const model of ['codex', 'gemini', 'claude']) {
     try {
@@ -278,7 +285,13 @@ async function collectSkillNames(dir: string, depth = 0): Promise<string[]> {
       }
     }
   }
-  catch { /* Directory doesn't exist or can't be read */ }
+  catch (error) {
+    // Only suppress ENOENT (dir not found); log other errors that indicate real problems
+    const code = (error as NodeJS.ErrnoException).code
+    if (code !== 'ENOENT') {
+      console.error(`[CCG] Failed to read skills directory ${dir}: ${code || error}`)
+    }
+  }
   return names
 }
 
@@ -300,7 +313,12 @@ async function removeDirCollectMdNames(dir: string): Promise<string[]> {
 async function installSkillFiles(ctx: InstallContext): Promise<void> {
   const skillsTemplateDir = join(ctx.templateDir, 'skills')
   const skillsDestDir = join(ctx.installDir, 'skills', 'ccg')
-  if (!(await fs.pathExists(skillsTemplateDir))) return
+
+  // Report error instead of silently returning when template dir is missing
+  if (!(await fs.pathExists(skillsTemplateDir))) {
+    ctx.result.errors.push(`Skills template directory not found: ${skillsTemplateDir}`)
+    return
+  }
 
   try {
     // Migration: move old v1.7.73 layout into skills/ccg/ namespace
@@ -314,14 +332,21 @@ async function installSkillFiles(ctx: InstallContext): Promise<void> {
         const oldPath = join(oldSkillsRoot, item)
         const newPath = join(skillsDestDir, item)
         if (await fs.pathExists(oldPath)) {
-          await fs.move(oldPath, newPath, { overwrite: true })
+          try {
+            await fs.move(oldPath, newPath, { overwrite: true })
+          }
+          catch (moveErr) {
+            // Windows: file locking can cause move to fail — log but continue
+            ctx.result.errors.push(`Skills migration: failed to move ${item}: ${moveErr}`)
+          }
         }
       }
     }
 
     // Recursive copy: preserves full directory tree
+    // Always overwrite to ensure fresh install gets all files
     await fs.copy(skillsTemplateDir, skillsDestDir, {
-      overwrite: ctx.force,
+      overwrite: true,
       errorOnExist: false,
     })
 
@@ -344,7 +369,17 @@ async function installSkillFiles(ctx: InstallContext): Promise<void> {
     }
     await replacePathsInDir(skillsDestDir)
 
-    ctx.result.installedSkills = (await collectSkillNames(skillsDestDir)).length
+    // Post-copy validation: verify at least one SKILL.md was actually copied
+    const installedSkills = await collectSkillNames(skillsDestDir)
+    ctx.result.installedSkills = installedSkills.length
+
+    if (installedSkills.length === 0) {
+      ctx.result.errors.push(
+        `Skills copy completed but no SKILL.md found in ${skillsDestDir}. `
+        + `Possible cause: file locking (antivirus), permission denied, or path too long. `
+        + `Try running as administrator or disabling antivirus real-time scanning temporarily.`,
+      )
+    }
   }
   catch (error) {
     ctx.result.errors.push(`Failed to install skills: ${error}`)
@@ -431,7 +466,10 @@ export function showBinaryDownloadWarning(binDir: string): void {
   console.log(ansis.gray(`       → 找到 ${ansis.white(binaryFileName)} 并下载`))
   console.log()
   console.log(ansis.white(`    2. 放到 / Place at:`))
-  console.log(ansis.cyan(`       ${binDir}/${destFileName}`))
+  const displayPath = process.platform === 'win32'
+    ? `${binDir.replace(/\//g, '\\')}\\${destFileName}`
+    : `${binDir}/${destFileName}`
+  console.log(ansis.cyan(`       ${displayPath}`))
   console.log()
   if (process.platform !== 'win32') {
     console.log(ansis.white(`    3. 加权限 / Make executable:`))
@@ -540,6 +578,19 @@ export async function installWorkflows(
     },
   }
 
+  // ── Pre-flight: validate template directory exists ──
+  // This is the #1 root cause of "silent install failure" on Windows:
+  // if PACKAGE_ROOT resolved wrong, templateDir doesn't exist and every
+  // sub-step silently returns empty results while reporting success.
+  if (!(await fs.pathExists(ctx.templateDir))) {
+    const errorMsg = `Template directory not found: ${ctx.templateDir} (PACKAGE_ROOT=${PACKAGE_ROOT}). `
+      + `This usually means the npm package is incomplete or the cache is corrupted. `
+      + `Try: npm cache clean --force && npx ccg-workflow@latest`
+    ctx.result.errors.push(errorMsg)
+    ctx.result.success = false
+    return ctx.result
+  }
+
   // Ensure base directories
   await fs.ensureDir(join(installDir, 'commands', 'ccg'))
   await fs.ensureDir(join(installDir, '.ccg'))
@@ -552,6 +603,17 @@ export async function installWorkflows(
   await installSkillFiles(ctx)
   await installRuleFiles(ctx)
   await installBinaryFile(ctx)
+
+  // ── Post-flight: validate installation produced results ──
+  // Catch the case where all sub-steps silently returned empty
+  if (ctx.result.installedCommands.length === 0 && ctx.result.errors.length === 0) {
+    ctx.result.errors.push(
+      `No commands were installed (expected ${workflowIds.length}). `
+      + `Template dir: ${ctx.templateDir}. `
+      + `This may indicate a corrupted package or file permission issue.`,
+    )
+    ctx.result.success = false
+  }
 
   ctx.result.configPath = join(installDir, 'commands', 'ccg')
   return ctx.result

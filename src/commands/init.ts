@@ -913,10 +913,25 @@ export async function init(options: InitOptions = {}): Promise<void> {
     // Show errors if any
     if (result.errors.length > 0) {
       console.log()
-      console.log(ansis.red(`  ⚠ ${i18n.t('init:installationErrors')}`))
+      if (!result.success) {
+        // Critical failure — prominent red box
+        console.log(ansis.red.bold(`  ╔════════════════════════════════════════════════════════════╗`))
+        console.log(ansis.red.bold(`  ║  ⚠  安装出现错误 / Installation errors detected           ║`))
+        console.log(ansis.red.bold(`  ╚════════════════════════════════════════════════════════════╝`))
+      }
+      else {
+        console.log(ansis.yellow(`  ⚠ ${i18n.t('init:installationErrors')}`))
+      }
       result.errors.forEach((error) => {
         console.log(`    ${ansis.red('✗')} ${error}`)
       })
+      if (!result.success) {
+        console.log()
+        console.log(ansis.yellow(`  尝试修复 / Try to fix:`))
+        console.log(ansis.cyan(`    npx ccg-workflow@latest init --force`))
+        console.log(ansis.gray(`    如仍失败，请提交 issue 并附上以上错误信息`))
+        console.log(ansis.gray(`    If still failing, report an issue with the errors above`))
+      }
     }
 
     // Show binary installation result
