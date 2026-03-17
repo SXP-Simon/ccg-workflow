@@ -2,12 +2,13 @@ import type { ModelRouting, ModelType } from '../types'
 import ansis from 'ansis'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
+import fs from 'fs-extra'
 import inquirer from 'inquirer'
 import ora from 'ora'
 import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { checkForUpdates, compareVersions } from '../utils/version'
-import { showBinaryDownloadWarning, uninstallWorkflows, verifyBinary } from '../utils/installer'
+import { showBinaryDownloadWarning, verifyBinary } from '../utils/installer'
 import { readCcgConfig, writeCcgConfig } from '../utils/config'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 import { i18n } from '../i18n'
@@ -249,7 +250,6 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
       catch {
         const npxCachePath = join(homedir(), '.npm', '_npx')
         try {
-          const fs = await import('fs-extra')
           await fs.remove(npxCachePath)
         }
         catch {
@@ -298,31 +298,59 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     }
   }
 
-  // Step 3: Delete old workflows (preserve binary to avoid unnecessary re-download)
-  spinner = ora(i18n.t('update:removingOld')).start()
+  // ── Atomic update: backup → install → verify → cleanup / rollback ──
+  // Old approach deleted everything BEFORE installing, so if install failed
+  // the user was left with nothing. New approach backs up first, installs new,
+  // verifies, then cleans up backups. On failure, restores from backup.
 
   const installDir = join(homedir(), '.claude')
+  const BACKUP_SUFFIX = '.ccg-update-bak'
 
+  // Directories to back up before installing new version
+  const backupTargets = [
+    join(installDir, 'commands', 'ccg'),
+    join(installDir, 'agents', 'ccg'),
+    join(installDir, 'skills', 'ccg'),
+  ]
+
+  // Step 3: Back up existing files (move to *.ccg-update-bak)
+  spinner = ora(i18n.t('update:removingOld')).start()
+
+  const backedUp: string[] = []
   try {
-    const uninstallResult = await uninstallWorkflows(installDir, { preserveBinary: true })
-
-    if (uninstallResult.success) {
-      spinner.succeed(i18n.t('update:oldRemoved'))
-    }
-    else {
-      spinner.warn(i18n.t('update:partialRemoveFailed'))
-      for (const error of uninstallResult.errors) {
-        console.log(ansis.yellow(`  • ${error}`))
+    for (const dir of backupTargets) {
+      if (await fs.pathExists(dir)) {
+        const backupPath = dir + BACKUP_SUFFIX
+        // Clean up leftover backups from previous failed update
+        if (await fs.pathExists(backupPath)) {
+          await fs.remove(backupPath)
+        }
+        await fs.move(dir, backupPath)
+        backedUp.push(dir)
       }
     }
+    spinner.succeed(i18n.t('update:oldRemoved'))
   }
   catch (error) {
-    spinner.warn(i18n.t('update:removeFailed', { error: String(error) }))
+    // Backup failed — restore what we moved and abort
+    spinner.warn(`Backup failed: ${error}`)
+    for (const dir of backedUp) {
+      const backupPath = dir + BACKUP_SUFFIX
+      try {
+        if (await fs.pathExists(backupPath)) {
+          await fs.move(backupPath, dir)
+        }
+      }
+      catch { /* best-effort restore */ }
+    }
+    console.log(ansis.yellow('  旧版本文件已保留 / Old files preserved'))
+    return
   }
 
   // Step 4: Install new workflows using the latest version via npx
   spinner = ora(i18n.t('update:installingNew')).start()
 
+  let installSuccess = false
   try {
     await execAsync(`npx --yes ccg-workflow@latest init --force --skip-mcp --skip-prompt`, {
       timeout: 300000, // 5min — binary download from GitHub Release may be slow (especially in China)
@@ -331,26 +359,78 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
         CCG_UPDATE_MODE: 'true',
       },
     })
-    spinner.succeed(i18n.t('update:installDone'))
 
-    // Read updated config to display installed commands
-    const config = await readCcgConfig()
-    if (config?.workflows?.installed) {
-      console.log()
-      console.log(ansis.cyan(i18n.t('update:installed', { count: config.workflows.installed.length })))
-      for (const cmd of config.workflows.installed) {
-        console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
+    // Step 5: Verify new installation actually produced files
+    const commandsDir = join(installDir, 'commands', 'ccg')
+    const hasCommands = await fs.pathExists(commandsDir)
+      && (await fs.readdir(commandsDir)).some(f => f.endsWith('.md'))
+
+    if (hasCommands) {
+      installSuccess = true
+      spinner.succeed(i18n.t('update:installDone'))
+
+      // Read updated config to display installed commands
+      const config = await readCcgConfig()
+      if (config?.workflows?.installed) {
+        console.log()
+        console.log(ansis.cyan(i18n.t('update:installed', { count: config.workflows.installed.length })))
+        for (const cmd of config.workflows.installed) {
+          console.log(`  ${ansis.gray('•')} /ccg:${cmd}`)
+        }
       }
     }
-
-    // Step 5: Verify binary exists and is functional after update
-    if (!(await verifyBinary(installDir))) {
-      showBinaryDownloadWarning(join(installDir, 'bin'))
+    else {
+      // Subprocess reported success but no files were created
+      spinner.fail(i18n.t('update:installFailed'))
+      console.log(ansis.red('  Install subprocess completed but no command files were created'))
     }
   }
   catch (error) {
     spinner.fail(i18n.t('update:installFailed'))
     console.log(ansis.red(`${i18n.t('common:error')}: ${error}`))
+  }
+
+  // Step 6: Cleanup or rollback
+  if (installSuccess) {
+    // Success: remove backups
+    for (const dir of backedUp) {
+      try {
+        await fs.remove(dir + BACKUP_SUFFIX)
+      }
+      catch { /* non-critical: stale backup files */ }
+    }
+
+    // Verify binary exists and is functional
+    if (!(await verifyBinary(installDir))) {
+      showBinaryDownloadWarning(join(installDir, 'bin'))
+    }
+  }
+  else {
+    // Failure: restore from backups so user still has a working installation
+    console.log()
+    console.log(ansis.yellow.bold('  ⚠ 正在恢复旧版本文件 / Restoring old version files...'))
+    let restored = 0
+    for (const dir of backedUp) {
+      const backupPath = dir + BACKUP_SUFFIX
+      try {
+        // Remove any partial install artifacts
+        if (await fs.pathExists(dir)) {
+          await fs.remove(dir)
+        }
+        if (await fs.pathExists(backupPath)) {
+          await fs.move(backupPath, dir)
+          restored++
+        }
+      }
+      catch (restoreErr) {
+        console.log(ansis.red(`  Failed to restore ${dir}: ${restoreErr}`))
+      }
+    }
+
+    if (restored > 0) {
+      console.log(ansis.green(`  ✓ 已恢复 ${restored} 个目录 / Restored ${restored} directories`))
+      console.log(ansis.gray('    旧版命令仍可正常使用 / Old commands still work'))
+    }
     console.log()
     console.log(ansis.yellow(i18n.t('update:manualRetry')))
     console.log(ansis.cyan('  npx ccg-workflow@latest'))
