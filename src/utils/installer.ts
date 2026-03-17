@@ -1,4 +1,5 @@
 import type { InstallResult } from '../types'
+import ansis from 'ansis'
 import fs from 'fs-extra'
 import { basename, join } from 'pathe'
 import { getWorkflowById } from './installer-data'
@@ -366,7 +367,72 @@ function getBinaryName(): string | null {
 }
 
 /**
+ * Check if codeagent-wrapper binary exists and is functional.
+ * Returns true if the binary passes `--version` check.
+ */
+export async function verifyBinary(installDir: string): Promise<boolean> {
+  const binDir = join(installDir, 'bin')
+  const wrapperName = process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper'
+  const wrapperPath = join(binDir, wrapperName)
+
+  if (!(await fs.pathExists(wrapperPath))) return false
+
+  try {
+    const { execSync } = await import('node:child_process')
+    execSync(`"${wrapperPath}" --version`, { stdio: 'pipe' })
+    return true
+  }
+  catch {
+    return false
+  }
+}
+
+/**
+ * Show prominent red-box warning when codeagent-wrapper binary download failed.
+ * Used by both init and update flows to provide manual fix instructions.
+ */
+export function showBinaryDownloadWarning(binDir: string): void {
+  const binaryExt = process.platform === 'win32' ? '.exe' : ''
+  const platformLabel = process.platform === 'darwin'
+    ? (process.arch === 'arm64' ? 'darwin-arm64' : 'darwin-amd64')
+    : process.platform === 'linux'
+      ? (process.arch === 'arm64' ? 'linux-arm64' : 'linux-amd64')
+      : (process.arch === 'arm64' ? 'windows-arm64' : 'windows-amd64')
+  const binaryFileName = `codeagent-wrapper-${platformLabel}${binaryExt}`
+  const destFileName = `codeagent-wrapper${binaryExt}`
+  const releaseUrl = `https://github.com/${GITHUB_REPO}/releases/tag/${RELEASE_TAG}`
+
+  console.log()
+  console.log(ansis.red.bold(`  ╔════════════════════════════════════════════════════════════╗`))
+  console.log(ansis.red.bold(`  ║  ⚠  codeagent-wrapper 下载失败                            ║`))
+  console.log(ansis.red.bold(`  ║     Binary download failed (network issue)                 ║`))
+  console.log(ansis.red.bold(`  ╚════════════════════════════════════════════════════════════╝`))
+  console.log()
+  console.log(ansis.yellow(`  多模型协作命令 (/ccg:workflow, /ccg:plan 等) 需要此文件才能工作。`))
+  console.log(ansis.yellow(`  Multi-model commands require this binary to work.`))
+  console.log()
+  console.log(ansis.cyan(`  手动修复 / Manual fix:`))
+  console.log()
+  console.log(ansis.white(`    1. 下载 / Download:`))
+  console.log(ansis.cyan(`       ${releaseUrl}`))
+  console.log(ansis.gray(`       → 找到 ${ansis.white(binaryFileName)} 并下载`))
+  console.log()
+  console.log(ansis.white(`    2. 放到 / Place at:`))
+  console.log(ansis.cyan(`       ${binDir}/${destFileName}`))
+  console.log()
+  if (process.platform !== 'win32') {
+    console.log(ansis.white(`    3. 加权限 / Make executable:`))
+    console.log(ansis.cyan(`       chmod +x "${binDir}/${destFileName}"`))
+    console.log()
+  }
+  console.log(ansis.white(`    或重新安装 / Or re-install:`))
+  console.log(ansis.cyan(`       npx ccg-workflow@latest`))
+  console.log()
+}
+
+/**
  * Download and install codeagent-wrapper binary for current platform.
+ * Skips download if binary already exists and passes `--version` check.
  */
 async function installBinaryFile(ctx: InstallContext): Promise<void> {
   try {
@@ -381,6 +447,22 @@ async function installBinaryFile(ctx: InstallContext): Promise<void> {
     }
 
     const destBinary = join(binDir, process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper')
+
+    // Skip download if binary already exists and is functional
+    if (await fs.pathExists(destBinary)) {
+      try {
+        const { execSync } = await import('node:child_process')
+        execSync(`"${destBinary}" --version`, { stdio: 'pipe' })
+        // Binary exists and works — skip download
+        ctx.result.binPath = binDir
+        ctx.result.binInstalled = true
+        return
+      }
+      catch {
+        // Binary exists but broken — fall through to re-download
+      }
+    }
+
     const installed = await downloadBinaryFromRelease(binaryName, destBinary)
 
     if (installed) {
@@ -478,9 +560,10 @@ export interface UninstallResult {
 }
 
 /**
- * Uninstall workflows by removing their command files
+ * Uninstall workflows by removing their command files.
+ * @param options.preserveBinary — when true, skip binary removal (used during update)
  */
-export async function uninstallWorkflows(installDir: string): Promise<UninstallResult> {
+export async function uninstallWorkflows(installDir: string, options?: { preserveBinary?: boolean }): Promise<UninstallResult> {
   const result: UninstallResult = {
     success: true,
     removedCommands: [],
@@ -545,8 +628,8 @@ export async function uninstallWorkflows(installDir: string): Promise<UninstallR
     }
   }
 
-  // Remove codeagent-wrapper binary
-  if (await fs.pathExists(binDir)) {
+  // Remove codeagent-wrapper binary (skip during update to avoid unnecessary re-download)
+  if (!options?.preserveBinary && await fs.pathExists(binDir)) {
     try {
       const wrapperName = process.platform === 'win32' ? 'codeagent-wrapper.exe' : 'codeagent-wrapper'
       const wrapperPath = join(binDir, wrapperName)
