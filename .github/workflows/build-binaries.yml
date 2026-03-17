@@ -74,16 +74,16 @@ jobs:
           prerelease: true
           make_latest: false
 
+      - name: Install wrangler
+        run: npm i -g wrangler@latest
+
       - name: Sync binaries to Cloudflare R2 mirror
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: npm
-          command: |
-            r2 object put github/preset/codeagent-wrapper-darwin-amd64 --file=artifacts/codeagent-wrapper-darwin-amd64 --content-type=application/octet-stream --remote &&
-            r2 object put github/preset/codeagent-wrapper-darwin-arm64 --file=artifacts/codeagent-wrapper-darwin-arm64 --content-type=application/octet-stream --remote &&
-            r2 object put github/preset/codeagent-wrapper-linux-amd64 --file=artifacts/codeagent-wrapper-linux-amd64 --content-type=application/octet-stream --remote &&
-            r2 object put github/preset/codeagent-wrapper-linux-arm64 --file=artifacts/codeagent-wrapper-linux-arm64 --content-type=application/octet-stream --remote &&
-            r2 object put github/preset/codeagent-wrapper-windows-amd64.exe --file=artifacts/codeagent-wrapper-windows-amd64.exe --content-type=application/octet-stream --remote &&
-            r2 object put github/preset/codeagent-wrapper-windows-arm64.exe --file=artifacts/codeagent-wrapper-windows-arm64.exe --content-type=application/octet-stream --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          for bin in artifacts/codeagent-wrapper-*; do
+            name=$(basename "$bin")
+            echo "Uploading $name → R2..."
+            wrangler r2 object put "github/preset/$name" --file="$bin" --content-type=application/octet-stream
+          done
