@@ -2,7 +2,7 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-17 (v1.7.84)
+**Last Updated**: 2026-03-17 (v1.7.85)
 
 ---
 
@@ -10,8 +10,9 @@
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
 
-### 2026-03-17 (v1.7.84)
-- 🐛 **更新跳过 binary 重复下载**：binary 存在且可用时跳过下载，`preserveBinary` 选项 + `verifyBinary()` / `showBinaryDownloadWarning()` 共享函数
+### 2026-03-17 (v1.7.85)
+- ✨ **Binary 双源下载**：GitHub（8s 超时）→ Cloudflare R2 镜像（60s），国内用户友好
+- 🐛 **更新跳过 binary 重复下载**：`preserveBinary` + `verifyBinary()` / `showBinaryDownloadWarning()`
 - 🐛 **更新失败显示 binary 提示**：与初始化一致的红框警告 + 手动修复指引
 
 ### 2026-03-12 (v1.7.83)

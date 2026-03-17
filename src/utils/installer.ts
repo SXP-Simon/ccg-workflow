@@ -70,26 +70,27 @@ interface InstallContext {
 
 const GITHUB_REPO = 'fengshao1227/ccg-workflow'
 const RELEASE_TAG = 'preset'
-const BINARY_DOWNLOAD_URL = `https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}`
+
+/** Download sources: GitHub (global) + Cloudflare R2 (China-friendly mirror) */
+const BINARY_SOURCES = [
+  { name: 'GitHub Release', url: `https://github.com/${GITHUB_REPO}/releases/download/${RELEASE_TAG}`, timeoutMs: 8_000 },
+  { name: 'Cloudflare R2', url: 'https://pub-29270440a0854a49bf1589cd3662c067.r2.dev/preset', timeoutMs: 60_000 },
+]
 
 /**
- * Download codeagent-wrapper binary from GitHub Release.
- * Retry: 3 attempts with exponential backoff. Timeout: 60s per attempt.
+ * Download binary from a single URL with retry.
+ * Returns true on success, false on failure.
  */
-async function downloadBinaryFromRelease(binaryName: string, destPath: string): Promise<boolean> {
-  const url = `${BINARY_DOWNLOAD_URL}/${binaryName}`
-  const MAX_ATTEMPTS = 3
-  const TIMEOUT_MS = 60_000
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+async function downloadFromUrl(url: string, destPath: string, timeoutMs: number, maxAttempts = 2): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
 
       const response = await fetch(url, { redirect: 'follow', signal: controller.signal })
       if (!response.ok) {
         clearTimeout(timer)
-        if (attempt < MAX_ATTEMPTS) {
+        if (attempt < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, attempt * 2000))
           continue
         }
@@ -106,14 +107,26 @@ async function downloadBinaryFromRelease(binaryName: string, destPath: string): 
       return true
     }
     catch {
-      if (attempt < MAX_ATTEMPTS) {
+      if (attempt < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, attempt * 2000))
         continue
       }
       return false
     }
   }
+  return false
+}
 
+/**
+ * Download codeagent-wrapper binary with dual-source fallback.
+ * Strategy: GitHub (8s timeout) → R2 mirror (60s timeout).
+ */
+async function downloadBinaryFromRelease(binaryName: string, destPath: string): Promise<boolean> {
+  for (const source of BINARY_SOURCES) {
+    const url = `${source.url}/${binaryName}`
+    const ok = await downloadFromUrl(url, destPath, source.timeoutMs)
+    if (ok) return true
+  }
   return false
 }
 
