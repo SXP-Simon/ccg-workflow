@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.86] - 2026-03-18
+
+### 🐛 修复
+
+- **Skills 路径错误**：`SKILL.md` 模板中 `run_skill.js` 路径修正为 `~/.claude/skills/ccg/run_skill.js`，与 v1.7.75 命名空间迁移对齐，修复质量关卡调用失败问题
+
+---
+
 ## [1.7.85] - 2026-03-17
 
 ### ✨ 新功能
