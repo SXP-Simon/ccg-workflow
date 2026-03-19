@@ -9,16 +9,22 @@ const execAsync = promisify(exec)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
-// Find package root by looking for package.json
+// Find package root by looking for package.json (walk all the way to filesystem root)
 function findPackageRoot(startDir: string): string {
   let dir = startDir
-  for (let i = 0; i < 5; i++) {
+
+  while (true) {
     if (fs.existsSync(join(dir, 'package.json'))) {
       return dir
     }
-    dir = dirname(dir)
+
+    const parentDir = dirname(dir)
+    if (parentDir === dir) {
+      return startDir
+    }
+
+    dir = parentDir
   }
-  return startDir
 }
 
 const PACKAGE_ROOT = findPackageRoot(__dirname)
@@ -28,12 +34,22 @@ const PACKAGE_ROOT = findPackageRoot(__dirname)
  */
 export async function getCurrentVersion(): Promise<string> {
   try {
+    // Prefer path relative to this file so dist/src path depth doesn't matter.
+    const relativePkgPath = fileURLToPath(new URL('../../package.json', import.meta.url))
+    if (await fs.pathExists(relativePkgPath)) {
+      const relativePkg = await fs.readJSON(relativePkgPath)
+      if (relativePkg.version) {
+        return relativePkg.version
+      }
+    }
+
+    // Fallback: walk up to find package root (for unusual runtime layouts)
     const pkgPath = join(PACKAGE_ROOT, 'package.json')
     const pkg = await fs.readJSON(pkgPath)
-    return pkg.version || '0.0.0'
+    return pkg.version || process.env.npm_package_version || '0.0.0'
   }
   catch {
-    return '0.0.0'
+    return process.env.npm_package_version || '0.0.0'
   }
 }
 
