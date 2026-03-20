@@ -2,13 +2,18 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-19 (v1.7.88)
+**Last Updated**: 2026-03-20 (v1.7.89)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-20 (v1.7.89)
+- 🐛 **权限规则匹配修复**：`Bash(*codeagent-wrapper*)` 加前导通配符，修复 Windows/macOS 完整路径不匹配
+- 🐛 **spec-init `<<<` 拦截修复**：改用管道替代 here-string
+- 🔄 **全平台 permissions.allow**：macOS/Linux 不再依赖 Hook + jq，升级自动迁移清理
 
 ### 2026-03-19 (v1.7.88)
 - 🐛 **TS 类型错误修复**：`installer-mcp.ts` 参数类型收紧为 `McpServerConfig`，修复 `tsc --noEmit` 报错

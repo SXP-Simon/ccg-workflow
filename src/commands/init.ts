@@ -12,99 +12,56 @@ import { isWindows } from '../utils/platform'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 
 /**
- * Check if jq is available on the system
- */
-async function checkJqAvailable(): Promise<boolean> {
-  try {
-    const { execSync } = await import('node:child_process')
-    execSync('jq --version', { stdio: 'pipe' })
-    return true
-  }
-  catch {
-    return false
-  }
-}
-
-/**
  * Auto-approve codeagent-wrapper Bash commands in settings.json.
  *
- * - Windows: uses permissions.allow (Hook depends on jq/grep/true which don't exist on Windows)
- * - macOS/Linux: uses PreToolUse Hook (more precise, only matches codeagent-wrapper)
+ * All platforms use permissions.allow with wildcard pattern (v1.7.89+).
+ * Old Hook-based approach and old permission entries are automatically cleaned up.
  */
-async function installHook(settingsPath: string): Promise<'hook' | 'permission'> {
+async function installHook(settingsPath: string): Promise<'permission'> {
   let settings: Record<string, any> = {}
   if (await fs.pathExists(settingsPath)) {
     settings = await fs.readJSON(settingsPath)
   }
 
-  // ── Windows: permissions.allow approach ──
-  if (isWindows()) {
-    // Remove old Hook if it exists (migration from ≤v1.7.75)
-    if (settings.hooks?.PreToolUse) {
-      const hookIdx = settings.hooks.PreToolUse.findIndex(
-        (h: any) => h.matcher === 'Bash' && h.hooks?.some((hh: any) => hh.command?.includes('codeagent-wrapper')),
-      )
-      if (hookIdx >= 0) {
-        settings.hooks.PreToolUse.splice(hookIdx, 1)
-        // Clean up empty arrays/objects
-        if (settings.hooks.PreToolUse.length === 0)
-          delete settings.hooks.PreToolUse
-        if (settings.hooks && Object.keys(settings.hooks).length === 0)
-          delete settings.hooks
-      }
-    }
+  // ── All platforms: permissions.allow approach (v1.7.89+) ──
 
-    // Add permissions.allow entry
-    if (!settings.permissions)
-      settings.permissions = {}
-    if (!settings.permissions.allow)
-      settings.permissions.allow = []
-
-    const permEntry = 'Bash(codeagent-wrapper*)'
-    if (!settings.permissions.allow.includes(permEntry)) {
-      settings.permissions.allow.push(permEntry)
-    }
-
-    await fs.writeJSON(settingsPath, settings, { spaces: 2 })
-    return 'permission'
-  }
-
-  // ── macOS/Linux: Hook approach ──
-  if (!settings.hooks)
-    settings.hooks = {}
-  if (!settings.hooks.PreToolUse)
-    settings.hooks.PreToolUse = []
-
-  const newCommand = `jq -r '.tool_input.command' 2>/dev/null | grep -q 'codeagent-wrapper' && echo '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow", "permissionDecisionReason": "codeagent-wrapper auto-approved"}}' || true`
-
-  // Check if hook already exists
-  const existingIdx = settings.hooks.PreToolUse.findIndex(
-    (h: any) => h.matcher === 'Bash' && h.hooks?.some((hh: any) => hh.command?.includes('codeagent-wrapper')),
-  )
-
-  if (existingIdx >= 0) {
-    // Migrate: replace old "|| exit 1" hook with fixed "|| true" version
-    const oldCmd = settings.hooks.PreToolUse[existingIdx]?.hooks?.[0]?.command || ''
-    if (oldCmd.includes('exit 1')) {
-      settings.hooks.PreToolUse[existingIdx].hooks[0].command = newCommand
-      await fs.writeJSON(settingsPath, settings, { spaces: 2 })
+  // Remove old Hook if it exists (migration from ≤v1.7.88)
+  if (settings.hooks?.PreToolUse) {
+    const hookIdx = settings.hooks.PreToolUse.findIndex(
+      (h: any) => h.matcher === 'Bash' && h.hooks?.some((hh: any) => hh.command?.includes('codeagent-wrapper')),
+    )
+    if (hookIdx >= 0) {
+      settings.hooks.PreToolUse.splice(hookIdx, 1)
+      // Clean up empty arrays/objects
+      if (settings.hooks.PreToolUse.length === 0)
+        delete settings.hooks.PreToolUse
+      if (settings.hooks && Object.keys(settings.hooks).length === 0)
+        delete settings.hooks
     }
   }
-  else {
-    settings.hooks.PreToolUse.push({
-      matcher: 'Bash',
-      hooks: [
-        {
-          type: 'command',
-          command: newCommand,
-          timeout: 1,
-        },
-      ],
-    })
-    await fs.writeJSON(settingsPath, settings, { spaces: 2 })
+
+  // Remove old permission entry without leading wildcard (migration from ≤v1.7.88)
+  if (settings.permissions?.allow) {
+    const oldEntry = 'Bash(codeagent-wrapper*)'
+    const oldIdx = settings.permissions.allow.indexOf(oldEntry)
+    if (oldIdx >= 0) {
+      settings.permissions.allow.splice(oldIdx, 1)
+    }
   }
 
-  return 'hook'
+  // Add permissions.allow entry
+  if (!settings.permissions)
+    settings.permissions = {}
+  if (!settings.permissions.allow)
+    settings.permissions.allow = []
+
+  const permEntry = 'Bash(*codeagent-wrapper*)'
+  if (!settings.permissions.allow.includes(permEntry)) {
+    settings.permissions.allow.push(permEntry)
+  }
+
+  await fs.writeJSON(settingsPath, settings, { spaces: 2 })
+  return 'permission'
 }
 
 /**
@@ -776,15 +733,10 @@ export async function init(options: InitOptions = {}): Promise<void> {
       console.log(`    ${ansis.green('✓')} API ${ansis.gray(`→ ${settingsPath}`)}`)
     }
 
-    // Always install codeagent-wrapper auto-approve (Hook on Unix, permissions.allow on Windows)
-    const hookMethod = await installHook(settingsPath)
+    // Always install codeagent-wrapper auto-approve via permissions.allow
+    await installHook(settingsPath)
     console.log()
-    if (hookMethod === 'permission') {
-      console.log(`    ${ansis.green('✓')} ${i18n.t('init:hooks.installed')} ${ansis.gray('(permissions.allow)')}`)
-    }
-    else {
-      console.log(`    ${ansis.green('✓')} ${i18n.t('init:hooks.installed')}`)
-    }
+    console.log(`    ${ansis.green('✓')} ${i18n.t('init:hooks.installed')} ${ansis.gray('(permissions.allow)')}`)
 
     // Install grok-search MCP if requested
     if (wantGrokSearch && (tavilyKey || firecrawlKey || grokApiUrl || grokApiKey)) {
@@ -857,18 +809,7 @@ export async function init(options: InitOptions = {}): Promise<void> {
       }
     }
 
-    // Check jq availability and warn if missing (only needed on Unix where Hook is used)
-    if (hookMethod === 'hook') {
-      const hasJq = await checkJqAvailable()
-      if (!hasJq) {
-        console.log()
-        console.log(ansis.yellow(`    ⚠ ${i18n.t('init:hooks.jqNotFound')}`))
-        console.log()
-        console.log(ansis.cyan(`    📖 ${i18n.t('init:hooks.jqInstallHint')}:`))
-        console.log(ansis.gray(`       ${i18n.t('init:hooks.jqMac')}`))
-        console.log(ansis.gray(`       ${i18n.t('init:hooks.jqLinux')}`))
-      }
-    }
+    // jq check removed — permissions.allow approach does not require jq
 
     // Show result summary
     console.log()

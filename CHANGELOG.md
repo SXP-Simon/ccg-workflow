@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.89] - 2026-03-20
+
+### 🐛 修复
+
+- **权限规则匹配修复**：`Bash(codeagent-wrapper*)` → `Bash(*codeagent-wrapper*)`，修复完整路径无法匹配的问题
+- **spec-init `<<<` 拦截修复**：here-string `<<<` 改为管道 `echo ... |`，避免 Claude Code 安全拦截
+
+### 🔄 变更
+
+- **全平台统一 permissions.allow**：macOS/Linux 不再使用 PreToolUse Hook + jq，全平台统一用 `permissions.allow` 通配符匹配，升级时自动清理旧 Hook 和旧规则
+
+---
+
 ## [1.7.88] - 2026-03-19
 
 ### 🐛 修复
