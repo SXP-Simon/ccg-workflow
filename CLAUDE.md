@@ -2,13 +2,16 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-23 (v1.7.90)
+**Last Updated**: 2026-03-25 (v1.7.91)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-25 (v1.7.91)
+- 🐛 **Gemini CLI stdin 兼容性修复**：`-p -` 改为 `-p "任务文本"` 直接传递，修复 Gemini 无法调用的问题
 
 ### 2026-03-23 (v1.7.90)
 - ✨ **`--progress` 进度输出**：codeagent-wrapper 新增 `--progress` 参数，后台任务 stderr 输出精简进度行，告别黑箱等待（PR #112）

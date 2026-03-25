@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.91] - 2026-03-25
+
+### 🐛 修复
+
+- **Gemini CLI stdin 兼容性修复**：Gemini CLI 不支持 `-p -` 作为 stdin 标记，wrapper 现在对 Gemini backend 直接通过 `-p "任务文本"` 传递 prompt，跳过 stdin pipe。修复 v1.7.74 引入的 `--include-directories` 与 `-p -` 参数链断裂导致 Gemini 无法调用的问题
+
+---
+
 ## [1.7.90] - 2026-03-23
 
 ### ✨ 新功能
