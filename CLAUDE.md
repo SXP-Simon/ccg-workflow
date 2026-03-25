@@ -2,13 +2,18 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-25 (v1.7.91)
+**Last Updated**: 2026-03-25 (v1.7.92)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-25 (v1.7.92)
+- ✨ **初始化交互重构**：3 步流程（API 提供方 → MCP 多选 → 性能模式），赞助商预留位，MCP 多选共存
+- 🐛 **第三方 API 修复**：`ANTHROPIC_API_KEY` → `ANTHROPIC_AUTH_TOKEN`，修复 `/login` 问题
+- 🐛 **Gemini CLI stdin 修复**：`-p -` → `-p "任务文本"`，修复 Gemini 无法调用
 
 ### 2026-03-25 (v1.7.91)
 - 🐛 **Gemini CLI stdin 兼容性修复**：`-p -` 改为 `-p "任务文本"` 直接传递，修复 Gemini 无法调用的问题

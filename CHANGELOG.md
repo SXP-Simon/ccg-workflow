@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.92] - 2026-03-25
+
+### ✨ 新功能
+
+- **初始化交互重构**：3 步流程替代原来的 8 轮 yes/no 确认
+  - Step 1: API 提供方（list 选择：官方 / 第三方 / 赞助商预留位）
+  - Step 2: MCP 工具（checkbox 多选，可同时装多个，按需填 Key）
+  - Step 3: 性能模式（list 选择：标准 / 轻量）
+- **赞助商预留位**：init 和 menu 的 API 提供方选择中预留赞助商合作位
+- **MCP 多选共存**：ace-tool + fast-context 可同时安装，ace 为主检索，fast-context 辅助语义搜索
+
+### 🐛 修复
+
+- **第三方 API 配置修复**：`ANTHROPIC_API_KEY` → `ANTHROPIC_AUTH_TOKEN`，修复第三方代理配置后仍显示 `/login` 的问题
+- **Gemini CLI stdin 兼容性修复**：Gemini backend 直接通过 `-p "任务文本"` 传递 prompt，修复 `--include-directories` 参数链断裂
+
+---
+
 ## [1.7.91] - 2026-03-25
 
 ### 🐛 修复

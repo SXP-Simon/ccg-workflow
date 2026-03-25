@@ -6,6 +6,23 @@ import { dirname, join } from 'pathe'
 // Fast Context global prompt injection
 // ═══════════════════════════════════════════════════════
 
+const FAST_CONTEXT_PROMPT_PRIMARY = `# fast-context MCP 工具使用指南
+
+## 核心原则
+
+**任何需要理解代码上下文、探索性搜索、或自然语言定位代码的场景，优先使用 \`mcp__fast-context__fast_context_search\`**`
+
+const FAST_CONTEXT_PROMPT_AUXILIARY = `# fast-context MCP 工具使用指南（辅助模式）
+
+## 核心原则
+
+**主检索工具为 ace-tool（\`mcp__ace-tool__search_context\`）。当 ace-tool 无法满足语义搜索需求时，使用 \`mcp__fast-context__fast_context_search\` 作为补充。**
+
+适合使用 fast-context 的场景：
+- 用自然语言描述要找的逻辑（如"部署流程"、"事件处理"）
+- 跨模块、跨层级的调用链路追踪
+- 中文语义搜索（工具支持中英文双语查询）`
+
 const FAST_CONTEXT_PROMPT = `# fast-context MCP 工具使用指南
 
 ## 核心原则
@@ -53,10 +70,11 @@ const FC_MARKER_END = '<!-- CCG-FAST-CONTEXT-END -->'
  * 2. ~/.codex/AGENTS.md (Codex CLI — auto-loaded as global instructions)
  * 3. ~/.gemini/GEMINI.md (Gemini CLI — auto-loaded as global instructions)
  */
-export async function writeFastContextPrompt(): Promise<void> {
+export async function writeFastContextPrompt(auxiliaryMode = false): Promise<void> {
+  const promptContent = auxiliaryMode ? FAST_CONTEXT_PROMPT_AUXILIARY : FAST_CONTEXT_PROMPT_PRIMARY
   const markerStart = FC_MARKER_START
   const markerEnd = FC_MARKER_END
-  const markedBlock = `\n${markerStart}\n${FAST_CONTEXT_PROMPT}\n${markerEnd}\n`
+  const markedBlock = `\n${markerStart}\n${promptContent}\n${markerEnd}\n`
   const markerRegex = new RegExp(
     `\\n?${markerStart.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?${markerEnd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n?`,
   )
@@ -83,7 +101,7 @@ export async function writeFastContextPrompt(): Promise<void> {
   // 1. Claude Code rules (standalone file, not appended)
   const rulesDir = join(homedir(), '.claude', 'rules')
   await fs.ensureDir(rulesDir)
-  await fs.writeFile(join(rulesDir, 'ccg-fast-context.md'), FAST_CONTEXT_PROMPT, 'utf-8')
+  await fs.writeFile(join(rulesDir, 'ccg-fast-context.md'), promptContent, 'utf-8')
 
   // 2. Codex CLI global instructions (~/.codex/AGENTS.md)
   await injectIntoFile(join(homedir(), '.codex', 'AGENTS.md'))

@@ -207,258 +207,39 @@ export async function init(options: InitOptions = {}): Promise<void> {
   let contextWeaverApiKey = ''
   let fastContextApiKey = ''
   let fastContextIncludeSnippets = false
+  let wantFastContext = false
 
-  // Skip MCP configuration if --skip-mcp is passed (used during update)
-  if (options.skipMcp) {
-    mcpProvider = 'skip'
-  }
-  else if (!options.skipPrompt) {
-    console.log()
-    console.log(ansis.cyan.bold(`  🔧 ${i18n.t('init:mcp.title')}`))
-    console.log()
-
-    const { selectedMcp } = await inquirer.prompt([{
-      type: 'list',
-      name: 'selectedMcp',
-      message: i18n.t('init:mcp.selectProvider'),
-      choices: [
-        {
-          name: `fast-context ${ansis.green(`(${i18n.t('common:info')})`)} ${ansis.gray('- Windsurf Fast Context, AI 驱动搜索')}`,
-          value: 'fast-context',
-        },
-        {
-          name: `ace-tool ${ansis.gray('- search_context (enhance_prompt N/A)')}`,
-          value: 'ace-tool',
-        },
-        {
-          name: `ace-tool-rs ${ansis.gray('(Rust) - search_context')}`,
-          value: 'ace-tool-rs',
-        },
-        {
-          name: `contextweaver ${ansis.gray(`- ${i18n.t('init:mcp.contextweaver')}`)}`,
-          value: 'contextweaver',
-        },
-        {
-          name: `${i18n.t('init:mcp.skipLater')} ${ansis.gray(`- ${i18n.t('init:mcp.configManually')}`)}`,
-          value: 'skip',
-        },
-      ],
-      default: 'fast-context',
-    }])
-
-    mcpProvider = selectedMcp
-
-    // Configure ace-tool or ace-tool-rs if selected
-    if (selectedMcp === 'ace-tool' || selectedMcp === 'ace-tool-rs') {
-      const toolName = selectedMcp === 'ace-tool-rs' ? 'ace-tool-rs' : 'ace-tool'
-      const toolDesc = selectedMcp === 'ace-tool-rs' ? i18n.t('init:aceToolRs.description') : i18n.t('init:aceTool.description')
-
-      console.log()
-      console.log(ansis.cyan.bold(`  🔧 ${toolName} MCP`))
-      console.log(ansis.gray(`     ${toolDesc}`))
-      console.log()
-
-      const { skipToken } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'skipToken',
-        message: i18n.t('init:mcp.skipTokenPrompt'),
-        default: false,
-      }])
-
-      if (!skipToken) {
-        console.log()
-        console.log(ansis.cyan(`     📖 ${i18n.t('init:mcp.getAccess')}`))
-        console.log()
-        console.log(`     ${ansis.gray('•')} ${ansis.cyan(i18n.t('init:mcp.officialService'))}: ${ansis.underline('https://augmentcode.com/')}`)
-        console.log(`       ${ansis.gray(i18n.t('init:mcp.registerForToken'))}`)
-        console.log()
-        console.log(`     ${ansis.gray('•')} ${ansis.cyan(i18n.t('init:mcp.proxyService'))} ${ansis.yellow(`(${i18n.t('init:mcp.noSignup')})`)}: ${ansis.underline('https://acemcp.heroman.wtf/')}`)
-        console.log(`       ${ansis.gray(i18n.t('init:mcp.communityProxy'))}`)
-        console.log()
-
-        const aceAnswers = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'baseUrl',
-            message: `Base URL ${ansis.gray(`(${i18n.t('init:mcp.baseUrlHint')})`)}`,
-            default: '',
-          },
-          {
-            type: 'password',
-            name: 'token',
-            message: `Token ${ansis.gray(`(${i18n.t('init:mcp.tokenRequired')})`)}`,
-            mask: '*',
-            validate: (input: string) => input.trim() !== '' || i18n.t('init:mcp.enterToken'),
-          },
-        ])
-        aceToolBaseUrl = aceAnswers.baseUrl || ''
-        aceToolToken = aceAnswers.token || ''
-      }
-      else {
-        console.log()
-        console.log(ansis.yellow(`  ℹ️  ${i18n.t('init:mcp.tokenSkipped')}`))
-        console.log(ansis.gray(`     • ${toolName} MCP ${i18n.t('init:mcp.notInstalled')}`))
-        console.log(ansis.gray(`     • ${i18n.t('init:mcp.configLater', { cmd: ansis.cyan('npx ccg config mcp') })}`))
-        console.log()
-      }
-    }
-    // Configure Fast Context if selected
-    else if (selectedMcp === 'fast-context') {
-      console.log()
-      console.log(ansis.cyan.bold(`  🔧 Fast Context MCP`))
-      console.log(ansis.gray(`     Windsurf Fast Context — AI 驱动代码搜索，无需全量索引`))
-      console.log()
-
-      const { skipKey } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'skipKey',
-        message: '跳过 API Key 配置？（本地装了 Windsurf 并登录可自动提取）',
-        default: false,
-      }])
-
-      if (!skipKey) {
-        console.log()
-        console.log(ansis.cyan(`     📖 获取 WINDSURF_API_KEY：`))
-        console.log()
-        console.log(`     ${ansis.gray('•')} 安装 Windsurf 编辑器 → 登录 → Key 自动存入本地 SQLite`)
-        console.log(`     ${ansis.gray('•')} 也可手动从 SQLite 提取（AI 可调用 extract_windsurf_key 工具）`)
-        console.log()
-
-        const fcAnswers = await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'apiKey',
-            message: `WINDSURF_API_KEY ${ansis.gray('(留空则启动时自动提取)')}`,
-            default: '',
-          },
-          {
-            type: 'confirm',
-            name: 'includeSnippets',
-            message: `返回完整代码片段？${ansis.gray('(否则仅路径+行号，更省 token)')}`,
-            default: false,
-          },
-        ])
-        fastContextApiKey = fcAnswers.apiKey?.trim() || ''
-        fastContextIncludeSnippets = fcAnswers.includeSnippets
-      }
-      else {
-        console.log()
-        console.log(ansis.yellow(`  ℹ️  API Key 已跳过`))
-        console.log(ansis.gray(`     • fast-context MCP 将不带 Key 安装（启动时自动从本地 Windsurf 提取）`))
-        console.log()
-      }
-    }
-    // Configure ContextWeaver if selected
-    else if (selectedMcp === 'contextweaver') {
-      console.log()
-      console.log(ansis.cyan.bold(`  🔧 ContextWeaver MCP`))
-      console.log(ansis.gray(`     ${i18n.t('init:mcp.localEngine')}`))
-      console.log()
-
-      const { skipKey } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'skipKey',
-        message: i18n.t('init:mcp.skipKeyPrompt'),
-        default: false,
-      }])
-
-      if (!skipKey) {
-        console.log()
-        console.log(ansis.cyan(`     📖 ${i18n.t('init:mcp.getApiKey')}`))
-        console.log()
-        console.log(`     ${ansis.gray('1.')} ${i18n.t('init:mcp.siliconflowStep1', { url: ansis.underline('https://siliconflow.cn/') })}`)
-        console.log(`     ${ansis.gray('2.')} ${i18n.t('init:mcp.siliconflowStep2')}`)
-        console.log(`     ${ansis.gray('3.')} ${i18n.t('init:mcp.siliconflowStep3')}`)
-        console.log()
-
-        const cwAnswers = await inquirer.prompt([{
-          type: 'password',
-          name: 'apiKey',
-          message: `SiliconFlow API Key ${ansis.gray('(sk-xxx)')}`,
-          mask: '*',
-          validate: (input: string) => input.trim() !== '' || i18n.t('init:mcp.enterApiKey'),
-        }])
-        contextWeaverApiKey = cwAnswers.apiKey || ''
-      }
-      else {
-        console.log()
-        console.log(ansis.yellow(`  ℹ️  ${i18n.t('init:mcp.keySkipped')}`))
-        console.log(ansis.gray(`     • ContextWeaver MCP ${i18n.t('init:mcp.notInstalled')}`))
-        console.log(ansis.gray(`     • ${i18n.t('init:mcp.configLater', { cmd: ansis.cyan('npx ccg config mcp') })}`))
-        console.log()
-      }
-    }
-    else {
-      console.log()
-      console.log(ansis.yellow(`  ℹ️  ${i18n.t('init:mcp.mcpSkipped')}`))
-      console.log(ansis.gray(`     • ${i18n.t('init:mcp.configManually')}`))
-      console.log()
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // Grok Search MCP (web search)
-  // ═══════════════════════════════════════════════════════
+  // Grok Search MCP
   let wantGrokSearch = false
   let tavilyKey = ''
   let firecrawlKey = ''
   let grokApiUrl = ''
   let grokApiKey = ''
 
-  if (!options.skipPrompt && !options.skipMcp) {
-    console.log()
-    console.log(ansis.cyan.bold(`  🔍 ${i18n.t('init:grok.title')}`))
-    console.log()
-
-    const { wantGrok } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'wantGrok',
-      message: i18n.t('init:grok.installPrompt'),
-      default: false,
-    }])
-
-    if (wantGrok) {
-      wantGrokSearch = true
-
-      console.log()
-      console.log()
-      console.log(ansis.cyan(`     📖 ${i18n.t('init:grok.getKeys')}`))
-      console.log(`        Tavily: ${ansis.underline('https://www.tavily.com/')} ${ansis.gray(`(${i18n.t('init:grok.tavilyHint')})`)}`)
-      console.log(`        Firecrawl: ${ansis.underline('https://www.firecrawl.dev/')} ${ansis.gray(`(${i18n.t('init:grok.firecrawlHint')})`)}`)
-      console.log(`        Grok API: ${ansis.gray(i18n.t('init:grok.grokHint'))}`)
-      console.log()
-
-      const grokAnswers = await inquirer.prompt([
-        { type: 'input', name: 'grokApiUrl', message: `GROK_API_URL ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, default: '' },
-        { type: 'password', name: 'grokApiKey', message: `GROK_API_KEY ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, mask: '*' },
-        { type: 'password', name: 'tavilyKey', message: `TAVILY_API_KEY ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, mask: '*' },
-        { type: 'password', name: 'firecrawlKey', message: `FIRECRAWL_API_KEY ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, mask: '*' },
-      ])
-
-      tavilyKey = grokAnswers.tavilyKey?.trim() || ''
-      firecrawlKey = grokAnswers.firecrawlKey?.trim() || ''
-      grokApiUrl = grokAnswers.grokApiUrl?.trim() || ''
-      grokApiKey = grokAnswers.grokApiKey?.trim() || ''
-    }
-  }
-
   // Claude Code API configuration
   let apiUrl = ''
   let apiKey = ''
 
+  // ═══════════════════════════════════════════════════════
+  // Step 1/3: API Provider
+  // ═══════════════════════════════════════════════════════
   if (!options.skipPrompt) {
     console.log()
-    console.log(ansis.cyan.bold(`  🔑 ${i18n.t('init:api.title')}`))
+    console.log(ansis.cyan.bold(`  🔑 Step 1/3 — ${i18n.t('init:api.title')}`))
     console.log()
 
-    const { configureApi } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'configureApi',
-      message: i18n.t('init:api.configurePrompt'),
-      default: false,
+    const { apiProvider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'apiProvider',
+      message: i18n.t('init:api.providerPrompt'),
+      choices: [
+        { name: `${ansis.green('●')} ${i18n.t('init:api.officialOption')}`, value: 'official' },
+        { name: `${ansis.cyan('●')} ${i18n.t('init:api.thirdPartyOption')}`, value: 'thirdparty' },
+        { name: ansis.gray(`○ ${i18n.t('init:api.sponsorSlot')}`), value: 'sponsor', disabled: i18n.t('init:api.sponsorDisabled') },
+      ],
     }])
 
-    if (configureApi) {
+    if (apiProvider === 'thirdparty') {
       const apiAnswers = await inquirer.prompt([
         {
           type: 'input',
@@ -479,21 +260,193 @@ export async function init(options: InitOptions = {}): Promise<void> {
     }
   }
 
-  // Performance mode selection (always ask unless skipPrompt is true)
+  // ═══════════════════════════════════════════════════════
+  // Step 2/3: MCP Tools (checkbox multi-select)
+  // ═══════════════════════════════════════════════════════
+  if (options.skipMcp) {
+    mcpProvider = 'skip'
+  }
+  else if (!options.skipPrompt) {
+    console.log()
+    console.log(ansis.cyan.bold(`  🔧 Step 2/3 — ${i18n.t('init:mcp.title')}`))
+    console.log()
+
+    const { selectedTools } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'selectedTools',
+      message: i18n.t('init:mcp.selectTools'),
+      choices: [
+        {
+          name: `ace-tool ${ansis.green(`(${i18n.t('common:info')})`)} ${ansis.gray('— search_context 代码检索')}`,
+          value: 'ace-tool',
+          checked: true,
+        },
+        {
+          name: `fast-context ${ansis.gray('— AI 驱动语义搜索')}`,
+          value: 'fast-context',
+        },
+        {
+          name: `context7 ${ansis.green('(free)')} ${ansis.gray('— 库文档查询')}`,
+          value: 'context7',
+          checked: true,
+        },
+        {
+          name: `grok-search ${ansis.gray('— 联网搜索 (需 API Key)')}`,
+          value: 'grok-search',
+        },
+        {
+          name: `contextweaver ${ansis.gray('— 硅基流动嵌入检索 (需 API Key)')}`,
+          value: 'contextweaver',
+        },
+      ],
+    }]) as { selectedTools: string[] }
+
+    // Determine primary MCP provider for template variable replacement
+    // Priority: ace-tool > fast-context > contextweaver > skip
+    const hasAceTool = selectedTools.includes('ace-tool')
+    const hasFastContext = selectedTools.includes('fast-context')
+    const hasContextWeaver = selectedTools.includes('contextweaver')
+    wantFastContext = hasFastContext
+    wantGrokSearch = selectedTools.includes('grok-search')
+
+    if (hasAceTool) {
+      mcpProvider = 'ace-tool'
+    }
+    else if (hasFastContext) {
+      mcpProvider = 'fast-context'
+    }
+    else if (hasContextWeaver) {
+      mcpProvider = 'contextweaver'
+    }
+    else {
+      mcpProvider = 'skip'
+    }
+
+    // ── Collect keys for selected tools that need them ──
+
+    // ace-tool: needs Token
+    if (hasAceTool) {
+      console.log()
+      console.log(ansis.cyan.bold(`  🔧 ace-tool MCP`))
+      console.log()
+      console.log(`     ${ansis.gray('•')} ${ansis.cyan(i18n.t('init:mcp.officialService'))}: ${ansis.underline('https://augmentcode.com/')}`)
+      console.log(`     ${ansis.gray('•')} ${ansis.cyan(i18n.t('init:mcp.proxyService'))} ${ansis.yellow(`(${i18n.t('init:mcp.noSignup')})`)}: ${ansis.underline('https://acemcp.heroman.wtf/')}`)
+      console.log()
+
+      const aceAnswers = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'baseUrl',
+          message: `Base URL ${ansis.gray(`(${i18n.t('init:mcp.baseUrlHint')})`)}`,
+          default: '',
+        },
+        {
+          type: 'password',
+          name: 'token',
+          message: `Token ${ansis.gray(`(${i18n.t('init:mcp.tokenRequired')})`)}`,
+          mask: '*',
+          validate: (input: string) => input.trim() !== '' || i18n.t('init:mcp.enterToken'),
+        },
+      ])
+      aceToolBaseUrl = aceAnswers.baseUrl || ''
+      aceToolToken = aceAnswers.token || ''
+    }
+
+    // fast-context: optional API Key
+    if (hasFastContext) {
+      console.log()
+      console.log(ansis.cyan.bold(`  🔧 fast-context MCP`))
+      console.log(ansis.gray(`     Windsurf Fast Context — ${i18n.t('init:mcp.fcAutoExtract')}`))
+      console.log()
+
+      const fcAnswers = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'apiKey',
+          message: `WINDSURF_API_KEY ${ansis.gray(`(${i18n.t('init:mcp.fcLeaveEmpty')})`)}`,
+          default: '',
+        },
+        {
+          type: 'list',
+          name: 'includeSnippets',
+          message: i18n.t('init:mcp.fcSnippetMode'),
+          choices: [
+            { name: `${i18n.t('init:mcp.fcPathOnly')} ${ansis.gray(`(${i18n.t('init:mcp.fcSaveToken')})`)}`, value: false },
+            { name: i18n.t('init:mcp.fcFullSnippet'), value: true },
+          ],
+        },
+      ])
+      fastContextApiKey = fcAnswers.apiKey?.trim() || ''
+      fastContextIncludeSnippets = fcAnswers.includeSnippets
+    }
+
+    // contextweaver: needs SiliconFlow API Key
+    if (hasContextWeaver) {
+      console.log()
+      console.log(ansis.cyan.bold(`  🔧 ContextWeaver MCP`))
+      console.log()
+      console.log(`     ${ansis.gray('1.')} ${i18n.t('init:mcp.siliconflowStep1', { url: ansis.underline('https://siliconflow.cn/') })}`)
+      console.log(`     ${ansis.gray('2.')} ${i18n.t('init:mcp.siliconflowStep2')}`)
+      console.log(`     ${ansis.gray('3.')} ${i18n.t('init:mcp.siliconflowStep3')}`)
+      console.log()
+
+      const cwAnswers = await inquirer.prompt([{
+        type: 'password',
+        name: 'apiKey',
+        message: `SiliconFlow API Key ${ansis.gray('(sk-xxx)')}`,
+        mask: '*',
+        validate: (input: string) => input.trim() !== '' || i18n.t('init:mcp.enterApiKey'),
+      }])
+      contextWeaverApiKey = cwAnswers.apiKey || ''
+    }
+
+    // grok-search: needs API Keys
+    if (wantGrokSearch) {
+      console.log()
+      console.log(ansis.cyan.bold(`  🔍 grok-search MCP`))
+      console.log()
+      console.log(`     Tavily: ${ansis.underline('https://www.tavily.com/')} ${ansis.gray(`(${i18n.t('init:grok.tavilyHint')})`)}`)
+      console.log(`     Firecrawl: ${ansis.underline('https://www.firecrawl.dev/')} ${ansis.gray(`(${i18n.t('init:grok.firecrawlHint')})`)}`)
+      console.log(`     Grok API: ${ansis.gray(i18n.t('init:grok.grokHint'))}`)
+      console.log()
+
+      const grokAnswers = await inquirer.prompt([
+        { type: 'input', name: 'grokApiUrl', message: `GROK_API_URL ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, default: '' },
+        { type: 'password', name: 'grokApiKey', message: `GROK_API_KEY ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, mask: '*' },
+        { type: 'password', name: 'tavilyKey', message: `TAVILY_API_KEY ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, mask: '*' },
+        { type: 'password', name: 'firecrawlKey', message: `FIRECRAWL_API_KEY ${ansis.gray(`(${i18n.t('init:grok.optional')})`)}`, mask: '*' },
+      ])
+
+      tavilyKey = grokAnswers.tavilyKey?.trim() || ''
+      firecrawlKey = grokAnswers.firecrawlKey?.trim() || ''
+      grokApiUrl = grokAnswers.grokApiUrl?.trim() || ''
+      grokApiKey = grokAnswers.grokApiKey?.trim() || ''
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Step 3/3: Performance Mode
+  // ═══════════════════════════════════════════════════════
   if (!options.skipPrompt) {
-    // Read existing config to show current setting
     const existingConfig = await readCcgConfig()
     const currentLiteMode = existingConfig?.performance?.liteMode || false
 
     console.log()
-    const { enableWebUI } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'enableWebUI',
-      message: `${i18n.t('init:webui.prompt')} ${ansis.gray(`(${i18n.t('init:webui.disableHint')})`)}`,
-      default: !currentLiteMode,
+    console.log(ansis.cyan.bold(`  ⚡ Step 3/3 — ${i18n.t('init:perf.title')}`))
+    console.log()
+
+    const { perfMode } = await inquirer.prompt([{
+      type: 'list',
+      name: 'perfMode',
+      message: i18n.t('init:perf.selectMode'),
+      choices: [
+        { name: `${ansis.green('●')} ${i18n.t('init:perf.standardOption')}`, value: 'standard' },
+        { name: `${ansis.cyan('●')} ${i18n.t('init:perf.liteOption')}`, value: 'lite' },
+      ],
+      default: currentLiteMode ? 'lite' : 'standard',
     }])
 
-    liteMode = !enableWebUI
+    liteMode = perfMode === 'lite'
   }
   else {
     // In non-interactive mode (update), preserve existing liteMode setting
@@ -616,81 +569,48 @@ export async function init(options: InitOptions = {}): Promise<void> {
       mcpProvider,
     })
 
-    // Install ace-tool or ace-tool-rs MCP if token was provided
-    if ((mcpProvider === 'ace-tool' || mcpProvider === 'ace-tool-rs') && aceToolToken) {
-      const toolName = mcpProvider === 'ace-tool-rs' ? 'ace-tool-rs' : 'ace-tool'
-      const installFn = mcpProvider === 'ace-tool-rs' ? installAceToolRs : installAceTool
+    // Install selected MCP tools (multiple can be installed)
+    spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
 
-      spinner.text = mcpProvider === 'ace-tool-rs' ? i18n.t('init:aceToolRs.installing') : i18n.t('init:aceTool.installing')
-      const aceResult = await installFn({
-        baseUrl: aceToolBaseUrl,
-        token: aceToolToken,
-      })
+    // ace-tool
+    if (aceToolToken) {
+      spinner.text = i18n.t('init:aceTool.installing')
+      const aceResult = await installAceTool({ baseUrl: aceToolBaseUrl, token: aceToolToken })
       if (aceResult.success) {
-        spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
-        console.log()
-        console.log(`    ${ansis.green('✓')} ${toolName} MCP ${ansis.gray(`→ ${aceResult.configPath}`)}`)
+        console.log(`    ${ansis.green('✓')} ace-tool MCP ${ansis.gray(`→ ${aceResult.configPath}`)}`)
       }
       else {
-        spinner.warn(ansis.yellow(mcpProvider === 'ace-tool-rs' ? i18n.t('init:aceToolRs.failed') : i18n.t('init:aceTool.failed')))
-        console.log(ansis.gray(`      ${aceResult.message}`))
+        console.log(`    ${ansis.yellow('⚠')} ace-tool: ${ansis.gray(aceResult.message)}`)
       }
     }
-    // Install Fast Context MCP if selected
-    else if (mcpProvider === 'fast-context') {
-      spinner.text = 'Configuring fast-context MCP...'
+
+    // fast-context
+    if (wantFastContext) {
       const fcResult = await installFastContext({
         apiKey: fastContextApiKey || undefined,
         includeSnippets: fastContextIncludeSnippets,
       })
       if (fcResult.success) {
-        spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
-        console.log()
         console.log(`    ${ansis.green('✓')} fast-context MCP ${ansis.gray(`→ ${fcResult.configPath}`)}`)
-        // Write search guidance to Claude Code rules + Codex global instructions
-        await writeFastContextPrompt()
-        console.log(`    ${ansis.green('✓')} 搜索提示词 ${ansis.gray('→ ~/.claude/rules/ + ~/.codex/AGENTS.md + ~/.gemini/GEMINI.md')}`)
+        // Write search guidance — auxiliary mode if ace-tool is primary
+        await writeFastContextPrompt(mcpProvider === 'ace-tool' || mcpProvider === 'ace-tool-rs')
+        console.log(`    ${ansis.green('✓')} ${i18n.t('init:mcp.fcPromptInjected')} ${ansis.gray('→ ~/.claude/rules/ + ~/.codex/ + ~/.gemini/')}`)
       }
       else {
-        spinner.warn(ansis.yellow('fast-context MCP 配置失败'))
-        console.log(ansis.gray(`      ${fcResult.message}`))
+        console.log(`    ${ansis.yellow('⚠')} fast-context: ${ansis.gray(fcResult.message)}`)
       }
     }
-    // Install ContextWeaver MCP if API key was provided
-    else if (mcpProvider === 'contextweaver' && contextWeaverApiKey) {
+
+    // contextweaver
+    if (contextWeaverApiKey) {
       spinner.text = i18n.t('init:mcp.cwConfiguring')
-      const cwResult = await installContextWeaver({
-        siliconflowApiKey: contextWeaverApiKey,
-      })
+      const cwResult = await installContextWeaver({ siliconflowApiKey: contextWeaverApiKey })
       if (cwResult.success) {
-        spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
-        console.log()
         console.log(`    ${ansis.green('✓')} ContextWeaver MCP ${ansis.gray(`→ ${cwResult.configPath}`)}`)
-        console.log(`    ${ansis.green('✓')} ${i18n.t('init:mcp.cwConfigFile')} ${ansis.gray('→ ~/.contextweaver/.env')}`)
-        console.log()
-        console.log(ansis.cyan(`    📖 ${i18n.t('init:mcp.cwIndexHint')}`))
-        console.log(ansis.gray(`       cd your-project && cw index`))
       }
       else {
-        spinner.warn(ansis.yellow(i18n.t('init:mcp.cwFailed')))
-        console.log(ansis.gray(`      ${cwResult.message}`))
+        console.log(`    ${ansis.yellow('⚠')} ContextWeaver: ${ansis.gray(cwResult.message)}`)
       }
-    }
-    else if (mcpProvider === 'contextweaver' && !contextWeaverApiKey) {
-      spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
-      console.log()
-      console.log(`    ${ansis.yellow('⚠')} ContextWeaver MCP ${i18n.t('init:mcp.notInstalled')} ${ansis.gray(`(${i18n.t('init:mcp.keyNotProvided')})`)}`)
-      console.log(`    ${ansis.gray('→')} ${i18n.t('init:mcp.configLater', { cmd: ansis.cyan('npx ccg config mcp') })}`)
-    }
-    else if ((mcpProvider === 'ace-tool' || mcpProvider === 'ace-tool-rs') && !aceToolToken) {
-      const toolName = mcpProvider === 'ace-tool-rs' ? 'ace-tool-rs' : 'ace-tool'
-      spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
-      console.log()
-      console.log(`    ${ansis.yellow('⚠')} ${toolName} MCP ${i18n.t('init:mcp.notInstalled')} ${ansis.gray(`(${i18n.t('init:mcp.tokenNotProvided')})`)}`)
-      console.log(`    ${ansis.gray('→')} ${i18n.t('init:mcp.configLater', { cmd: ansis.cyan('npx ccg config mcp') })}`)
-    }
-    else {
-      spinner.succeed(ansis.green(i18n.t('init:installSuccess')))
     }
 
     // ═══════════════════════════════════════════════════════
@@ -707,8 +627,8 @@ export async function init(options: InitOptions = {}): Promise<void> {
       if (!settings.env)
         settings.env = {}
       settings.env.ANTHROPIC_BASE_URL = apiUrl
-      settings.env.ANTHROPIC_API_KEY = apiKey
-      delete settings.env.ANTHROPIC_AUTH_TOKEN
+      settings.env.ANTHROPIC_AUTH_TOKEN = apiKey
+      delete settings.env.ANTHROPIC_API_KEY
       // Default optimization config
       settings.env.DISABLE_TELEMETRY = '1'
       settings.env.DISABLE_ERROR_REPORTING = '1'
