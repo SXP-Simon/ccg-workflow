@@ -324,7 +324,7 @@ async function configApi(): Promise<void> {
 
   // Show current config
   const currentUrl = settings.env?.ANTHROPIC_BASE_URL
-  const currentKey = settings.env?.ANTHROPIC_API_KEY || settings.env?.ANTHROPIC_AUTH_TOKEN
+  const currentKey = settings.env?.ANTHROPIC_AUTH_TOKEN || settings.env?.ANTHROPIC_API_KEY
   if (currentUrl || currentKey) {
     console.log(ansis.gray(`  ${i18n.t('menu:api.currentConfig')}`))
     if (currentUrl)
@@ -334,37 +334,48 @@ async function configApi(): Promise<void> {
     console.log()
   }
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'url',
-      message: `${i18n.t('menu:api.urlPrompt')} ${ansis.gray(`(${i18n.t('menu:api.leaveEmptyOfficial')})`)}`,
-      default: currentUrl || '',
-    },
-    {
-      type: 'password',
-      name: 'key',
-      message: `${i18n.t('menu:api.keyPrompt')} ${ansis.gray(`(${i18n.t('menu:api.leaveEmptySkip')})`)}`,
-      mask: '*',
-    },
-  ])
+  const { apiProvider } = await inquirer.prompt([{
+    type: 'list',
+    name: 'apiProvider',
+    message: i18n.t('menu:api.providerPrompt'),
+    choices: [
+      { name: `${ansis.green('●')} ${i18n.t('menu:api.officialOption')}`, value: 'official' },
+      { name: `${ansis.cyan('●')} ${i18n.t('menu:api.thirdPartyOption')}`, value: 'thirdparty' },
+      { name: ansis.gray(`○ ${i18n.t('menu:api.sponsorSlot')}`), value: 'sponsor', disabled: i18n.t('menu:api.sponsorDisabled') },
+    ],
+  }])
 
-  if (!answers.url && !answers.key) {
-    console.log(ansis.gray(i18n.t('common:configNotModified')))
-    return
-  }
-
-  // Update settings
-  if (!settings.env)
-    settings.env = {}
-
-  if (answers.url?.trim()) {
-    settings.env.ANTHROPIC_BASE_URL = answers.url.trim()
-  }
-
-  if (answers.key?.trim()) {
-    settings.env.ANTHROPIC_API_KEY = answers.key.trim()
+  if (apiProvider === 'official') {
+    // Clear third-party config, let Claude Code use official auth
+    if (!settings.env)
+      settings.env = {}
+    delete settings.env.ANTHROPIC_BASE_URL
     delete settings.env.ANTHROPIC_AUTH_TOKEN
+    delete settings.env.ANTHROPIC_API_KEY
+  }
+  else {
+    const answers = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'url',
+        message: `API URL ${ansis.gray(`(${i18n.t('menu:api.urlRequired')})`)}`,
+        default: currentUrl || '',
+        validate: (v: string) => v.trim() !== '' || i18n.t('menu:api.enterUrl'),
+      },
+      {
+        type: 'password',
+        name: 'key',
+        message: `API Key ${ansis.gray(`(${i18n.t('menu:api.keyRequired')})`)}`,
+        mask: '*',
+        validate: (v: string) => v.trim() !== '' || i18n.t('menu:api.enterKey'),
+      },
+    ])
+
+    if (!settings.env)
+      settings.env = {}
+    settings.env.ANTHROPIC_BASE_URL = answers.url.trim()
+    settings.env.ANTHROPIC_AUTH_TOKEN = answers.key.trim()
+    delete settings.env.ANTHROPIC_API_KEY
   }
 
   // Default optimization config
