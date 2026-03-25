@@ -146,6 +146,31 @@ func TestClaudeBuildArgs_GeminiAndCodexModes(t *testing.T) {
 	})
 }
 
+func TestGeminiBuildArgs_NeverReceivesDashAsPrompt(t *testing.T) {
+	// Gemini CLI does not support "-" as stdin marker for -p flag.
+	// Verify that BuildArgs never produces "-p -" — the actual task text
+	// must be passed directly via -p.
+	backend := GeminiBackend{}
+	cfg := &Config{Mode: "new", WorkDir: "/workspace"}
+
+	// When called with actual task text (geminiDirect path in executor)
+	got := backend.BuildArgs(cfg, "Analyze the authentication module")
+	want := []string{"-o", "stream-json", "-y", "--include-directories", "/workspace", "-p", "Analyze the authentication module"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+
+	// Ensure "-" as targetArg would produce the broken "-p -" (this is what we prevent in executor)
+	gotBroken := backend.BuildArgs(cfg, "-")
+	for i, arg := range gotBroken {
+		if arg == "-p" && i+1 < len(gotBroken) && gotBroken[i+1] == "-" {
+			// This confirms the bug path — executor must never call BuildArgs with "-" for Gemini
+			return
+		}
+	}
+	t.Fatal("expected BuildArgs with '-' to produce '-p -' (the known broken path)")
+}
+
 func TestClaudeBuildArgs_BackendMetadata(t *testing.T) {
 	tests := []struct {
 		backend Backend

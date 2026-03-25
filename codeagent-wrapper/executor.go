@@ -855,7 +855,11 @@ func runCodexTaskWithContext(parentCtx context.Context, taskSpec TaskSpec, backe
 
 	useStdin := taskSpec.UseStdin
 	targetArg := taskSpec.Task
-	if useStdin {
+
+	// Gemini CLI does not support "-" as stdin marker for -p flag.
+	// Pass the actual task text directly via -p; skip stdin pipe for Gemini.
+	geminiDirect := useStdin && cfg.Backend == "gemini"
+	if useStdin && !geminiDirect {
 		targetArg = "-"
 	}
 
@@ -1019,7 +1023,7 @@ func runCodexTaskWithContext(parentCtx context.Context, taskSpec TaskSpec, backe
 
 	var stdinPipe io.WriteCloser
 	var err error
-	if useStdin {
+	if useStdin && !geminiDirect {
 		stdinPipe, err = cmd.StdinPipe()
 		if err != nil {
 			logErrorFn("Failed to create stdin pipe: " + err.Error())
