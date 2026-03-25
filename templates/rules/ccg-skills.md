@@ -2,6 +2,8 @@
 
 When working in a project, automatically invoke the corresponding quality gate skills based on the scenario below. These skills are installed at `~/.claude/skills/ccg/` and can be called directly.
 
+**IMPORTANT**: Skill names do NOT have a `ccg:` prefix. Use exactly: `verify-security`, `verify-quality`, `verify-change`, `verify-module`, `gen-docs`. Do NOT call `ccg:verify-security` — that will fail with "Unknown skill".
+
 ## Trigger Rules
 
 ### New Module Created
