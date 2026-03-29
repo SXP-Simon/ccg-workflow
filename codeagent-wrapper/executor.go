@@ -984,20 +984,16 @@ func runCodexTaskWithContext(parentCtx context.Context, taskSpec TaskSpec, backe
 
 	// Set working directory for backends that don't support -C flag.
 	// - Codex: passes workdir via -C flag, skip cmd.Dir to avoid conflicts.
-	// - Gemini: loads .env from CWD (walks up to .git root / $HOME), which causes
-	//   project-level .env to override global API keys. Fix: set cmd.Dir=$HOME and
-	//   pass project dir via --include-directories in buildGeminiArgs().
-	//   See: https://github.com/google-gemini/gemini-cli/issues/2493
+	// - Gemini: use workDir as CWD. Previously used $HOME to avoid project .env
+	//   overriding global API keys (see github.com/google-gemini/gemini-cli/issues/2493),
+	//   but $HOME causes Gemini CLI to hang on long prompts due to directory scanning.
+	//   API keys are already protected via cmd.SetEnv() from loadMinimalEnvSettings().
+	//   Project dir is also passed via --include-directories in buildGeminiArgs().
 	// - Claude: uses cmd.Dir as project context (no .env loading issue).
 	if cfg.Mode != "resume" && cfg.WorkDir != "" {
 		switch commandName {
 		case "codex":
 			// Codex uses -C flag, don't set cmd.Dir
-		case "gemini":
-			// Use $HOME to avoid project .env interference; project dir passed via --include-directories
-			if home, err := os.UserHomeDir(); err == nil {
-				cmd.SetDir(home)
-			}
 		default:
 			cmd.SetDir(cfg.WorkDir)
 		}
