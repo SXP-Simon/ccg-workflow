@@ -5,7 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/ccg-workflow.svg)](https://www.npmjs.com/package/ccg-workflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
-[![Tests](https://img.shields.io/badge/Tests-134%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-139%20passed-brightgreen.svg)]()
 [![Follow on X](https://img.shields.io/badge/X-@CCG__Workflow-black?logo=x&logoColor=white)](https://x.com/CCG_Workflow)
 
 [简体中文](./README.zh-CN.md) | English
@@ -18,7 +18,7 @@ A multi-model collaboration development system where Claude Code orchestrates Co
 
 - **Zero-config model routing** — Frontend tasks automatically go to Gemini, backend tasks to Codex. No manual switching.
 - **Security by design** — External models have no write access. They return patches; Claude reviews before applying.
-- **27 slash commands** — From planning to execution, git workflow to code review, all accessible via `/ccg:*`.
+- **29+ slash commands** — From planning to execution, git workflow to code review, all accessible via `/ccg:*`.
 - **Spec-driven development** — Integrates [OPSX](https://github.com/fission-ai/opsx) to turn vague requirements into verifiable constraints, eliminating AI improvisation.
 
 ## Architecture
@@ -200,7 +200,7 @@ Leverage Claude Code Agent Teams to spawn multiple Builder teammates for paralle
 
 ```
 ~/.claude/
-├── commands/ccg/       # 26 slash commands
+├── commands/ccg/       # 29+ slash commands
 ├── agents/ccg/         # Sub-agents
 ├── skills/ccg/         # Quality gates + multi-agent orchestration
 ├── bin/codeagent-wrapper
