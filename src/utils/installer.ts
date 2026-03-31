@@ -4,6 +4,7 @@ import fs from 'fs-extra'
 import { basename, join } from 'pathe'
 import { getWorkflowById } from './installer-data'
 import { PACKAGE_ROOT, injectConfigVariables, replaceHomePathsInTemplate } from './installer-template'
+import { installSkillCommands } from './skill-registry'
 
 // ═══════════════════════════════════════════════════════
 // Re-exports — all consumers import from './installer'
@@ -40,6 +41,13 @@ export {
   removeFastContextPrompt,
   writeFastContextPrompt,
 } from './installer-prompt'
+
+export {
+  collectInvocableSkills,
+  collectSkills,
+  parseFrontmatter,
+} from './skill-registry'
+export type { SkillMeta } from './skill-registry'
 
 // ═══════════════════════════════════════════════════════
 // Binary version tracking
@@ -419,6 +427,48 @@ async function installSkillFiles(ctx: InstallContext): Promise<void> {
 }
 
 /**
+ * Auto-generate slash commands for user-invocable skills via Skill Registry.
+ *
+ * Scans templates/skills/ for SKILL.md files with `user-invocable: true` frontmatter,
+ * then generates ~/.claude/commands/ccg/{name}.md for each — SKIPPING any name that
+ * already exists in installer-data.ts to avoid conflicts with complex multi-model commands.
+ */
+async function installSkillGeneratedCommands(ctx: InstallContext): Promise<void> {
+  const skillsTemplateDir = join(ctx.templateDir, 'skills')
+  const skillsInstallDir = join(ctx.installDir, 'skills', 'ccg')
+  const commandsDir = join(ctx.installDir, 'commands', 'ccg')
+
+  if (!(await fs.pathExists(skillsTemplateDir))) return
+
+  try {
+    // Collect names of commands already installed by installer-data.ts
+    const existingCommandNames = new Set<string>()
+    const existingFiles = await fs.readdir(commandsDir).catch(() => [] as string[])
+    for (const f of existingFiles) {
+      if (f.endsWith('.md')) {
+        existingCommandNames.add(basename(f, '.md'))
+      }
+    }
+
+    const generated = await installSkillCommands(
+      skillsTemplateDir,
+      skillsInstallDir,
+      commandsDir,
+      existingCommandNames,
+    )
+
+    if (generated.length > 0) {
+      ctx.result.installedCommands.push(...generated)
+      ctx.result.installedSkillCommands = generated.length
+    }
+  }
+  catch (error) {
+    // Non-fatal: skill command generation failure shouldn't block installation
+    ctx.result.errors.push(`Skill Registry command generation warning: ${error}`)
+  }
+}
+
+/**
  * Install rule .md files from templates/rules/ → ~/.claude/rules/
  */
 async function installRuleFiles(ctx: InstallContext): Promise<void> {
@@ -659,6 +709,7 @@ export async function installWorkflows(
   await installAgentFiles(ctx)
   await installPromptFiles(ctx)
   await installSkillFiles(ctx)
+  await installSkillGeneratedCommands(ctx)
   await installRuleFiles(ctx)
   await installBinaryFile(ctx)
 
@@ -748,7 +799,7 @@ export async function uninstallWorkflows(installDir: string, options?: { preserv
   // Remove CCG rules files
   if (await fs.pathExists(rulesDir)) {
     try {
-      for (const ruleFile of ['ccg-skills.md', 'ccg-grok-search.md']) {
+      for (const ruleFile of ['ccg-skills.md', 'ccg-grok-search.md', 'ccg-skill-routing.md']) {
         const rulePath = join(rulesDir, ruleFile)
         if (await fs.pathExists(rulePath)) {
           await fs.remove(rulePath)

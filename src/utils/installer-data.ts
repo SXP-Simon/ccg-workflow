@@ -43,6 +43,7 @@ const WORKFLOW_CONFIGS: WorkflowConfig[] = [
   cmd('workflow', 1, 'development', '完整开发工作流', 'Full Development Workflow', '完整6阶段开发工作流（研究→构思→计划→执行→优化→评审）', 'Full 6-phase development workflow'),
   cmd('plan', 1.5, 'development', '多模型协作规划', 'Multi-Model Planning', '上下文检索 + 双模型分析 → 生成 Step-by-step 实施计划', 'Context retrieval + dual-model analysis → Step-by-step plan'),
   cmd('execute', 1.6, 'development', '多模型协作执行', 'Multi-Model Execution', '根据计划获取原型 → Claude 重构实施 → 多模型审计交付', 'Get prototype from plan → Claude refactor → Multi-model audit'),
+  cmd('team', 1.75, 'development', 'Agent Teams 统一工作流', 'Agent Teams Unified Workflow', '8 阶段企业级工作流：需求→架构→规划→开发→测试→审查→修复→集成，7 角色自动编排', '8-phase enterprise workflow with 7 specialized roles'),
   cmd('team-research', 1.8, 'development', 'Agent Teams 需求研究', 'Agent Teams Research', '并行探索代码库，产出约束集 + 可验证成功判据', 'Parallel codebase exploration, produces constraint sets + success criteria'),
   cmd('team-plan', 1.85, 'development', 'Agent Teams 规划', 'Agent Teams Planning', 'Lead 调用 Codex/Gemini 并行分析，产出零决策并行实施计划', 'Lead orchestrates Codex/Gemini analysis, produces zero-decision parallel plan'),
   cmd('team-exec', 1.9, 'development', 'Agent Teams 并行实施', 'Agent Teams Parallel Execution', '读取计划文件，spawn Builder teammates 并行写代码，需启用 Agent Teams', 'Read plan file, spawn Builder teammates for parallel implementation'),

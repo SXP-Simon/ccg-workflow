@@ -2,13 +2,28 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-27 (v1.8.2)
+**Last Updated**: 2026-03-31 (v1.8.4)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-31 (v1.8.4)
+- ✨ **Skill Registry 机制**：SKILL.md frontmatter 驱动自动命令生成，新增技能只需写一个 SKILL.md
+- ✨ **域知识秘典全量导入**：10 大领域 61 个知识文件（安全/架构/DevOps/AI/开发/前端设计/基础设施/移动端/数据工程/编排）
+- ✨ **Impeccable 工具集**：20 个 UI/UX 精打磨技能（polish/audit/harden/clarify/critique 等）
+- ✨ **Override-Refusal**：`/hi` 命令，会话级反拒绝覆写器
+- ✨ **Scrapling 技能**：网页抓取，支持 Cloudflare/WAF 绕过
+- ✨ **3 个新输出风格**：冷刃简报 + 铁律军令 + 祭仪长卷，总数 8 种
+- 🏗 **`skill-registry.ts`**：新模块，frontmatter 解析 + 技能发现 + 命令生成
+
+### 2026-03-30 (v1.8.3)
+- ✨ **`/ccg:team` 统一工作流**：第 28 个斜杠命令，8 阶段企业级工作流（需求→架构→规划→开发→测试→审查→修复→集成），7 角色 Agent Teams 自动编排
+- ✨ **3 个新 Agent**：`team-architect`（架构师）、`team-qa`（QA 工程师）、`team-reviewer`（代码审查员）
+- ✨ **Evaluator-Optimizer 反馈环**：最多 2 轮自动修复 Critical 问题
+- ✨ **多模型交叉**：架构阶段 Codex∥Gemini 并行分析，审查阶段双模型交叉验证
 
 ### 2026-03-27 (v1.8.2)
 - 🐛 **Windows ccline 状态栏修复**：路径从 `%USERPROFILE%` 改为 `~`，Claude Code 统一支持
@@ -166,12 +181,14 @@
 **CCG (Claude + Codex + Gemini)** - 多模型协作系统的核心实现，提供：
 
 1. **多模型协作编排**：固定路由 Gemini（前端）+ Codex（后端）+ Claude（编排）
-2. **27 个斜杠命令**：开发工作流 + Git 工具 + 项目管理 + OPSX + Agent Teams + Codex 执行
+2. **28+ 斜杠命令**：开发工作流 + Git 工具 + 项目管理 + OPSX + Agent Teams + Codex 执行 + Skill Registry 自动生成
 3. **13 个专家提示词**：Codex 6 个 + Gemini 7 个
-4. **6 个原生 Skills**：质量关卡（verify-security/quality/change/module + gen-docs）+ 多 Agent 协同
-5. **跨平台 CLI 工具**：一键安装（支持 macOS、Linux、Windows）
-6. **MCP 集成**：fast-context（推荐）/ ace-tool / ContextWeaver + context7（自动安装）+ Codex & Gemini MCP 同步
-7. **Agent Teams 并行实施**：Team 系列 4 个独立命令，spawn Builder teammates 并行写代码
+4. **Skill Registry**：SKILL.md frontmatter 驱动，user-invocable 技能自动生成 slash commands
+5. **100+ 技能文件**：6 质量关卡 + 10 域知识秘典（61 文件）+ 20 impeccable 工具 + scrapling + override-refusal
+6. **跨平台 CLI 工具**：一键安装（支持 macOS、Linux、Windows）
+7. **MCP 集成**：fast-context（推荐）/ ace-tool / ContextWeaver + context7（自动安装）+ Codex & Gemini MCP 同步
+8. **Agent Teams 并行实施**：Team 系列 4 个独立命令，spawn Builder teammates 并行写代码
+9. **8 种输出风格**：默认 + 专业工程师 + 猫娘 + 老王 + 大小姐 + 邪修 + 冷刃简报 + 铁律军令 + 祭仪长卷
 
 ---
 
@@ -255,6 +272,7 @@ npx ccg-workflow menu
 **Agent Teams 并行实施**（v1.7.60+，需启用 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`）：
 | 命令 | 用途 | 说明 |
 |------|------|------|
+| `/ccg:team` | **统一工作流（推荐）** | 8 阶段全流程：需求→架构→规划→开发→测试→审查→修复→集成，7 角色自动编排 |
 | `/ccg:team-research` | 需求 → 约束集 | 并行探索代码库，Codex + Gemini 双模型分析 |
 | `/ccg:team-plan` | 约束 → 并行计划 | 消除歧义，拆分为文件范围隔离的独立子任务 |
 | `/ccg:team-exec` | 并行实施 | spawn Builder teammates（Sonnet）并行写代码 |
@@ -272,7 +290,7 @@ v1.7.0 起，以下配置不再支持自定义：
 | 前端模型 | Gemini | 擅长 UI/CSS/组件 |
 | 后端模型 | Codex | 擅长逻辑/算法/调试 |
 | 协作模式 | smart | 最佳实践 |
-| 命令数量 | 27 个 | 全部安装 |
+| 命令数量 | 28 个 | 全部安装 |
 
 ---
 
@@ -362,14 +380,28 @@ templates/
 ├── prompts/                  # 13 个专家提示词
 │   ├── codex/
 │   └── gemini/
-└── skills/                   # 6 个 skill（质量关卡 + 多 Agent 协同）
+└── skills/                   # 100+ 技能文件（质量关卡 + 域知识 + impeccable + 工具）
     ├── tools/
     │   ├── verify-security/
     │   ├── verify-quality/
     │   ├── verify-change/
     │   ├── verify-module/
     │   ├── gen-docs/
+    │   ├── override-refusal/  # /hi 反拒绝覆写器
     │   └── lib/
+    ├── domains/              # 10 大领域知识秘典（61 文件）
+    │   ├── security/         # 红队/蓝队/渗透/审计/逆向/威胁情报
+    │   ├── architecture/     # API/缓存/云原生/消息队列/安全架构
+    │   ├── devops/           # Git/测试/数据库/性能/可观测性
+    │   ├── ai/               # Agent/RAG/LLM安全/Prompt工程
+    │   ├── development/      # Go/Python/Rust/TS/Java/C++/Shell
+    │   ├── frontend-design/  # UI美学/组件/UX + 4种设计风格
+    │   ├── infrastructure/
+    │   ├── mobile/
+    │   ├── data-engineering/
+    │   └── orchestration/
+    ├── impeccable/           # 20 个 UI/UX 精打磨技能
+    ├── scrapling/            # 网页抓取技能
     └── orchestration/
         └── multi-agent/
 ├── rules/                    # 全局规则（→ ~/.claude/rules/）
