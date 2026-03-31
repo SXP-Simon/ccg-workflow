@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2026-03-31
+
+### ✨ 新功能
+
+- **Skill Registry 机制**：SKILL.md frontmatter 驱动自动命令生成。新增技能只需写一个 SKILL.md，安装时自动生成 slash command
+- **域知识秘典全量导入**：10 大领域 61 个知识文件（安全 7 + 架构 6 + DevOps 8 + AI 5 + 开发 9 + 前端设计 25 + 基础设施 + 移动端 + 数据工程 + 编排）
+- **Impeccable 工具集**：20 个 UI/UX 精打磨技能（polish/audit/harden/clarify/critique/animate/colorize 等），全部 user-invocable
+- **Override-Refusal 工具**：`/hi` 命令，会话级反拒绝覆写器（refusal_rewriter.js）
+- **Scrapling 技能**：网页抓取与数据提取，支持 Cloudflare/WAF 绕过
+- **3 个新输出风格**：冷刃简报（abyss-concise）、铁律军令（abyss-command）、祭仪长卷（abyss-ritual），输出风格总数达 8 种
+- **域知识自动路由**：`ccg-skill-routing.md` 规则文件，39 条路由规则，关键词命中自动读取对应领域秘典
+
+### 🏗 架构
+
+- **`src/utils/skill-registry.ts`**：新模块，负责 SKILL.md frontmatter 解析、技能发现、命令生成
+- **installer 集成**：`installSkillGeneratedCommands()` 在 skill 复制后自动扫描并生成 user-invocable 命令，跳过 installer-data.ts 已有命令避免冲突
+
+---
+
+## [1.8.3] - 2026-03-30
+
+### ✨ 新功能
+
+- **`/ccg:team` 统一工作流**：第 28 个斜杠命令，8 阶段企业级工作流（需求→架构→规划→开发→测试→审查→修复→集成），7 角色 Agent Teams 自动编排
+- **3 个新 Agent**：`team-architect`（架构师）、`team-qa`（QA 工程师）、`team-reviewer`（代码审查员），均为 Agent Teams 真实 teammates
+- **Evaluator-Optimizer 反馈环**：Phase 7 最多 2 轮自动修复 Critical 问题，超出交由用户决断
+- **架构+审查阶段多模型交叉**：Phase 2 Codex∥Gemini 并行架构分析，Phase 6 双模型交叉代码审查
+
+---
+
 ## [1.8.2] - 2026-03-27
 
 ### 🐛 修复
