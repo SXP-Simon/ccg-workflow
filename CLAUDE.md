@@ -2,13 +2,16 @@
 
 > [根目录](../CLAUDE.md) > **skills-v2**
 
-**Last Updated**: 2026-03-31 (v2.1.0)
+**Last Updated**: 2026-03-31 (v2.1.1)
 
 ---
 
 ## 变更记录 (Changelog)
 
 > 完整变更历史请查看 [CHANGELOG.md](./CHANGELOG.md)
+
+### 2026-03-31 (v2.1.1)
+- 🐛 **Skill Registry 命令 frontmatter 修复**：`generateCommandContent()` 生成的 27 个 command 文件补上 YAML frontmatter，修复 CC 命令索引级联失败
 
 ### 2026-03-31 (v2.1.0)
 - ✨ **模型路由可配置**（Issue #121）：init Step 2/4 选前端/后端模型（gemini/codex/claude），Gemini 型号可选

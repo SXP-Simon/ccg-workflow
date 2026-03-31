@@ -220,8 +220,18 @@ export function generateCommandContent(skill: SkillMeta, skillsInstallDir: strin
   const skillMdPath = join(skillsInstallDir, skill.relPath, 'SKILL.md')
   const runSkillPath = join(skillsInstallDir, 'run_skill.js')
 
+  // Frontmatter is REQUIRED — CC command parser fails on files without it,
+  // cascading to break ALL commands in the same directory (and beyond).
+  const frontmatter = [
+    '---',
+    `description: '${skill.description.replace(/'/g, "''")}'`,
+    '---',
+  ].join('\n')
+
   if (skill.runtimeType === 'scripted') {
     return [
+      frontmatter,
+      '',
       `# ${skill.name}`,
       '',
       skill.description,
@@ -240,6 +250,8 @@ export function generateCommandContent(skill: SkillMeta, skillsInstallDir: strin
 
   // Knowledge skill
   return [
+    frontmatter,
+    '',
     `# ${skill.name}`,
     '',
     skill.description,

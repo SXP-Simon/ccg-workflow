@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.1] - 2026-03-31
+
+### 🐛 修复
+
+- **Skill Registry 命令缺失 frontmatter**：`generateCommandContent()` 生成的 27 个 command 文件缺少 YAML frontmatter（`---\ndescription\n---`），导致 Claude Code 命令解析器级联失败，所有 `/ccg:*` 命令及项目级命令（如 OPSX）均无法索引
+
+---
+
 ## [2.1.0] - 2026-03-31
 
 ### ✨ 新功能
