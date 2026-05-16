@@ -311,6 +311,8 @@ async function performUpdate(fromVersion: string, toVersion: string, isNewVersio
     join(installDir, 'commands', 'ccg'),
     join(installDir, 'agents', 'ccg'),
     join(installDir, 'skills', 'ccg'),
+    join(installDir, 'hooks', 'ccg'),
+    join(installDir, '.ccg', 'engine'),
   ]
 
   // Step 3: Back up existing files (move to *.ccg-update-bak)

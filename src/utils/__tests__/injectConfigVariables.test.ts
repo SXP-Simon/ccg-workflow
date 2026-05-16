@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { injectConfigVariables } from '../installer'
@@ -196,13 +196,16 @@ describe('integration: real templates with skip mode', () => {
     return files
   }
 
-  const templateFiles = collectTemplateFiles(TEMPLATES_DIR)
+  const legacyDir = join(PACKAGE_ROOT, 'templates', 'commands-legacy')
+  const templateFiles = [
+    ...collectTemplateFiles(TEMPLATES_DIR),
+    ...(existsSync(legacyDir) ? collectTemplateFiles(legacyDir) : []),
+  ]
   const filesWithMcpRef = templateFiles.filter((f) => {
     const content = readFileSync(f, 'utf-8')
     return content.includes('{{MCP_SEARCH_TOOL}}')
   })
 
-  // Sanity check: we expect at least 14 files with MCP references
   it('finds templates containing {{MCP_SEARCH_TOOL}}', () => {
     expect(filesWithMcpRef.length).toBeGreaterThanOrEqual(14)
   })
@@ -347,8 +350,8 @@ describe('integration: real templates with gemini+codex config', () => {
   // (via `--backend {{BACKEND_PRIMARY}}`) on lines that also contain
   // `{{GEMINI_MODEL_FLAG}}`.
   const expectedCleanTemplates = [
-    'commands/backend.md',
-    'commands/codex-exec.md',
+    'commands-legacy/backend.md',
+    'commands-legacy/codex-exec.md',
   ]
 
   for (const rel of expectedCleanTemplates) {

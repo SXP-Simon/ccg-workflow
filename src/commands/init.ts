@@ -7,7 +7,7 @@ import { homedir } from 'node:os'
 import { join } from 'pathe'
 import { i18n, initI18n } from '../i18n'
 import { createDefaultConfig, ensureCcgDir, getCcgDir, readCcgConfig, writeCcgConfig } from '../utils/config'
-import { getAllCommandIds, installAceTool, installAceToolRs, installContextWeaver, installFastContext, installMcpServer, installWorkflows, showBinaryDownloadWarning, syncMcpToCodex, syncMcpToGemini, writeFastContextPrompt } from '../utils/installer'
+import { getAllCommandIds, getCoreCommandIds, installAceTool, installAceToolRs, installContextWeaver, installFastContext, installMcpServer, installWorkflows, showBinaryDownloadWarning, syncMcpToCodex, syncMcpToGemini, writeFastContextPrompt } from '../utils/installer'
 import { isWindows } from '../utils/platform'
 import { migrateToV1_4_0, needsMigration } from '../utils/migration'
 
@@ -230,7 +230,8 @@ export async function init(options: InitOptions = {}): Promise<void> {
   let backendModels: ModelType[] = ['codex']
   let geminiModel = 'gemini-3.1-pro-preview'
   const mode: CollaborationMode = 'smart'
-  const selectedWorkflows = getAllCommandIds()
+  let selectedWorkflows = getCoreCommandIds()
+  let installMode: 'v3' | 'legacy' = 'v3'
 
   // Non-interactive mode: preserve existing config
   if (options.skipPrompt) {
@@ -240,6 +241,16 @@ export async function init(options: InitOptions = {}): Promise<void> {
       backendModels = existingConfig.routing.backend?.models || ['codex']
       geminiModel = existingConfig.routing.geminiModel || 'gemini-3.1-pro-preview'
     }
+    // Preserve install mode: if existing install has legacy commands, keep them
+    if (existingConfig?.workflows?.installed) {
+      const hadLegacy = existingConfig.workflows.installed.some(
+        (w: string) => ['workflow', 'plan', 'execute', 'frontend', 'backend', 'feat', 'debug', 'team'].includes(w),
+      )
+      if (hadLegacy) {
+        selectedWorkflows = getAllCommandIds()
+        installMode = 'legacy'
+      }
+    }
   }
 
   // Performance mode selection
@@ -247,7 +258,7 @@ export async function init(options: InitOptions = {}): Promise<void> {
   let skipImpeccable = false
 
   // MCP Tool Selection
-  let mcpProvider = 'ace-tool'
+  let mcpProvider = 'fast-context'
   let aceToolBaseUrl = ''
   let aceToolToken = ''
   let contextWeaverApiKey = ''
@@ -490,13 +501,13 @@ export async function init(options: InitOptions = {}): Promise<void> {
         message: i18n.t('init:mcp.selectTools'),
         choices: [
           {
-            name: `ace-tool ${ansis.green(`(${i18n.t('common:info')})`)} ${ansis.gray('— search_context 代码检索')}`,
-            value: 'ace-tool',
+            name: `fast-context ${ansis.green(`(${i18n.t('common:recommended')})`)} ${ansis.gray('— AI 驱动语义搜索')}`,
+            value: 'fast-context',
             checked: true,
           },
           {
-            name: `fast-context ${ansis.gray('— AI 驱动语义搜索')}`,
-            value: 'fast-context',
+            name: `ace-tool ${ansis.gray('— search_context 代码检索')}`,
+            value: 'ace-tool',
           },
           {
             name: `context7 ${ansis.green('(free)')} ${ansis.gray('— 库文档查询')}`,
@@ -654,13 +665,32 @@ export async function init(options: InitOptions = {}): Promise<void> {
 
       liteMode = perfMode === 'lite'
 
-      const { includeImpeccable } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'includeImpeccable',
-        message: i18n.t('init:commands.includeImpeccable'),
-        default: !skipImpeccable,
+      // Version mode: v3 (smart entry + engine) or legacy (all 30 commands)
+      const { versionMode } = await inquirer.prompt([{
+        type: 'list',
+        name: 'versionMode',
+        message: '安装模式',
+        choices: [
+          { name: `${ansis.green('v3 新版')} — /ccg:go 智能入口 + Hook 引擎 + 12 核心命令（推荐）`, value: 'v3' },
+          { name: `${ansis.gray('旧版兼容')} — 新版全部 + 18 个旧版命令（workflow/debug/team 等）`, value: 'legacy' },
+        ],
+        default: 'v3',
       }])
-      skipImpeccable = !includeImpeccable
+      installMode = versionMode
+      if (versionMode === 'legacy') {
+        selectedWorkflows = getAllCommandIds()
+        const { includeImpeccable } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'includeImpeccable',
+          message: i18n.t('init:commands.includeImpeccable'),
+          default: !skipImpeccable,
+        }])
+        skipImpeccable = !includeImpeccable
+      }
+      else {
+        selectedWorkflows = getCoreCommandIds()
+        skipImpeccable = true
+      }
       return 'next'
     }
 

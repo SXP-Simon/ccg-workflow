@@ -1,338 +1,199 @@
 # CCG - Claude + Codex + Gemini 多模型协作
 
-<div align="center">
-
-<img src="assets/logo/ccg-logo-cropped.png" alt="CCG Workflow" width="400">
-
 [![npm version](https://img.shields.io/npm/v/ccg-workflow.svg)](https://www.npmjs.com/package/ccg-workflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-green.svg)](https://claude.ai/code)
-[![Tests](https://img.shields.io/badge/Tests-139%20passed-brightgreen.svg)]()
-[![Follow on X](https://img.shields.io/badge/X-@CCG__Workflow-black?logo=x&logoColor=white)](https://x.com/CCG_Workflow)
 
 简体中文 | [English](./README.md)
 
-</div>
+## 赞助商
 
-## ♥️ 赞助商
+[302.AI](https://share.302.ai/oUDqQ6) — 按用量付费的企业级 AI 资源平台。
 
-[![302.AI](assets/sponsors/302.ai.jpg)](https://share.302.ai/oUDqQ6)
-
-[302.AI](https://share.302.ai/oUDqQ6) 是一个按用量付费的企业级 AI 资源平台，提供市场上最新、最全面的 AI 模型和 API，以及多种开箱即用的在线 AI 应用。
+[n1n.ai](https://api.n1n.ai/register?channel=c_ivgzug0w) — 一个 API Key 连接 500+ AI 模型。
 
 ---
 
-[**n1n.ai**](https://api.n1n.ai/register?channel=c_ivgzug0w) — 企业级 LLM API 聚合平台，一个 API Key 连接全球 500+ 顶尖 AI 模型（GPT-5、Claude 4.5、Gemini 3 Pro 等）。
+CCG 是 Claude Code 的工作流引擎。它编排多个 AI 模型（Codex、Gemini、Claude），通过 Hook 状态追踪、自动策略选择和 Agent Teams 并行执行来完成开发任务。
 
----
+## v3.0 重大更新
 
-Claude Code 编排 Codex + Gemini 的多模型协作开发系统。前端任务路由至 Gemini，后端任务路由至 Codex，Claude 负责编排决策和代码审核。
+v3.0 从底层重写。一个命令替代 29 个。
 
-## 为什么选择 CCG？
-
-- **零配置模型路由** — 前端任务自动走 Gemini，后端任务自动走 Codex，无需手动切换。
-- **安全设计** — 外部模型无写入权限，仅返回 Patch，由 Claude 审核后应用。
-- **29+ 个斜杠命令** — 从规划到执行、Git 工作流到代码审查，通过 `/ccg:*` 一站式访问。
-- **规范驱动开发** — 集成 [OPSX](https://github.com/fission-ai/opsx)，将模糊需求变成可验证约束，让 AI 没法自由发挥。
-
-## 架构
-
-```
-Claude Code (编排)
-       │
-   ┌───┴───┐
-   ↓       ↓
-Codex   Gemini
-(后端)   (前端)
-   │       │
-   └───┬───┘
-       ↓
-  Unified Patch
-```
-
-外部模型无写入权限，仅返回 Patch，由 Claude 审核后应用。
-
-> **🎬 [查看 CCG 实战演示 →](https://x.com/CCG_Workflow/status/2038923720610463876)** — X 上的多模型协作真实案例
+- `/ccg:go` — 用自然语言描述任务，引擎自动分析意图、选择策略、执行到底。
+- **Hook 引擎** — 每轮注入任务状态，即使上下文被压缩也不丢。会话开始时注入完整项目上下文。
+- **Task 持久化** — 中等以上复杂度任务创建 `.ccg/tasks/`，阶段门控强制 HARD STOP 检查点。
+- **Agent Teams** — 大型任务通过 TeamCreate 并行 spawn 多个 Builder。每个 Builder 有独立文件所有权。
+- **质量关卡** — `verify-security`、`verify-quality`、`verify-change` 作为 Skill 在策略验证阶段强制调用。
+- **域知识 Hook** — 消息涉及安全、缓存、RAG 等关键词时，相关知识文件自动注入上下文。
 
 ## 快速开始
-
-### 前置条件
-
-| 依赖 | 必需 | 说明 |
-|------|------|------|
-| **Node.js 20+** | 是 | `ora@9.x` 要求 Node >= 20，Node 18 会报 `SyntaxError` |
-| **Claude Code CLI** | 是 | [安装方法](#安装-claude-code) |
-| **jq** | 是 | 用于自动授权 Hook（[安装方法](#安装-jq)） |
-| **Codex CLI** | 否 | 启用后端路由 |
-| **Gemini CLI** | 否 | 启用前端路由 |
-
-### 安装
 
 ```bash
 npx ccg-workflow
 ```
 
-首次运行会提示选择语言（简体中文 / English），选择后自动保存，后续无需再选。
+需要 Node.js 20+ 和 Claude Code CLI。Codex CLI 和 Gemini CLI 可选（启用多模型功能）。
 
-### 安装 jq
+安装器 4 步：API 配置 → 模型路由 → MCP 工具 → 性能模式。新用户有精简流程，默认值开箱即用。
 
-```bash
-# macOS
-brew install jq
+## 工作原理
 
-# Linux (Debian/Ubuntu)
-sudo apt install jq
+```
+你: /ccg:go 给这个 API 加 JWT 认证
 
-# Linux (RHEL/CentOS)
-sudo yum install jq
+CCG 引擎:
+  1. 读取项目上下文（git、技术栈、文件结构）
+  2. 分类: feature / L 复杂度 / backend / high 风险
+  3. 选择策略: full-collaborate
+  4. 创建 .ccg/tasks/add-jwt-auth/task.json
+  5. 双模型并行分析（Codex + Gemini）
+  6. 产出计划 → HARD STOP 等你审批
+  7. spawn Agent Teams Builder 并行实施
+  8. 质量关卡 + 双模型交叉审查
+  9. 输出结果
 
-# Windows
-choco install jq   # 或: scoop install jq
+每轮 Hook 注入:
+  <ccg-state>
+  Task: add-jwt-auth (in_progress)
+  Strategy: full-collaborate
+  Phase: 4-implementation
+  Next: Layer 1 Builders 执行中
+  </ccg-state>
 ```
 
-### 安装 Claude Code
+## 策略体系
 
-```bash
-npx ccg-workflow menu  # 选择「安装 Claude Code」
-```
+引擎根据任务类型和复杂度自动选择策略：
 
-支持：npm、homebrew、curl、powershell、cmd。
+| 策略 | 场景 | 外部模型 | Teams |
+|------|------|---------|-------|
+| direct-fix | 简单 bug，单文件 | 无 | 无 |
+| quick-implement | 小功能，范围清晰 | 无 | 无 |
+| guided-develop | 中等功能，需要规划 | 单模型 | 无 |
+| full-collaborate | 复杂功能，跨模块 | 双模型并行 | 强制 |
+| debug-investigate | 复杂 bug，原因不明 | 双模型诊断 | 无 |
+| refactor-safely | 代码重构 | 双模型审查 | 无 |
+| deep-research | 技术研究、方案对比 | 双模型探索 | 无 |
+| optimize-measure | 性能优化 | 可选 | 无 |
+| review-audit | 代码审查 | 双模型交叉 | 无 |
+| git-action | commit、rollback 等 | 无 | 无 |
+
+简单任务零开销快速执行。复杂任务启动完整引擎。
 
 ## 命令
 
-### 开发工作流
+v3.0 默认安装 13 个命令。旧版模式额外安装 18 个。
 
-| 命令 | 说明 | 模型 |
-|------|------|------|
-| `/ccg:workflow` | 6 阶段完整工作流 | Codex + Gemini |
-| `/ccg:plan` | 多模型协作规划 (Phase 1-2) | Codex + Gemini |
-| `/ccg:execute` | 多模型协作执行 (Phase 3-5) | Codex + Gemini + Claude |
-| `/ccg:codex-exec` | Codex 全权执行（计划 → 代码 → 审核） | Codex + 多模型审核 |
-| `/ccg:feat` | 智能功能开发 | 自动路由 |
-| `/ccg:frontend` | 前端任务（快速模式） | Gemini |
-| `/ccg:backend` | 后端任务（快速模式） | Codex |
-
-### 分析与质量
-
-| 命令 | 说明 | 模型 |
-|------|------|------|
-| `/ccg:analyze` | 技术分析 | Codex + Gemini |
-| `/ccg:debug` | 问题诊断 + 修复 | Codex + Gemini |
-| `/ccg:optimize` | 性能优化 | Codex + Gemini |
-| `/ccg:test` | 测试生成 | 自动路由 |
-| `/ccg:review` | 代码审查（自动 git diff） | Codex + Gemini |
-| `/ccg:enhance` | Prompt 增强 | 内置 |
-
-### OPSX 规范驱动
+### 核心
 
 | 命令 | 说明 |
 |------|------|
-| `/ccg:spec-init` | 初始化 OPSX 环境 |
-| `/ccg:spec-research` | 需求 → 约束集 |
-| `/ccg:spec-plan` | 约束 → 零决策计划 |
-| `/ccg:spec-impl` | 按计划执行 + 归档 |
-| `/ccg:spec-review` | 双模型交叉审查 |
-
-### Agent Teams（v1.7.60+）
-
-| 命令 | 说明 |
-|------|------|
-| `/ccg:team-research` | 需求 → 约束集（并行探索） |
-| `/ccg:team-plan` | 约束 → 并行实施计划 |
-| `/ccg:team-exec` | spawn Builder teammates 并行写代码 |
-| `/ccg:team-review` | 双模型交叉审查 |
-
-> **前置条件**：需在 `settings.json` 中启用：`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+| `/ccg:go` | 智能入口 — 描述任务，引擎自动处理 |
 
 ### Git 工具
 
 | 命令 | 说明 |
 |------|------|
-| `/ccg:commit` | 智能提交（conventional commit 格式） |
+| `/ccg:commit` | 智能 conventional commit |
 | `/ccg:rollback` | 交互式回滚 |
 | `/ccg:clean-branches` | 清理已合并分支 |
 | `/ccg:worktree` | Worktree 管理 |
 
-### 项目管理
+### 项目
 
 | 命令 | 说明 |
 |------|------|
 | `/ccg:init` | 初始化项目 CLAUDE.md |
-| `/ccg:context` | 项目上下文管理（.context 初始化/日志/压缩/历史） |
+| `/ccg:context` | 项目上下文管理 |
 
-## 工作流指南
+### OpenSpec
 
-### 规划与执行分离
+| 命令 | 说明 |
+|------|------|
+| `/ccg:spec-init` | 初始化 OPSX 环境 |
+| `/ccg:spec-research` | 需求 → 约束集 |
+| `/ccg:spec-plan` | 零决策可执行计划 |
+| `/ccg:spec-impl` | 按规范实施 |
+| `/ccg:spec-review` | 双模型交叉审查 |
 
-```bash
-# 1. 生成实施计划
-/ccg:plan 实现用户认证功能
+## Hook 引擎
 
-# 2. 审查计划（可修改）
-# 计划保存至 .claude/plan/user-auth.md
+CCG 在 `~/.claude/settings.json` 注册 4 个 Hook：
 
-# 3a. 执行计划（Claude 重构）— 精细控制
-/ccg:execute .claude/plan/user-auth.md
+| Hook | 事件 | 作用 |
+|------|------|------|
+| workflow-state.js | UserPromptSubmit | 每轮注入任务状态面包屑 |
+| session-start.js | SessionStart | 会话开始/压缩时注入完整项目上下文 |
+| subagent-context.js | PreToolUse | codeagent-wrapper/Team spawn 时注入 spec + 任务上下文 |
+| skill-router.js | UserPromptSubmit | 检测域关键词，自动注入知识文件 |
 
-# 3b. 执行计划（Codex 全权）— 高效执行，Claude token 极低
-/ccg:codex-exec .claude/plan/user-auth.md
+纯 JavaScript，零依赖，失败时静默退出。
+
+## Task 系统
+
+中等以上复杂度任务创建持久化目录：
+
+```
+.ccg/tasks/add-jwt-auth/
+├── task.json         # 状态、策略、当前阶段、门控
+├── requirements.md   # 增强后的需求
+├── plan.md           # 审批后的计划
+├── context.jsonl     # 子 Agent spec 注入列表
+├── review.md         # 审查结果
+└── research/         # 研究成果
 ```
 
-### OPSX 规范驱动工作流
+workflow-state Hook 每轮读取 task.json 注入状态。上下文压缩后 session-start 重新注入。状态不会丢失。
 
-集成 [OPSX 架构](https://github.com/fission-ai/opsx)，把需求变成约束，让 AI 没法自由发挥：
+## Spec 系统
 
-```bash
-/ccg:spec-init                       # 初始化 OPSX 环境
-/ccg:spec-research 实现用户认证        # 研究需求 → 输出约束集
-/ccg:spec-plan                       # 并行分析 → 零决策计划
-/ccg:spec-impl                       # 按计划执行
-/ccg:spec-review                     # 独立审查（随时可用）
+项目级编码规范在 `.ccg/spec/`：
+
+```
+.ccg/spec/
+├── backend/index.md    # 后端规范
+├── frontend/index.md   # 前端规范
+└── guides/index.md     # 跨模块指南
 ```
 
-> **提示**：`/ccg:spec-*` 命令内部调用 `/opsx:*`。每阶段之间可 `/clear`，状态存在 `openspec/` 目录，不怕上下文爆。
-
-### Agent Teams 并行工作流
-
-利用 Claude Code Agent Teams 实验特性，spawn 多个 Builder teammates 并行写代码：
-
-```bash
-/ccg:team-research 实现实时协作看板 API  # 1. 需求 → 约束集
-# /clear
-/ccg:team-plan kanban-api               # 2. 规划 → 并行计划
-# /clear
-/ccg:team-exec                          # 3. Builder 并行写代码
-# /clear
-/ccg:team-review                        # 4. 双模型交叉审查
-```
-
-> **vs 传统工作流**：Team 系列每步 `/clear` 隔离上下文，通过文件传递状态。适合可拆分为 3+ 独立模块的任务。
+subagent-context Hook 读取 `context.jsonl` 将相关 spec 文件注入到 codeagent-wrapper 调用和 Team spawn 中。子 Agent 自动遵循项目规范。
 
 ## 配置
 
-### 目录结构
-
 ```
 ~/.claude/
-├── commands/ccg/       # 29+ 个斜杠命令
-├── agents/ccg/         # 子智能体
-├── skills/ccg/         # 质量关卡 + 多 Agent 协同
-├── bin/codeagent-wrapper
-└── .ccg/
-    ├── config.toml     # CCG 配置
-    └── prompts/
-        ├── codex/      # 6 个 Codex 专家提示词
-        └── gemini/     # 7 个 Gemini 专家提示词
+├── commands/ccg/          # 斜杠命令
+├── hooks/ccg/             # Hook 脚本（4 个）
+├── .ccg/
+│   ├── config.toml        # 模型路由、MCP、性能
+│   ├── engine/            # 策略文件 + 模型路由器
+│   └── prompts/           # 专家提示词
+├── skills/ccg/            # 质量关卡 + 域知识
+└── bin/codeagent-wrapper  # 多模型执行桥
 ```
 
 ### 环境变量
 
-在 `~/.claude/settings.json` 的 `"env"` 中配置：
+在 `~/.claude/settings.json` 的 `"env"` 中设置：
 
-| 变量 | 说明 | 默认值 | 何时修改 |
-|------|------|--------|----------|
-| `CODEAGENT_POST_MESSAGE_DELAY` | Codex 完成后等待时间（秒） | `5` | Codex 进程挂起时设为 `1` |
-| `CODEX_TIMEOUT` | wrapper 执行超时（秒） | `7200` | 超长任务时增大 |
-| `BASH_DEFAULT_TIMEOUT_MS` | Claude Code Bash 超时（毫秒） | `120000` | 命令超时时增大 |
-| `BASH_MAX_TIMEOUT_MS` | Claude Code Bash 最大超时（毫秒） | `600000` | 长时间构建时增大 |
-
-<details>
-<summary>settings.json 示例</summary>
-
-```json
-{
-  "env": {
-    "CODEAGENT_POST_MESSAGE_DELAY": "1",
-    "CODEX_TIMEOUT": "7200",
-    "BASH_DEFAULT_TIMEOUT_MS": "600000",
-    "BASH_MAX_TIMEOUT_MS": "3600000"
-  }
-}
-```
-
-</details>
-
-### MCP 配置
-
-```bash
-npx ccg-workflow menu  # 选择「配置 MCP」
-```
-
-**代码检索**（多选一）：
-- **ace-tool**（推荐）— 代码检索 `search_context` 可用。[官方](https://augmentcode.com/) | [第三方中转](https://acemcp.heroman.wtf/)
-- **fast-context**（推荐）— Windsurf Fast Context，AI 驱动搜索，无需全量索引。需 Windsurf 账号
-- **ContextWeaver**（备选）— 本地混合搜索，需要硅基流动 API Key（免费）
-
-**辅助工具**（可选）：
-- **Context7** — 获取最新库文档（自动安装）
-- **Playwright** — 浏览器自动化 / 测试
-- **DeepWiki** — 知识库查询
-- **Exa** — 搜索引擎（需 API Key）
-
-### 自动授权 Hook
-
-CCG 安装时自动写入 Hook，自动授权 `codeagent-wrapper` 命令（需 [jq](#安装-jq)）。
-
-<details>
-<summary>手动配置（v1.7.71 之前的版本）</summary>
-
-在 `~/.claude/settings.json` 中添加：
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '.tool_input.command' 2>/dev/null | grep -q 'codeagent-wrapper' && echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"allow\", \"permissionDecisionReason\": \"codeagent-wrapper auto-approved\"}}' || true",
-            "timeout": 1
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-</details>
-
-## 实用工具
-
-```bash
-npx ccg-workflow menu  # 选择「实用工具」
-```
-
-- **ccusage** — Claude Code 用量分析
-- **CCometixLine** — 状态栏工具（Git + 用量跟踪）
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `CODEX_TIMEOUT` | `7200` | Wrapper 超时（秒） |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | 未设置 | 设为 `1` 启用 Agent Teams 并行 |
 
 ## 更新 / 卸载
 
 ```bash
-# 更新
-npx ccg-workflow@latest            # npx 用户
-npm install -g ccg-workflow@latest  # npm 全局用户
-
-# 卸载
-npx ccg-workflow  # 选择「卸载工作流」
-npm uninstall -g ccg-workflow  # npm 全局用户需额外执行
+npx ccg-workflow@latest     # 更新
+npx ccg-workflow            # 菜单中选"卸载"
 ```
 
-## 常见问题
+## 致谢
 
-### Codex CLI 0.80.0 进程不退出
-
-`--json` 模式下 Codex 完成输出后进程不会自动退出。
-
-**解决**：将 `CODEAGENT_POST_MESSAGE_DELAY` 设为 `1`，详见[环境变量](#环境变量)。
-
-## 参与贡献
-
-欢迎贡献！请阅读 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解开发指南。
-
-想找一个入手点？查看标记为 [`good first issue`](https://github.com/fengshao1227/ccg-workflow/labels/good%20first%20issue) 的 Issue。
+- [cexll/myclaude](https://github.com/cexll/myclaude) — codeagent-wrapper 灵感
+- [UfoMiao/zcf](https://github.com/UfoMiao/zcf) — Git 工具参考
+- [mindfold-ai/Trellis](https://github.com/mindfold-ai/Trellis) — Hook 工作流状态模式
+- [ace-tool](https://linux.do/t/topic/1344562) — MCP 代码检索
 
 ## 贡献者
 
@@ -353,24 +214,12 @@ npm uninstall -g ccg-workflow  # npm 全局用户需额外执行
 </table>
 <!-- readme: contributors -end -->
 
-## 致谢
+## 联系
 
-- [cexll/myclaude](https://github.com/cexll/myclaude) — codeagent-wrapper
-- [UfoMiao/zcf](https://github.com/UfoMiao/zcf) — Git 工具
-- [GudaStudio/skills](https://github.com/GuDaStudio/skills) — 路由设计
-- [ace-tool](https://linux.do/t/topic/1344562) — MCP 工具
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=fengshao1227/ccg-workflow&type=timeline&legend=top-left)](https://www.star-history.com/#fengshao1227/ccg-workflow&type=timeline&legend=top-left)
-
-## 联系方式
-
-- **X (Twitter)**: [@CCG_Workflow](https://x.com/CCG_Workflow) — 更新动态、实战演示、使用技巧
-- **邮箱**: [fengshao1227@gmail.com](mailto:fengshao1227@gmail.com) — 赞助、合作洽谈、开发交流
-- **Issues**: [GitHub Issues](https://github.com/fengshao1227/ccg-workflow/issues) — Bug 反馈与功能建议
-- **讨论区**: [GitHub Discussions](https://github.com/fengshao1227/ccg-workflow/discussions) — 问题咨询与社区交流
-- **社区**: [Linux.do](https://linux.do) — 开源技术社区
+- **X (Twitter)**: [@CCG_Workflow](https://x.com/CCG_Workflow)
+- **Email**: [fengshao1227@gmail.com](mailto:fengshao1227@gmail.com)
+- **Issues**: [GitHub Issues](https://github.com/fengshao1227/ccg-workflow/issues)
+- **社区**: [Linux.do](https://linux.do)
 
 ## License
 
@@ -378,4 +227,4 @@ MIT
 
 ---
 
-v2.1.16 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues) | [参与贡献](./CONTRIBUTING.md)
+v3.0.0 | [Issues](https://github.com/fengshao1227/ccg-workflow/issues) | [Contributing](./CONTRIBUTING.md)

@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2026-05-16
+
+Ground-up rewrite. From 29 static commands to an intent-driven engine with hooks, task persistence, and Agent Teams.
+
+### Architecture
+
+- **`/ccg:go` smart entry** — One command replaces 29. Analyzes intent (task type, complexity, domain, risk), selects from 10 strategies, executes with phase gates.
+- **Hook engine** — 4 hooks registered in settings.json:
+  - `workflow-state.js` (UserPromptSubmit) — per-turn task state breadcrumb injection
+  - `session-start.js` (SessionStart) — full project context on session start/clear/compact
+  - `subagent-context.js` (PreToolUse Bash|Agent) — spec + task context injection into codeagent-wrapper and Team spawns
+  - `skill-router.js` (UserPromptSubmit) — auto-inject domain knowledge on keyword detection
+- **Task persistence** — `.ccg/tasks/{name}/` with task.json, requirements.md, plan.md, context.jsonl, review.md, research/
+- **Spec system** — `.ccg/spec/` project-level coding standards, auto-injected via hooks
+- **Agent Teams integration** — `full-collaborate` strategy uses TeamCreate + parallel Builder spawns with file ownership isolation
+
+### Strategies (10)
+
+| Strategy | Complexity | External models | Teams |
+|----------|-----------|----------------|-------|
+| direct-fix | S | No | No |
+| quick-implement | S | No | No |
+| guided-develop | M | Single + dual review | No |
+| full-collaborate | L/XL | Dual parallel | Yes |
+| debug-investigate | M+ | Dual diagnosis | No |
+| refactor-safely | M+ | Dual review | No |
+| deep-research | any | Dual exploration | No |
+| optimize-measure | any | Optional | No |
+| review-audit | any | Dual cross-review | No |
+| git-action | any | No (delegates) | No |
+
+### Quality gates in strategies
+
+`verify-security`, `verify-quality`, `verify-change` called as Skill invocations inside strategy verification phases. Critical findings block delivery.
+
+### Installer
+
+- New/legacy mode selection: v3 core (13 commands) or legacy compat (13 + 18 legacy)
+- Legacy commands moved to `templates/commands-legacy/`
+- Engine files: `templates/engine/` (model-router + phase-guide + 10 strategies)
+- Hook files: `templates/hooks/` (4 JS scripts)
+- Spec templates: `templates/spec/` (backend + frontend + guides skeletons)
+
+### New commands
+
+- `/ccg:go` — Smart entry point
+- `/ccg:spec` — OPSX spec-driven workflow
+
+### Breaking changes
+
+- Default install no longer includes legacy workflow commands (workflow, plan, execute, frontend, backend, feat, analyze, debug, optimize, test, review, enhance, codex-exec, team-*)
+- Select "legacy compat" during install to get all 31 commands
+
+---
+
 ## [2.1.16] - 2026-04-10
 
 ### ✨ 新功能

@@ -64,7 +64,7 @@ export function createDefaultConfig(options: {
       backup: join(CCG_DIR, 'backup'),
     },
     mcp: {
-      provider: options.mcpProvider || 'ace-tool',
+      provider: options.mcpProvider || 'fast-context',
       setup_url: 'https://augmentcode.com/',
     },
     performance: {

@@ -22,6 +22,7 @@ function findPackageRoot(): string {
 
 const PACKAGE_ROOT = findPackageRoot()
 const TEMPLATES_DIR = join(PACKAGE_ROOT, 'templates', 'commands')
+const LEGACY_TEMPLATES_DIR = join(PACKAGE_ROOT, 'templates', 'commands-legacy')
 
 // ─────────────────────────────────────────────────────────────
 // A. Workflow registry consistency
@@ -38,23 +39,28 @@ describe('workflow registry', () => {
       const workflow = getWorkflowById(id)
       expect(workflow, `workflow config missing for: ${id}`).toBeDefined()
       for (const cmd of workflow!.commands) {
-        const templatePath = join(TEMPLATES_DIR, `${cmd}.md`)
+        const corePath = join(TEMPLATES_DIR, `${cmd}.md`)
+        const legacyPath = join(LEGACY_TEMPLATES_DIR, `${cmd}.md`)
         expect(
-          fs.existsSync(templatePath),
-          `template missing: templates/commands/${cmd}.md (from workflow "${id}")`,
+          fs.existsSync(corePath) || fs.existsSync(legacyPath),
+          `template missing: ${cmd}.md (checked commands/ and commands-legacy/)`,
         ).toBe(true)
       }
     }
   })
 
   it('every template file has a matching workflow config', () => {
-    const templateFiles = readdirSync(TEMPLATES_DIR)
+    const coreFiles = readdirSync(TEMPLATES_DIR)
       .filter(f => f.endsWith('.md'))
       .map(f => f.replace('.md', ''))
+    const legacyFiles = fs.existsSync(LEGACY_TEMPLATES_DIR)
+      ? readdirSync(LEGACY_TEMPLATES_DIR).filter(f => f.endsWith('.md')).map(f => f.replace('.md', ''))
+      : []
+    const allTemplates = [...coreFiles, ...legacyFiles]
     const allCommands = getAllCommandIds()
       .flatMap(id => getWorkflowById(id)!.commands)
 
-    for (const template of templateFiles) {
+    for (const template of allTemplates) {
       expect(
         allCommands.includes(template),
         `template "${template}.md" has no workflow config`,

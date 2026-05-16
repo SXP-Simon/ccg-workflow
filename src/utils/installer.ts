@@ -2,7 +2,7 @@ import type { InstallResult } from '../types'
 import ansis from 'ansis'
 import fs from 'fs-extra'
 import { basename, join } from 'pathe'
-import { getWorkflowById } from './installer-data'
+import { getLegacyCommandIds, getWorkflowById } from './installer-data'
 import { PACKAGE_ROOT, injectConfigVariables, replaceHomePathsInTemplate } from './installer-template'
 import { installSkillCommands } from './skill-registry'
 
@@ -13,6 +13,8 @@ import { installSkillCommands } from './skill-registry'
 
 export {
   getAllCommandIds,
+  getCoreCommandIds,
+  getLegacyCommandIds,
   getWorkflowById,
   getWorkflowConfigs,
   getWorkflowPreset,
@@ -216,6 +218,7 @@ async function copyMdTemplates(
  */
 async function installCommandFiles(ctx: InstallContext, workflowIds: string[]): Promise<void> {
   const commandsDir = join(ctx.installDir, 'commands', 'ccg')
+  const legacyIds = new Set(getLegacyCommandIds())
 
   for (const workflowId of workflowIds) {
     const workflow = getWorkflowById(workflowId)
@@ -225,7 +228,9 @@ async function installCommandFiles(ctx: InstallContext, workflowIds: string[]): 
     }
 
     for (const cmd of workflow.commands) {
-      const srcFile = join(ctx.templateDir, 'commands', `${cmd}.md`)
+      // Route to correct source directory: core → commands/, legacy → commands-legacy/
+      const srcSubdir = legacyIds.has(workflowId) ? 'commands-legacy' : 'commands'
+      const srcFile = join(ctx.templateDir, srcSubdir, `${cmd}.md`)
       const destFile = join(commandsDir, `${cmd}.md`)
 
       try {
@@ -236,7 +241,6 @@ async function installCommandFiles(ctx: InstallContext, workflowIds: string[]): 
             content = replaceHomePathsInTemplate(content, ctx.installDir)
             await fs.writeFile(destFile, content, 'utf-8')
           }
-          // Count as installed whether written or already existing
           ctx.result.installedCommands.push(cmd)
         }
         else {
@@ -653,6 +657,154 @@ async function installBinaryFile(ctx: InstallContext): Promise<void> {
 }
 
 // ═══════════════════════════════════════════════════════
+// CCG 3.0 Engine installation
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Install the unified /ccg entry point command.
+ * Installed to ~/.claude/commands/ccg.md (NOT commands/ccg/) for clean /ccg invocation.
+ */
+async function installCcgEntryCommand(ctx: InstallContext): Promise<void> {
+  const srcFile = join(ctx.templateDir, 'commands', 'ccg.md')
+  const destFile = join(ctx.installDir, 'commands', 'ccg.md')
+
+  try {
+    if (await fs.pathExists(srcFile)) {
+      if (ctx.force || !(await fs.pathExists(destFile))) {
+        let content = await fs.readFile(srcFile, 'utf-8')
+        content = injectConfigVariables(content, ctx.config)
+        content = replaceHomePathsInTemplate(content, ctx.installDir)
+        await fs.writeFile(destFile, content, 'utf-8')
+      }
+      ctx.result.installedCommands.push('ccg (unified entry)')
+    }
+  }
+  catch (error) {
+    ctx.result.errors.push(`Failed to install /ccg entry: ${error}`)
+  }
+}
+
+/**
+ * Install engine files from templates/engine/ → ~/.claude/.ccg/engine/
+ * Includes model-router.md, phase-guide.md, and strategy files.
+ * All .md files receive variable injection + path replacement.
+ */
+async function installEngineFiles(ctx: InstallContext): Promise<void> {
+  const engineSrcDir = join(ctx.templateDir, 'engine')
+  if (!(await fs.pathExists(engineSrcDir))) return
+
+  const engineDestDir = join(ctx.installDir, '.ccg', 'engine')
+
+  try {
+    // Copy top-level engine .md files (model-router.md, phase-guide.md)
+    await copyMdTemplates(ctx, engineSrcDir, engineDestDir, { inject: true })
+
+    // Copy strategy files
+    const strategiesSrc = join(engineSrcDir, 'strategies')
+    const strategiesDest = join(engineDestDir, 'strategies')
+    if (await fs.pathExists(strategiesSrc)) {
+      await copyMdTemplates(ctx, strategiesSrc, strategiesDest, { inject: true })
+    }
+  }
+  catch (error) {
+    ctx.result.errors.push(`Failed to install engine files: ${error}`)
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CCG 3.0 Hook installation
+// ═══════════════════════════════════════════════════════
+
+const HOOK_FILES = ['task-utils.js', 'workflow-state.js', 'session-start.js', 'subagent-context.js', 'skill-router.js']
+
+/**
+ * Install CCG hook scripts to ~/.claude/hooks/ccg/
+ */
+async function installHookScripts(ctx: InstallContext): Promise<void> {
+  const hooksSrcDir = join(ctx.templateDir, 'hooks')
+  if (!(await fs.pathExists(hooksSrcDir))) return
+
+  const hooksDestDir = join(ctx.installDir, 'hooks', 'ccg')
+  await fs.ensureDir(hooksDestDir)
+
+  try {
+    for (const file of HOOK_FILES) {
+      const src = join(hooksSrcDir, file)
+      const dest = join(hooksDestDir, file)
+      if (await fs.pathExists(src)) {
+        await fs.copy(src, dest, { overwrite: true })
+      }
+    }
+  }
+  catch (error) {
+    ctx.result.errors.push(`Failed to install hook scripts: ${error}`)
+  }
+}
+
+/**
+ * Register CCG hooks in ~/.claude/settings.json.
+ * Merges with existing hooks — does not overwrite user's other hooks.
+ */
+async function registerHooksInSettings(ctx: InstallContext): Promise<void> {
+  const settingsPath = join(ctx.installDir, 'settings.json')
+  const hooksDir = join(ctx.installDir, 'hooks', 'ccg')
+
+  try {
+    let settings: Record<string, unknown> = {}
+    if (await fs.pathExists(settingsPath)) {
+      try {
+        settings = JSON.parse(await fs.readFile(settingsPath, 'utf-8'))
+      }
+      catch {
+        settings = {}
+      }
+    }
+
+    const hooks = (settings.hooks || {}) as Record<string, unknown[]>
+
+    const ccgHookDefs = {
+      UserPromptSubmit: {
+        hooks: [
+          { type: 'command', command: `node ${join(hooksDir, 'workflow-state.js')}`, timeout: 10000 },
+          { type: 'command', command: `node ${join(hooksDir, 'skill-router.js')}`, timeout: 5000 },
+        ],
+      },
+      SessionStart: {
+        matcher: 'startup|clear|compact',
+        hooks: [{ type: 'command', command: `node ${join(hooksDir, 'session-start.js')}`, timeout: 15000 }],
+      },
+      PreToolUse: {
+        matcher: 'Bash|Agent',
+        hooks: [{ type: 'command', command: `node ${join(hooksDir, 'subagent-context.js')}`, timeout: 15000 }],
+      },
+    }
+
+    for (const [event, def] of Object.entries(ccgHookDefs)) {
+      const eventHooks = (hooks[event] || []) as Record<string, unknown>[]
+      const ccgCommand = (def.hooks[0] as Record<string, unknown>).command as string
+      const existingIdx = eventHooks.findIndex((h) => {
+        const hHooks = (h.hooks || []) as Record<string, unknown>[]
+        return hHooks.some(hh => typeof hh.command === 'string' && hh.command.includes('hooks/ccg/'))
+      })
+
+      if (existingIdx >= 0) {
+        eventHooks[existingIdx] = def
+      }
+      else {
+        eventHooks.push(def)
+      }
+      hooks[event] = eventHooks
+    }
+
+    settings.hooks = hooks
+    await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8')
+  }
+  catch (error) {
+    ctx.result.errors.push(`Failed to register hooks in settings.json: ${error}`)
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // Public API: install / uninstall
 // ═══════════════════════════════════════════════════════
 
@@ -683,7 +835,7 @@ export async function installWorkflows(
         review: { models: ['codex', 'gemini'] },
       },
       liteMode: config?.liteMode || false,
-      mcpProvider: config?.mcpProvider || 'ace-tool',
+      mcpProvider: config?.mcpProvider || 'fast-context',
       skipImpeccable: config?.skipImpeccable || false,
     },
     templateDir: join(PACKAGE_ROOT, 'templates'),
@@ -713,9 +865,13 @@ export async function installWorkflows(
   await fs.ensureDir(join(installDir, 'commands', 'ccg'))
   await fs.ensureDir(join(installDir, '.ccg'))
   await fs.ensureDir(join(installDir, '.ccg', 'prompts'))
+  await fs.ensureDir(join(installDir, '.ccg', 'engine', 'strategies'))
 
   // Execute each install step
   await installCommandFiles(ctx, workflowIds)
+  await installEngineFiles(ctx)
+  await installHookScripts(ctx)
+  await registerHooksInSettings(ctx)
   await installAgentFiles(ctx)
   await installPromptFiles(ctx)
   await installSkillFiles(ctx)
