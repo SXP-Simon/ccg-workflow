@@ -74,6 +74,10 @@ jobs:
           prerelease: true
           make_latest: false
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install wrangler
         run: npm i -g wrangler@latest
 
