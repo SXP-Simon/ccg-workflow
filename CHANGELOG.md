@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.5] - 2026-05-18
+
+### 🐛 Fixes
+
+- **guided-develop forced dual-model analysis** — M complexity Phase 3 changed from "optional single model based on domain" to mandatory dual-model parallel (Gemini + Codex both called). Aligns CC mode with Codex mode rule: M+ = always both models.
+
+---
+
 ## [3.0.4] - 2026-05-17
 
 ### ✨ New Features

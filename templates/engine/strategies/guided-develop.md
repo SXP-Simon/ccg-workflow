@@ -71,18 +71,17 @@ Gate: 实施已完成 ✓
 
 **Gate check**: 需求已增强 ✓ 上下文已收集 ✓
 
-**M 复杂度必须调用外部模型进行分析。** 不可跳过。
+**⛔ M 复杂度必须调用双模型（Gemini + Codex）并行分析。不可只调一个，不可跳过。**
+
+这是多模型协作的核心价值——两个模型从不同角度分析同一个问题，交叉验证，弥补单模型盲区。
 
 执行步骤：
 
 1. 确定工作目录：`WORKDIR=$(pwd)`
-2. 根据领域选择模型：
-   - 后端任务 → backend 模型（codex）+ analyzer 角色
-   - 前端任务 → frontend 模型（gemini）+ analyzer 角色
-   - 全栈任务 → 双模型并行
 
-3. **调用 codeagent-wrapper**（必须实际执行，不是读文件）：
+2. **并行调用双模型**（`run_in_background: true`，两个同时启动）：
 
+Backend 模型：
 ```
 Bash({
   command: "~/.claude/bin/codeagent-wrapper {{LITE_MODE_FLAG}}--progress --backend codex {{GEMINI_MODEL_FLAG}}- \"$WORKDIR\" <<'CODEAGENT_EOF'\nROLE_FILE: ~/.claude/.ccg/prompts/codex/analyzer.md\n<TASK>\n需求：{增强后的需求}\n上下文：{Phase 2 收集的项目上下文、相关代码摘要}\n</TASK>\nOUTPUT: 技术分析报告（可行性、架构建议、风险评估、实施方案对比）\nCODEAGENT_EOF",
@@ -92,10 +91,10 @@ Bash({
 })
 ```
 
-如果是全栈任务，同时启动 frontend 模型：
+Frontend 模型（**必须同时启动，不是"如果是全栈才调"**）：
 ```
 Bash({
-  command: "~/.claude/bin/codeagent-wrapper {{LITE_MODE_FLAG}}--progress --backend gemini {{GEMINI_MODEL_FLAG}}- \"$WORKDIR\" <<'CODEAGENT_EOF'\nROLE_FILE: ~/.claude/.ccg/prompts/gemini/analyzer.md\n<TASK>\n需求：{增强后的需求}\n上下文：{Phase 2 收集的项目上下文}\n</TASK>\nOUTPUT: 前端/UX 视角分析报告\nCODEAGENT_EOF",
+  command: "~/.claude/bin/codeagent-wrapper {{LITE_MODE_FLAG}}--progress --backend gemini {{GEMINI_MODEL_FLAG}}- \"$WORKDIR\" <<'CODEAGENT_EOF'\nROLE_FILE: ~/.claude/.ccg/prompts/gemini/analyzer.md\n<TASK>\n需求：{增强后的需求}\n上下文：{Phase 2 收集的项目上下文}\n</TASK>\nOUTPUT: 从不同视角的分析报告（可行性、设计建议、风险评估）\nCODEAGENT_EOF",
   run_in_background: true,
   timeout: 3600000,
   description: "Frontend 模型分析"
